@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Confirmar Exclusão{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Lista de Planejamentos</a></li>
+    <li class="breadcrumb-item">Excluir Planejamento</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>Tem certeza que deseja excluir "{{ planejamento.nome }}"?</h3>
+    <p>Essa ação não pode ser desfeita.</p>
+    
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar</button>
+        <a class="btn btn-secondary" href="{% url 'planejamento_detail' planejamento.pk %}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

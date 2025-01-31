@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Confirmar Exclusão da Escala{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_list' %}">Lista de Eventos</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_detail' escala.evento.pk %}">{{ escala.evento.nome }}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_escalas' escala.evento.pk %}">Lista de Escalas</a></li>
+    <li class="breadcrumb-item active">Excluir Escala</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>Tem certeza que deseja excluir esta escala?</h3>
+    <p><strong>Usuario:</strong> {{ escala.usuario.username }}</p>
+    <p><strong>Evento:</strong> {{ escala.evento.nome }}</p>
+    <p><strong>Função:</strong> {{ escala.funcao.nome }}</p>
+    <p><strong>Confirmada:</strong> {% if escala.confirmada %}✅ Sim {% else %}❌ Não {% endif %}</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
+        <a class="btn btn-secondary" href="{% url 'escala_detail' escala.pk %}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

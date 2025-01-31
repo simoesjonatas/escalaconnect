@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes da Equipe {{equipe}}  {% endblock page_title %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+</ul>
+{% endblock breadcrumb %}
+
+
+{% block content %}
+<div class="container">
+    <h3>{{ equipe.nome }}</h3>
+    <ul>
+        <li><strong>ID:</strong> {{ equipe.id }}</li>
+    </ul>
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'equipe_list' %}">Voltar</a>
+        <a class="btn btn-warning" href="{% url 'equipe_update' equipe.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'equipe_delete' equipe.pk %}">Excluir</a>
+    </div>
+
+    
+</div>
+<br>
+<div class="container">
+    <div class="clearfix">
+        <a class="btn btn-primary" href="{% url 'listar_funcoes' equipe.pk %}" >
+            Funções
+        </a>
+
+        <a class="btn btn-secondary" href="{% url 'listar_liderancas' equipe.pk %}">
+            Lideres 
+        </a>
+
+        <a class="btn btn-warning" href="{% url 'listar_membros_equipe' equipe.pk %}">
+            Integrantes 
+        </a>
+    </div>
+</div>
+
+
+{% endblock %}

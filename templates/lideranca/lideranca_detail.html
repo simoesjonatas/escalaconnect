@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes da Liderança {{ lideranca.usuario }}{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' lideranca.equipe.pk %}">{{ lideranca.equipe.nome }}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'listar_liderancas' lideranca.equipe.pk %}">Lideranças</a></li>    
+    <li class="breadcrumb-item">Detalhes da Liderança</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>{{ lideranca.usuario }}</h3>
+    <ul>
+        <li><strong>Equipe:</strong> {{ lideranca.equipe.nome }}</li>
+    </ul>
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'listar_liderancas' lideranca.equipe.pk %}">Voltar</a>
+        <a class="btn btn-warning" href="{% url 'lideranca_update' lideranca.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'lideranca_delete' lideranca.pk %}">Excluir</a>
+    </div>
+</div>
+{% endblock %}

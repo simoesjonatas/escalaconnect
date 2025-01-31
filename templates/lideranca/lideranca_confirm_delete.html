@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Confirmar Exclusão{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' lideranca.equipe.pk %}">{{ lideranca.equipe.nome }}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'listar_liderancas' lideranca.equipe.pk %}">Lideranças</a></li>    
+    <li class="breadcrumb-item active">Excluir Liderança</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>Tem certeza que deseja excluir "{{ lideranca.usuario }}" da liderança da equipe?</h3>
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar</button>
+        <a class="btn btn-secondary" href="{% url 'lideranca_detail' lideranca.pk %}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

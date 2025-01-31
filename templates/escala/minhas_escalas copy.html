@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Minhas Escalas
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item">Minhas Escalas</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <div class="clearfix mb-3">
+        <form method="GET" class="form-inline">
+            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar Escala..." value="{{ query }}">
+            <button type="submit" class="btn btn-primary mr-2">Buscar</button>
+            <a class="btn btn-secondary" href="{% url 'minhas_escalas' %}">Limpar Filtro</a>
+        </form>
+    </div>
+    
+    <div class="table-responsive">
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    {% for field_display in escala_fields %}
+                    <th>
+                        <a href="?q={{ query }}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
+                            {{ field_display.1 }}
+                            {% if order_by == field_display.0 %}
+                                <i class="fa {% if direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+                            {% endif %}
+                        </a>
+                    </th>
+                    {% endfor %}
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for escala in page_obj %}
+                <tr onclick="window.location.href='{% url 'minha_escala_detail' escala.pk %}'">
+                    <td>{{ escala.evento.nome }}</td>
+                    <td>{{ escala.funcao.nome }}</td>
+                    <td>
+                        {% if escala.confirmada %}
+                            <span class="badge badge-success">Confirmada</span>
+                        {% else %}
+                            <span class="badge badge-warning">Pendente</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ escala.data_confirmacao|default:"-" }}</td>
+                    <td>
+                        <a class="btn btn-info" href="{% url 'minha_escala_detail' escala.pk %}">Detalhes</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">Nenhuma escala encontrada.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginação -->
+    {% include 'includes/pagination.html' %}
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Membros da Equipe {{ equipe }}
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
+    <li class="breadcrumb-item">Lista de Membros</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <div class="clearfix mb-3">
+        <form method="GET" class="form-inline">
+            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar Membro..." value="{{ query }}">
+            <button type="submit" class="btn btn-primary mr-2">Buscar</button>
+            <a class="btn btn-secondary" href="{% url 'listar_membros_equipe' equipe_pk=equipe.pk %}">Limpar Filtro</a>
+        </form>
+        <a class="btn btn-success float-right" href="{% url 'membros_equipe_create' equipe_pk=equipe.pk %}">Adicionar Membro</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    {% for field_display in membros_fields %}
+                    <th>
+                        <a href="?q={{ query }}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
+                            {{ field_display.1 }}
+                            {% if order_by == field_display.0 %}
+                                <i class="fa {% if direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+                            {% endif %}
+                        </a>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for membro in page_obj %}
+                <tr onclick="window.location.href='{% url 'membros_equipe_detail' membro.pk %}'">
+                    <td>{{ membro.id }}</td>
+                    <td>{{ membro.usuario }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">Nenhum membro encontrado para esta equipe.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Paginação -->
+    {% include 'includes/pagination.html' %}
+</div>
+{% endblock %}

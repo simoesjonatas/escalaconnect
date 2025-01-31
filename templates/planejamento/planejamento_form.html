@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Adicionar/Editar Planejamento{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Lista de Planejamentos</a></li>
+    <li class="breadcrumb-item">Adicionar/Editar Planejamento</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>{% if form.instance.pk %}Editar{% else %}Adicionar{% endif %} Planejamento</h3>
+
+    <form method="POST">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="id_nome">Nome do Planejamento</label>
+            {{ form.nome }}
+        </div>
+
+        <h4>Funções Associadas</h4>
+        <div id="funcoes-container">
+            {% for form_funcao in formset %}
+                <div class="funcao-item">
+                    {{ form_funcao.funcao }}
+                    <button type="button" class="btn btn-danger remove-funcao">Remover</button>
+                </div>
+            {% endfor %}
+        </div>
+
+        <button type="button" id="add-funcao" class="btn btn-primary">Adicionar Função</button>
+
+        <button type="submit" class="btn btn-success">Salvar</button>
+        <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Cancelar</a>
+    </form>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("add-funcao").addEventListener("click", function () {
+            let container = document.getElementById("funcoes-container");
+            let newElement = document.createElement("div");
+            newElement.classList.add("funcao-item");
+            newElement.innerHTML = `
+                <select name="funcoes" class="form-control">
+                    {% for funcao in funcoes_disponiveis %}
+                        <option value="{{ funcao.id }}">{{ funcao.nome }}</option>
+                    {% endfor %}
+                </select>
+                <button type="button" class="btn btn-danger remove-funcao">Remover</button>
+            `;
+            container.appendChild(newElement);
+
+            newElement.querySelector(".remove-funcao").addEventListener("click", function () {
+                newElement.remove();
+            });
+        });
+
+        document.querySelectorAll(".remove-funcao").forEach(function (button) {
+            button.addEventListener("click", function () {
+                this.parentElement.remove();
+            });
+        });
+    });
+</script>
+{% endblock %}

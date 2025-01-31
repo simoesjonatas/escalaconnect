@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes do Planejamento{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Lista de Planejamentos</a></li>
+    <li class="breadcrumb-item">Detalhes do Planejamento</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>{{ planejamento.nome }}</h3>
+    <ul>
+        <li><strong>Data de Cadastro:</strong> {{ planejamento.data_cadastro }}</li>
+        <li><strong>Última Atualização:</strong> {{ planejamento.data_atualizacao }}</li>
+    </ul>
+    
+    <h4>Funções Associadas:</h4>
+    <ul>
+        {% for funcao in planejamento.funcoes.all %}
+            <li>{{ funcao.nome }}</li>
+        {% empty %}
+            <li>Não há funções associadas.</li>
+        {% endfor %}
+    </ul>
+
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Voltar</a>
+        <a class="btn btn-warning" href="{% url 'planejamento_update' planejamento.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'planejamento_delete' planejamento.pk %}">Excluir</a>
+    </div>
+</div>
+{% endblock %}

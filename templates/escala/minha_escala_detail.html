@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes da Minha Escala{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'minhas_escalas' %}">Minhas Escalas</a></li>
+    <li class="breadcrumb-item">Detalhes da Escala</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>{{ escala.evento.nome }}</h3>
+    <ul>
+        <li><strong>Equipe:</strong> {{ escala.funcao.equipe.nome }}</li>
+        <li><strong>Função:</strong> {{ escala.funcao.nome }}</li>
+        <li><strong>Data do Evento:</strong> {{ escala.evento.data_inicio }} - {{ escala.evento.data_fim }}</li>
+        <li><strong>Status:</strong> 
+            {% if escala.confirmada %}
+                <span class="badge badge-success">Confirmada</span>
+            {% else %}
+                <span class="badge badge-warning">Pendente</span>
+            {% endif %}
+        </li>
+        <li><strong>Data de Confirmação:</strong> {{ escala.data_confirmacao|default:"-" }}</li>
+    </ul>
+    
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'minhas_escalas' %}">Voltar</a>
+        
+        {% if not escala.confirmada %}
+            <form method="POST" action="{% url 'confirmar_minha_escala' escala.pk %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success">Confirmar Escala</button>
+            </form>
+        {% else %}
+            <form method="post" action="#" style="display:inline;">
+                <!-- url 'sinalizar_impedimento' escala.pk  -->
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Sinalizar Impedimento</button>
+            </form>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

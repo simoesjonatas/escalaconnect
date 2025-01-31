@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes do Evento{% endblock page_title %}
+
+{% block content %}
+<div class="container">
+    <h3>{{ evento.nome }}</h3>
+    <ul>
+        <li><strong>Data de Início:</strong> {{ evento.data_inicio }}</li>
+        <li><strong>Data de Fim:</strong> {{ evento.data_fim }}</li>
+        <li><strong>Observação:</strong> {{ evento.observacao }}</li>
+    </ul>
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'evento_list' %}">Voltar</a>
+        <a class="btn btn-warning" href="{% url 'evento_update' evento.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'evento_delete' evento.pk %}">Excluir</a>
+        <a class="btn btn-info" href="{% url 'evento_escalas' evento.pk %}">Planejamento de Equipe</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Planejamentos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h3>Planejamentos</h3>
+    <a class="btn btn-success mb-3" href="{% url 'planejamento_create' %}">Novo Planejamento</a>
+    
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Data de Cadastro</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for planejamento in page_obj %}
+            <tr>
+                <td>{{ planejamento.nome }}</td>
+                <td>{{ planejamento.data_cadastro }}</td>
+                <td>
+                    <a class="btn btn-info" href="{% url 'planejamento_detail' planejamento.pk %}">Detalhes</a>
+                    <a class="btn btn-warning" href="{% url 'planejamento_update' planejamento.pk %}">Editar</a>
+                    <a class="btn btn-danger" href="{% url 'planejamento_delete' planejamento.pk %}">Excluir</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3" class="text-center">Nenhum planejamento encontrado.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

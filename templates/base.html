@@ -1,0 +1,102 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escalaconnect</title>
+    <!-- <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/calendario.css">
+    <link rel="stylesheet" href="/static/css/pagination.css">
+    <link rel="stylesheet" href="/static/css/botoes.css">
+    <link rel="stylesheet" href="/static/css/breadcrumb.css"> -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/calendario.css' %}">
+    <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
+    <link rel="stylesheet" href="{% static 'css/botoes.css' %}">
+    <link rel="stylesheet" href="{% static 'css/breadcrumb.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/modal.css' %}">
+
+    
+    <!-- baixei o arquivo -->
+
+    <!-- seta  -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"> -->
+    <link rel="stylesheet" href="{% static 'css/fontawesome/all.min.css' %}">
+    <!-- FullCalendar CSS -->
+    <script src="{% static 'js/fullcalendar/index.global.min.js' %}"></script>
+    <!-- <script src="
+    https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js
+    "></script> -->
+
+</head>
+<body>
+        <!-- Sidebar Menu -->
+        {% include 'includes/menu.html' %}
+
+        <!-- Content Area -->
+        <main class="content">
+            <header class="topbar">
+                <button class="menu-toggle" id="menuToggle" style="display: none;">&#9776;</button>
+                <h2>{% block page_title %}{% endblock page_title %}</h2>
+            </header>
+                        
+            <div class="main-content">
+                <div class="app-title">
+                    {% block breadcrumb %}{% endblock breadcrumb %}
+                </div>
+                {% if messages %}
+                    <div class="alert-container mb-4 p-3 border border-danger rounded" style="background-color: #f8d7da;">
+                        {% for message in messages %}
+                            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+                                <strong>Atenção:</strong> {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                {% block content %}
+                <!-- Conteúdo dinâmico será injetado aqui -->
+                {% endblock %}
+        </main>
+    </div>
+
+    {% if not user.is_authenticated %}
+        <script>
+            window.location.href = "/login/";
+        </script>
+    {% endif %}
+
+
+    <script>
+        // Script para toggle do menu lateral
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.querySelector('.sidebar');
+
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                menuToggle.style.display = 'block';
+            } else {
+                menuToggle.style.display = 'none';
+                sidebar.classList.remove('active');
+            }
+        }
+
+        menuToggle.addEventListener('click', (event) => {
+            sidebar.classList.toggle('active');
+            event.stopPropagation(); // Evita que o clique propague para o body
+        });
+
+        document.addEventListener('click', (event) => {
+            // Fecha o menu ao clicar fora, se ele estiver aberto
+            if (!sidebar.contains(event.target) && !menuToggle.contains(event.target)) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('load', handleResize);
+    </script>
+</body>
+</html>

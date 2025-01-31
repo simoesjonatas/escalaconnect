@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Painel Inicial{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Olá, {{ user.username }}!</h2>
+    <p>Escolha uma das opções abaixo para navegar no sistema:</p>
+
+    <div class="dashboard-grid">
+        <a href="{% url 'minhas_escalas' %}" class="dashboard-card">
+            <i class="fa fa-calendar-check"></i>
+            <h3>Minhas Escalas</h3>
+            <p>Veja suas escalas e horários.</p>
+        </a>
+
+        <a href="{% url 'calendario' %}" class="dashboard-card">
+            <i class="fa fa-calendar-alt"></i>
+            <h3>Calendário</h3>
+            <p>Visualize os eventos no calendário.</p>
+        </a>
+        
+        <a href="#" class="dashboard-card">
+            <i class="fa fa-calendar-plus"></i>
+            <h3>Cadastrar Disponibilidade</h3>
+            <p>Informe quando estiver disponível para escalas.</p>
+        </a>
+        
+        <a href="#" class="dashboard-card">
+            <i class="fa fa-user-clock"></i>
+            <h3>Registrar Ocupação</h3>
+            <p>Informe quando estiver indisponível.</p>
+        </a>
+        
+        <a href="{% url 'evento_list' %}" class="dashboard-card">
+            <i class="fa fa-calendar"></i>
+            <h3>Eventos</h3>
+            <p>Acesse os eventos e programações.</p>
+        </a>
+
+        <a href="{% url 'equipe_list' %}" class="dashboard-card">
+            <i class="fa fa-users"></i>
+            <h3>Equipes</h3>
+            <p>Gerencie suas equipes e membros.</p>
+        </a>
+
+
+        <!-- <a class="dashboard-card logout-card">
+            <form action="{% url 'logout' %}" method="post" class="dashboard-card logout-card">
+                {% csrf_token %}
+                <i class="fa fa-sign-out-alt"></i>
+                <button type="submit" style="all: unset; color: inherit; cursor: pointer; font-size: inherit; width: 100%; text-align: left; padding: 15px 20px; display: block;">Sair</button>
+            </form>
+        </a> -->
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Criar Eventos Recorrentes{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h3>Criar Eventos Recorrentes</h3>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+            {{ form.as_p }}
+        </div>
+        <button type="submit" class="btn btn-success">Gerar Eventos</button>
+    </form>
+</div>
+{% endblock %}

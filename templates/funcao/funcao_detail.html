@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes da Função {{funcao}} {% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' funcao.equipe.pk %}">{{ funcao.equipe.nome }}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'listar_funcoes' funcao.equipe.pk %}">Funções</a></li>    
+    <li class="breadcrumb-item">Detalhes da Função</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>{{ funcao.nome }}</h3>
+    <ul>
+        <li><strong>Equipe:</strong> {{ funcao.equipe.nome }}</li>
+    </ul>
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'listar_funcoes' funcao.equipe.pk %}">Voltar</a>
+        <a class="btn btn-warning" href="{% url 'funcao_update' funcao.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'funcao_delete' funcao.pk %}">Excluir</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,234 @@
+/* Geral */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Estilos gerais para a página de eventos */
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 250px;
+    background-color: #2c3e50;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: transform 0.3s ease-in-out;
+}
+
+.sidebar.active {
+    transform: translateX(-250px);
+}
+
+.sidebar .logo {
+    padding: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    background-color: #34495e;
+    border-bottom: 1px solid #1c2833;
+}
+
+.sidebar .menu {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.sidebar .menu li {
+    border-bottom: 1px solid #1c2833;
+}
+
+.sidebar .menu li a {
+    display: block;
+    padding: 15px 20px;
+    color: white;
+    text-decoration: none;
+    transition: background-color 0.2s;
+}
+
+.sidebar .menu li a:hover {
+    background-color: #1abc9c;
+}
+
+/* Content Area */
+.content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #ecf0f1;
+    overflow-y: auto;
+}
+
+.topbar {
+    background-color: #34495e;
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.menu-toggle {
+    font-size: 24px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    outline: none;
+}
+
+.main-content {
+    padding: 20px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .sidebar {
+        position: absolute;
+        height: 100%;
+        transform: translateX(-250px);
+    }
+
+    .sidebar.active {
+        transform: translateX(0);
+    }
+}
+
+
+/* Estilos gerais para a página de eventos */
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    background: none;
+    padding: 10px 0;
+    font-size: 14px;
+}
+
+/* Formulário de busca */
+.form-inline {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-inline input {
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+/* Botões */
+.btn {
+    padding: 8px 15px;
+    font-size: 14px;
+    border-radius: 5px;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border: none;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border: none;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover {
+    opacity: 0.8;
+}
+
+/* Tabela responsiva */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.table th,
+.table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+/* Ícones de ordenação */
+.fa-sort-up,
+.fa-sort-down {
+    margin-left: 5px;
+    font-size: 12px;
+}
+
+.table-responsive {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; }
+    .table-responsive > .table-bordered {
+      border: 0; }
+
+/* Tornar a linha da tabela clicável */
+.table tbody tr {
+    cursor: pointer;
+    transition: background 0.3s ease-in-out;
+}
+
+.table tbody tr:hover {
+    background-color: #e9ecef;
+    transform: scale(1.02);
+}
+
+th a {
+    text-decoration: none;
+    color: #000;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+th a:hover {
+    color: #007bff;
+}
+
+.fa-arrow-up,
+.fa-arrow-down {
+    font-size: 12px;
+    color: #007bff;
+}

@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Adicionar/Editar Função{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
+    <li class="breadcrumb-item">Adicionar/Editar Função</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <form method="POST">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Salvar</button>
+        <a class="btn btn-secondary" href="{% url 'listar_funcoes' equipe.pk %}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

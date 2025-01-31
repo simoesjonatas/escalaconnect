@@ -1,0 +1,31 @@
+<div class="pagination-container">
+    <nav>
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?q={{ query }}&page={{ page_obj.previous_page_number }}&order_by={{ order_by }}&direction={{ direction }}">Anterior</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Anterior</span>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?q={{ query }}&page={{ num }}&order_by={{ order_by }}&direction={{ direction }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?q={{ query }}&page={{ page_obj.next_page_number }}&order_by={{ order_by }}&direction={{ direction }}">Próxima</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">Próxima</span>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>

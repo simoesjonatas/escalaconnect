@@ -1,0 +1,53 @@
+/* Estilos para o breadcrumb */
+.app-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    list-style: none;
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-radius: 5px;
+    font-size: 14px;
+    overflow: hidden;
+    max-width: 100%;
+    word-break: break-word;
+}
+
+.app-breadcrumb .breadcrumb-item {
+    display: flex;
+    align-items: center;
+    color: #6c757d;
+    white-space: nowrap;
+}
+
+.app-breadcrumb .breadcrumb-item a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.app-breadcrumb .breadcrumb-item a:hover {
+    text-decoration: underline;
+}
+
+.app-breadcrumb .breadcrumb-item i {
+    margin-right: 5px;
+    font-size: 16px;
+    color: #007bff;
+}
+
+.app-breadcrumb .breadcrumb-item:not(:last-child)::after {
+    content: "/";
+    margin: 0 8px;
+    color: #6c757d;
+}
+
+@media (max-width: 768px) {
+    .app-breadcrumb {
+        font-size: 12px;
+        padding: 8px;
+    }
+    .app-breadcrumb .breadcrumb-item {
+        display: block;
+        text-align: center;
+    }
+}

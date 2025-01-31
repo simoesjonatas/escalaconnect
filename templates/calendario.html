@@ -1,0 +1,151 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Calendário{% endblock %}
+
+{% block content %}
+
+<div id="calendar"></div>
+
+<!-- Modal para adicionar/editar evento -->
+<div id="eventModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="modalTitle">Criar Evento</h2>
+        <form id="eventForm">
+            <input type="hidden" id="eventId">
+
+            <label for="eventTitle">Título:</label>
+            <input type="text" id="eventTitle" class="form-control" required>
+
+            <label for="eventStart">Data de Início:</label>
+            <input type="datetime-local" id="eventStart" class="form-control" required>
+
+            <label for="eventEnd">Data de Fim:</label>
+            <input type="datetime-local" id="eventEnd" class="form-control" required>
+
+            <div class="modal-buttons">
+                <button type="submit" id="saveEventBtn" class="btn btn-success">Salvar</button>
+                <button type="button" id="deleteEventBtn" class="btn btn-danger" style="display: none;">Excluir</button>
+                <a id="viewEventBtn" class="btn btn-primary" style="display: none;">Ir para Evento</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var modal = document.getElementById("eventModal");
+    var closeModal = document.getElementsByClassName("close")[0];
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: '/api/events/',
+
+        dateClick: function(info) {
+            modal.style.display = "block";
+            document.getElementById("modalTitle").textContent = "Criar Evento";
+            document.getElementById('eventId').value = "";
+            document.getElementById('eventTitle').value = "";
+            document.getElementById('eventStart').value = info.dateStr + "T00:00";
+            document.getElementById('eventEnd').value = info.dateStr + "T23:59";
+            document.getElementById('deleteEventBtn').style.display = "none";
+            document.getElementById('viewEventBtn').style.display = "none";
+        },
+
+        eventClick: function(info) {
+            modal.style.display = "block";
+            document.getElementById("modalTitle").textContent = "Editar Evento";
+            document.getElementById('eventId').value = info.event.id;
+            document.getElementById('eventTitle').value = info.event.title;
+            document.getElementById('eventStart').value = info.event.start.toISOString().slice(0, 16);
+            document.getElementById('eventEnd').value = info.event.end ? info.event.end.toISOString().slice(0, 16) : "";
+            document.getElementById('deleteEventBtn').style.display = "inline-block";
+
+            // Define o link para ir para os detalhes do evento
+            var viewEventBtn = document.getElementById('viewEventBtn');
+            viewEventBtn.href = `/api/events/${info.event.id}`; 
+            viewEventBtn.style.display = "inline-block";
+        }
+    });
+
+    calendar.render();
+
+    closeModal.onclick = function() {
+        modal.style.display = "none";
+    };
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    };
+
+    document.getElementById('eventForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        var id = document.getElementById('eventId').value;
+        var title = document.getElementById('eventTitle').value;
+        var start = document.getElementById('eventStart').value;
+        var end = document.getElementById('eventEnd').value;
+
+        var url = id ? `/api/events/update/${id}/` : '/api/events/create/';
+        var method = id ? 'PUT' : 'POST';
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                title: title,
+                start: start,
+                end: end
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                calendar.refetchEvents();
+                modal.style.display = "none";
+            }
+        });
+    });
+
+    document.getElementById('deleteEventBtn').addEventListener('click', function() {
+        var id = document.getElementById('eventId').value;
+
+        if (!id) {
+            alert("Erro: ID do evento não encontrado.");
+            return;
+        }
+
+        if (confirm("Tem certeza que deseja excluir este evento?")) {
+            fetch(`/api/events/delete/${id}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    calendar.refetchEvents();
+                    modal.style.display = "none";
+                } else {
+                    alert("Erro ao excluir evento.");
+                }
+            })
+            .catch(error => console.error("Erro ao excluir evento:", error));
+        }
+    });
+});
+</script>
+
+{% endblock %}

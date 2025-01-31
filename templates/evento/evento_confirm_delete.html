@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Confirmar Exclusão{% endblock %}
+
+
+{% block content %}
+<div class="container">
+    <h3>Tem certeza que deseja excluir "{{ evento.nome }}"?</h3>
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirmar</button>
+        <a class="btn btn-secondary" href="{% url 'evento_detail' evento.pk %}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+<nav class="sidebar">
+    <div class="logo">Escala Connect</div>
+    <ul class="menu">
+        <li><a href="{% url 'base_page' %}">Início</a></li>
+        <li><a href="{% url 'calendario' %}">Calendário</a></li>
+        <li><a href="{% url 'equipe_list' %}">Equipes</a></li>
+        <li><a href="{% url 'evento_list' %}">Eventos</a></li>
+        <li><a href="{% url 'minhas_escalas' %}">Minhas Escalas</a></li>
+        {% if request.user.is_staff %}
+        <li><a href="#">Usuários</a></li>
+        {% endif %}
+        
+        {% if request.user.is_superuser %}
+        <li>
+            <a class="dropdown-item" href="{% url 'admin:index' %}">
+                <i class="fa fa-cog fa-lg"></i> Admin
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+
+    <!-- Logout na parte inferior do menu -->
+    <div class="menu-bottom">
+        <form action="{% url 'logout' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="logout-button">
+                <i class="fa fa-sign-out-alt"></i> Sair
+            </button>
+        </form>
+    </div>
+</nav>

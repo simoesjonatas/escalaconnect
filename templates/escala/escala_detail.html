@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes da Escala{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_list' %}">Lista de Eventos</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_detail' escala.evento.pk %}">{{ escala.evento.nome }}</a></li>
+    <li class="breadcrumb-item">Detalhes da Escala</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>Escala para o Evento: {{ escala.evento.nome }}</h3>
+    <ul>
+        <li><strong>Usuario:</strong> {{ escala.usuario }}</li>
+        <li><strong>Equipe:</strong> {{ escala.funcao.equipe.nome }}</li>
+        <li><strong>Função:</strong> {{ escala.funcao.nome }}</li>
+        <li><strong>Confirmada:</strong> {% if escala.confirmada %}✅ Sim {% else %}❌ Não {% endif %}</li>
+        <li><strong>Data de Confirmação:</strong> {{ escala.data_confirmacao|default:"-" }}</li>
+    </ul>
+    
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'evento_escalas' escala.evento.pk %}">Voltar</a>
+        <a class="btn btn-warning" href="{% url 'escala_update' escala.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'escala_delete' escala.pk %}">Excluir</a>
+    </div>
+</div>
+{% endblock %}

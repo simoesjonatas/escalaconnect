@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Escalaconnect</title>
+    <link rel="stylesheet" href="/static/css/login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h1>Login</h1>
+            {% if form.errors %}
+                <div class="error-messages">
+                    <p>Usuário ou senha incorretos. Tente novamente.</p>
+                </div>
+            {% endif %}
+            <form action="/login/" method="POST">
+                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                <div class="form-group">
+                    <label for="username">Usuário</label>
+                    <input type="text" id="username" name="username" placeholder="Digite seu usuário" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" name="password" placeholder="Digite sua senha" required>
+                </div>
+                <button type="submit">Entrar</button>
+                <p class="signup">Não tem uma conta? <a href="/signup/">Cadastre-se</a></p>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

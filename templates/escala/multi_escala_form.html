@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Adicionar Múltiplas Escalas{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_list' %}">Lista de Eventos</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_detail' evento.pk %}">{{ evento.nome }}</a></li>
+    <li class="breadcrumb-item">Adicionar Múltiplas Escalas</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <form id="multi-escala-form" method="POST">
+        {% csrf_token %}
+
+        <div class="row mb-3">
+            <div class="col-md-5">
+                <label>Equipe:</label>
+                <select id="equipe-select" class="form-control">
+                    <option value="">Selecione uma equipe</option>
+                    {% for equipe in form.equipe.field.queryset %}
+                        <option value="{{ equipe.pk }}">{{ equipe.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label>Função:</label>
+                <select id="funcao-select" class="form-control" disabled>
+                    <option value="">Selecione uma equipe primeiro</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label>&nbsp;</label>
+                <button type="button" id="add-escala" class="btn btn-primary btn-block">Adicionar</button>
+            </div>
+        </div>
+
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    <th>Equipe</th>
+                    <th>Função</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="escala-list"></tbody>
+        </table>
+
+        <button type="submit" class="btn btn-success">Salvar Escalas</button>
+    </form>
+</div>
+
+<script>
+    document.getElementById("equipe-select").addEventListener("change", function () {
+        let equipeId = this.value;
+        let funcaoSelect = document.getElementById("funcao-select");
+
+        if (equipeId) {
+            fetch(`/api/carregar_funcoes/?equipe_id=${equipeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    funcaoSelect.innerHTML = '<option value="">Selecione uma função</option>';
+                    data.forEach(funcao => {
+                        funcaoSelect.innerHTML += `<option value="${funcao.id}">${funcao.nome}</option>`;
+                    });
+                    funcaoSelect.disabled = false;
+                });
+        } else {
+            funcaoSelect.innerHTML = '<option value="">Selecione uma equipe primeiro</option>';
+            funcaoSelect.disabled = true;
+        }
+    });
+
+    document.getElementById("add-escala").addEventListener("click", function () {
+        let equipeSelect = document.getElementById("equipe-select");
+        let funcaoSelect = document.getElementById("funcao-select");
+
+        let equipeId = equipeSelect.value;
+        let funcaoId = funcaoSelect.value;
+        let equipeNome = equipeSelect.options[equipeSelect.selectedIndex].text;
+        let funcaoNome = funcaoSelect.options[funcaoSelect.selectedIndex].text;
+
+        if (equipeId && funcaoId) {
+            let tabela = document.getElementById("escala-list");
+            let row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${equipeNome}</td>
+                <td>${funcaoNome}</td>
+                <td>
+                    <button type="button" class="btn btn-danger btn-sm remove-item">Remover</button>
+                    <input type="hidden" name="escalas" value="${equipeId},${funcaoId}">
+                </td>
+            `;
+
+            tabela.appendChild(row);
+
+            document.querySelectorAll(".remove-item").forEach(btn => {
+                btn.addEventListener("click", function () {
+                    this.closest("tr").remove();
+                });
+            });
+
+            equipeSelect.value = "";
+            funcaoSelect.innerHTML = '<option value="">Selecione uma equipe primeiro</option>';
+            funcaoSelect.disabled = true;
+        }
+    });
+</script>
+{% endblock %}

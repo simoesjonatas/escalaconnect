@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes do Membro {{ membro.usuario }}{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' membro.equipe.pk %}">{{ membro.equipe.nome }}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'listar_membros_equipe' membro.equipe.pk %}">Membros</a></li>    
+    <li class="breadcrumb-item">Detalhes do Membro</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>{{ membro.usuario }}</h3>
+    <ul>
+        <li><strong>Equipe:</strong> {{ membro.equipe.nome }}</li>
+    </ul>
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'listar_membros_equipe' membro.equipe.pk %}">Voltar</a>
+        <a class="btn btn-warning" href="{% url 'membros_equipe_update' membro.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'membros_equipe_delete' membro.pk %}">Excluir</a>
+    </div>
+</div>
+{% endblock %}

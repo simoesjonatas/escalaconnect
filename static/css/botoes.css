@@ -1,0 +1,92 @@
+/* Estilos para botões da página de eventos */
+.btn {
+    display: inline-block;
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 5px;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition: background 0.3s ease-in-out, transform 0.1s ease-in-out;
+    margin: 5px 5px;  /* Adiciona um pequeno espaçamento entre os botões */
+    white-space: nowrap; /* Impede quebra de linha */
+}
+
+.btn:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border: none;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border: none;
+    color: white;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border: none;
+    color: white;
+}
+
+.btn-info {
+    background-color: #17a2b8;
+    border: none;
+    color: white;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    border: none;
+    color: black;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border: none;
+    color: white;
+}
+
+.btn:focus,
+.btn:active {
+    outline: none;
+    box-shadow: none;
+}
+
+/* Ajusta a disposição dos botões */
+.btn-group {
+    display: flex;
+    flex-wrap: wrap; /* Permite que os botões fiquem bem alinhados */
+    gap: 10px; /* Adiciona espaçamento entre os botões */
+}
+
+
+/* Estilização do botão de logout */
+.logout-button {
+    width: 100%;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 16px;
+    text-align: left;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.3s ease-in-out;
+    font-weight: bold;
+}
+
+.logout-button i {
+    margin-right: 10px;
+}
+
+.logout-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+}

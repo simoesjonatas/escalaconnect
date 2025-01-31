@@ -1,0 +1,118 @@
+/* Estilos gerais para a página de eventos */
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #2c3e50;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+    background: none;
+    padding: 10px 0;
+    font-size: 14px;
+}
+
+/* Formulário de busca */
+.form-inline {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-inline input {
+    flex-grow: 1;
+    min-width: 250px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 8px;
+}
+
+/* Botões */
+.btn {
+    padding: 10px 15px;
+    font-size: 14px;
+    border-radius: 5px;
+    text-transform: uppercase;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border: none;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border: none;
+    color: white;
+}
+
+.btn-primary:hover,
+.btn-secondary:hover {
+    opacity: 0.8;
+}
+
+/* Tabela responsiva */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table th,
+.table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.table th {
+    background-color: #f1f1f1;
+    cursor: pointer;
+}
+
+/* Ícones de ordenação */
+.fa-sort-up,
+.fa-sort-down {
+    margin-left: 5px;
+    font-size: 12px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .form-inline {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .form-inline input {
+        width: 100%;
+    }
+    .btn {
+        width: 100%;
+    }
+}
