@@ -4,11 +4,12 @@ from .models import Ocupado
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
-
+from django.contrib import messages
+from disponivel.models import  Disponivel
 
 
 # validar se o usuario ja foi escalado em algum evento no horario da indisponibilidade
-@login_required  # Assegura que apenas usuários logados possam acessar esta view
+@login_required
 def lista_ocupado(request):
     query = request.GET.get('q', '')
     order_by = request.GET.get('order_by', 'data_inicio')
@@ -40,9 +41,20 @@ def adicionar_ocupado(request):
     if request.method == "POST":
         form = OcupadoForm(request.POST)
         if form.is_valid():
-            ocupado = form.save(commit=False)
-            ocupado.usuario = request.user  # Setar o usuário logado como o usuário do objeto Ocupado
-            ocupado.save()
+            novo_ocupado = form.save(commit=False)
+            novo_ocupado.usuario = request.user
+
+            # Verificar se existe alguma disponibilidade no mesmo horário
+            conflitos = Disponivel.objects.filter(
+                usuario=request.user,
+                data_inicio__lt=novo_ocupado.data_fim,
+                data_fim__gt=novo_ocupado.data_inicio
+            )
+            if conflitos.exists():
+                messages.error(request, "Existe uma disponibilidade registrada que conflita com este período de indisponibilidade.")
+                return render(request, 'ocupado/adicionar.html', {'form': form})
+            
+            novo_ocupado.save()
             return redirect('lista_ocupado')
     else:
         form = OcupadoForm()
@@ -63,7 +75,19 @@ def atualizar_ocupado(request, pk):
     if request.method == "POST":
         form = OcupadoForm(request.POST, instance=ocupado)
         if form.is_valid():
-            form.save()
+            ocupado_atualizado = form.save(commit=False)
+
+            # Verificar conflitos com disponibilidades
+            conflitos = Disponivel.objects.filter(
+                usuario=request.user,
+                data_inicio__lt=ocupado_atualizado.data_fim,
+                data_fim__gt=ocupado_atualizado.data_inicio
+            )
+            if conflitos.exists():
+                messages.error(request, "Existe uma disponibilidade registrada que conflita com este período de indisponibilidade.")
+                return render(request, 'ocupado/atualizar.html', {'form': form})
+
+            ocupado_atualizado.save()
             return redirect('detalhes_ocupado', pk=ocupado.pk)
     else:
         form = OcupadoForm(instance=ocupado)
