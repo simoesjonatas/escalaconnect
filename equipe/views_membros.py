@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from equipe.models import Equipe, MembrosEquipe
 from equipe.membros_forms import MembrosEquipeForm
-from equipe.decorators import require_lideranca  # Importando o decorador personalizado
+from equipe.decorators import require_lideranca
 
 
 @require_lideranca
@@ -18,7 +18,11 @@ def membros_equipe_list(request, equipe_pk):
     if direction == 'desc':
         order_by = f'-{order_by}'
     
-    membros = equipe.membrosequipe_set.filter(
+    # membros = equipe.membrosequipe_set.filter(
+    #     Q(usuario__username__icontains=query)
+    # ).order_by(order_by)
+    
+    membros = equipe.membros.filter(
         Q(usuario__username__icontains=query)
     ).order_by(order_by)
     
