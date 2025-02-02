@@ -7,6 +7,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from .forms import EventoForm
 from escalaconnect.utils import admin_required
 from equipe.decorators import require_lideranca 
+from django.utils.timezone import now
 
 
 def eventos_api(request):
@@ -67,13 +68,17 @@ def excluir_evento(request, event_id):
 
 def evento_list(request):
     query = request.GET.get('q', '')
-    order_by = request.GET.get('order_by', 'id')
+    order_by = request.GET.get('order_by', 'data_inicio')
     direction = request.GET.get('direction', 'asc')
 
     if direction == 'desc':
         order_by = f'-{order_by}'
+    
+    today = now().date()
 
-    eventos = Evento.objects.filter(nome__icontains=query).order_by(order_by)
+    eventos = Evento.objects.filter(
+        data_inicio__date__gte=today,
+        nome__icontains=query).order_by(order_by)
 
     paginator = Paginator(eventos, 10)  # Exibe 10 eventos por página
     page_number = request.GET.get('page')

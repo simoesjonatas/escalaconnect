@@ -131,8 +131,11 @@ def minhas_escalas(request):
     if direction == 'desc':
         order_by = f'-{order_by}'
 
+    today = now().date()
+
     escalas = Escala.objects.filter(
-        usuario=request.user  # Filtra apenas escalas do usuário autenticado
+        usuario=request.user,  # filtra apenas escalas do usuario autenticado
+        evento__data_inicio__date__gte=today  # filtra eventos que começam hoje ou no futuro
     ).filter(
         Q(evento__nome__icontains=query) |
         Q(funcao__equipe__nome__icontains=query) |
