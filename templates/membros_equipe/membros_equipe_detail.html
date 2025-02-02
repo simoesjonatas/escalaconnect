@@ -20,8 +20,8 @@
     </ul>
     <div class="clearfix">
         <a class="btn btn-secondary" href="{% url 'listar_membros_equipe' membro.equipe.pk %}">Voltar</a>
-        <a class="btn btn-warning" href="{% url 'membros_equipe_update' membro.pk %}">Editar</a>
-        <a class="btn btn-danger" href="{% url 'membros_equipe_delete' membro.pk %}">Excluir</a>
+        <a class="btn btn-warning" href="{% url 'membros_equipe_update' membro.equipe.pk membro.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'membros_equipe_delete' membro.equipe.pk membro.pk %}">Excluir</a>
     </div>
 </div>
 {% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Adicionar Disponibilidade{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Adicionar Nova Disponibilidade</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Salvar</button>
+    </form>
+</div>
+{% endblock %}

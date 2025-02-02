@@ -27,5 +27,16 @@
         <a class="btn btn-warning" href="{% url 'escala_update' escala.pk %}">Editar</a>
         <a class="btn btn-danger" href="{% url 'escala_delete' escala.pk %}">Excluir</a>
     </div>
+
+
+    <h3>Usuários Disponíveis:</h3>
+
+    <ul>
+        {% for usuario in usuarios_disponiveis %}
+            <li>{{ usuario.username }}</li>
+        {% empty %}
+            <li>Nenhum usuário disponível.</li>
+        {% endfor %}
+    </ul>
 </div>
 {% endblock %}

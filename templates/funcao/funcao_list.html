@@ -42,7 +42,7 @@ Funções da Equipe {{ equipe.nome }}
             </thead>
             <tbody>
                 {% for funcao in page_obj %}
-                <tr onclick="window.location.href='{% url 'funcao_detail' funcao.pk %}'">
+                <tr onclick="window.location.href='{% url 'funcao_detail' funcao.equipe.pk funcao.pk %}'">
                     <td>{{ funcao.id }}</td>
                     <td>{{ funcao.nome }}</td>
                 </tr>

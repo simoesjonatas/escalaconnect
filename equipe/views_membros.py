@@ -42,7 +42,7 @@ def membros_equipe_list(request, equipe_pk):
     return render(request, 'membros_equipe/membros_equipe_list.html', context)
 
 @require_lideranca
-def membros_equipe_detail(request, pk):
+def membros_equipe_detail(request,equipe_pk, pk):
     membro = get_object_or_404(MembrosEquipe, pk=pk)
     return render(request, 'membros_equipe/membros_equipe_detail.html', {'membro': membro})
 
@@ -62,7 +62,7 @@ def membros_equipe_create(request, equipe_pk):
     return render(request, 'membros_equipe/membros_equipe_form.html', {'form': form, 'equipe': equipe})
 
 @require_lideranca
-def membros_equipe_update(request, pk):
+def membros_equipe_update(request, equipe_pk, pk):
     membro = get_object_or_404(MembrosEquipe, pk=pk)
     if request.method == 'POST':
         form = MembrosEquipeForm(request.POST, instance=membro)
@@ -75,7 +75,7 @@ def membros_equipe_update(request, pk):
     return render(request, 'membros_equipe/membros_equipe_form.html', {'form': form, 'membro': membro, 'equipe': membro.equipe})
 
 @require_lideranca
-def membros_equipe_delete(request, pk):
+def membros_equipe_delete(request, equipe_pk, pk):
     membro = get_object_or_404(MembrosEquipe, pk=pk)
     if request.method == 'POST':
         membro.delete()

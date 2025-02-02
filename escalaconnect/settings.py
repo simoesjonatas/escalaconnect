@@ -58,6 +58,10 @@ INSTALLED_APPS = [
     'evento',
     'escala',
     'planejamento',
+    'ocupado',
+    'disponivel',
+
+
 ]
 
 MIDDLEWARE = [

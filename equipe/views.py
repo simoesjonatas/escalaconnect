@@ -47,6 +47,7 @@ def equipe_create(request):
     return render(request, 'equipe/equipe_form.html', {'form': form})
 
 @require_lideranca
+@admin_required
 def equipe_update(request, pk):
     equipe = get_object_or_404(Equipe, pk=pk)
     if request.method == 'POST':
@@ -59,6 +60,7 @@ def equipe_update(request, pk):
     return render(request, 'equipe/equipe_form.html', {'form': form})
 
 @require_lideranca
+@admin_required
 def equipe_delete(request, pk):
     equipe = get_object_or_404(Equipe, pk=pk)
     if request.method == 'POST':

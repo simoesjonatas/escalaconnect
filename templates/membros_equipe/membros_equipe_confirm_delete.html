@@ -18,7 +18,7 @@
     <form method="POST">
         {% csrf_token %}
         <button type="submit" class="btn btn-danger">Confirmar</button>
-        <a class="btn btn-secondary" href="{% url 'membros_equipe_detail' membro.pk %}">Cancelar</a>
+        <a class="btn btn-secondary" href="{% url 'membros_equipe_detail' membro.equipe.pk membro.pk %}">Cancelar</a>
     </form>
 </div>
 {% endblock %}

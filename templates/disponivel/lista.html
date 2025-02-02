@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Lista de Disponibilidades{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Disponibilidades</h2>
+    <a class="btn btn-success" href="{% url 'adicionar_disponivel' %}">Adicionar Nova Disponibilidade</a>
+    <table class="table table-bordered mt-3">
+        <thead>
+            <tr>
+                <!-- <th>ID</th> -->
+                <th>Usuário</th>
+                <th>Data de Início</th>
+                <th>Data de Fim</th>
+                <!-- <th>Ações</th> -->
+            </tr>
+        </thead>
+        <tbody>
+            {% for disponivel in disponiveis %}
+            <tr onclick="window.location.href='{% url 'detalhes_disponivel' disponivel.pk %}'">
+                <!-- <td>{{ disponivel.id }}</td> -->
+                <td>{{ disponivel.usuario.username }}</td>
+                <td>{{ disponivel.data_inicio|date:"d M Y H:i" }}</td>
+                <td>{{ disponivel.data_fim|date:"d M Y H:i" }}</td>
+                <!-- <td>
+                    <a class="btn btn-info" href="{% url 'detalhes_disponivel' disponivel.pk %}">Detalhes</a>
+                    <a class="btn btn-warning" href="{% url 'editar_disponivel' disponivel.pk %}">Editar</a>
+                    <a class="btn btn-danger" href="{% url 'excluir_disponivel' disponivel.pk %}">Excluir</a>
+                </td> -->
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">Nenhuma disponibilidade encontrada.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

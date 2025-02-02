@@ -9,7 +9,7 @@ class Equipe(models.Model):
 
 
 class MembrosEquipe(models.Model):
-    equipe = models.ForeignKey(Equipe, on_delete=models.CASCADE, null=False, blank=False)
+    equipe = models.ForeignKey(Equipe, on_delete=models.CASCADE, null=False, blank=False, related_name='membros')
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,null=False, blank=False)
     
     class Meta:

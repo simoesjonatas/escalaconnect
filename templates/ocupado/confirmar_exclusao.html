@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Excluir Indisponibilidade{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Confirmar Exclusão</h2>
+    <p>Tem certeza que deseja excluir a indisponibilidade de {{ ocupado.usuario.username }} de {{ ocupado.data_inicio|date:"d M Y H:i" }} até {{ ocupado.data_fim|date:"d M Y H:i" }}?</p>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Excluir</button>
+        <a href="{% url 'detalhes_ocupado' ocupado.pk %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

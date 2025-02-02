@@ -36,6 +36,8 @@ urlpatterns = [
     path('api/events/', include('evento.urls')),
     path('api/user/', include('usuario.urls')),
     path('api/plan/', include('planejamento.urls')),
+    path('api/busy/', include('ocupado.urls')),
+    path('api/free/', include('disponivel.urls')),
     
     path('api/carregar_funcoes/', carregar_funcoes, name='carregar_funcoes'),
 

@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes da Disponibilidade{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h3>Detalhes da Disponibilidade</h3>
+    <ul>
+        <li><strong>Usuário:</strong> {{ disponivel.usuario.username }}</li>
+        <li><strong>Data de Início:</strong> {{ disponivel.data_inicio|date:"d M Y H:i" }}</li>
+        <li><strong>Data de Fim:</strong> {{ disponivel.data_fim|date:"d M Y H:i" }}</li>
+    </ul>
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'lista_disponivel' %}">Voltar</a>
+        <a class="btn btn-warning" href="{% url 'editar_disponivel' disponivel.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'excluir_disponivel' disponivel.pk %}">Excluir</a>
+    </div>
+</div>
+{% endblock %}

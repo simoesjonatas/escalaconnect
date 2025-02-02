@@ -9,6 +9,7 @@ from equipe.decorators import require_lideranca
 from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
 from django.contrib import messages
+from ocupado.models import Ocupado
 
 
 
@@ -90,7 +91,23 @@ def escala_delete(request, pk):
 # @require_lideranca
 def escala_detail(request, pk):
     escala = get_object_or_404(Escala, pk=pk)
-    return render(request, 'escala/escala_detail.html', {'escala': escala})
+    # pega os horários do evento associado a escala
+    evento_inicio = escala.evento.data_inicio
+    evento_fim = escala.evento.data_fim
+
+    # pega os membros da equipe e filtra aqueles sem indisponibilidade
+    membros = escala.funcao.equipe.membros.all()
+    usuarios_disponiveis = [membro.usuario for membro in membros if not Ocupado.objects.filter(
+        usuario=membro.usuario,
+        data_inicio__lt=evento_fim,
+        data_fim__gt=evento_inicio
+    ).exists()]
+    
+    return render(request, 'escala/escala_detail.html', 
+                {'escala': escala,
+                'usuarios_disponiveis': usuarios_disponiveis
+})
+
 
 @login_required
 def minhas_escalas(request):

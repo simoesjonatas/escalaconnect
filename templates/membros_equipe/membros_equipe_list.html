@@ -41,7 +41,7 @@ Membros da Equipe {{ equipe }}
             </thead>
             <tbody>
                 {% for membro in page_obj %}
-                <tr onclick="window.location.href='{% url 'membros_equipe_detail' membro.pk %}'">
+                <tr onclick="window.location.href='{% url 'membros_equipe_detail' membro.equipe.pk membro.pk %}'">
                     <td>{{ membro.id }}</td>
                     <td>{{ membro.usuario }}</td>
                 </tr>

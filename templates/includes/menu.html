@@ -6,6 +6,10 @@
         <li><a href="{% url 'equipe_list' %}">Equipes</a></li>
         <li><a href="{% url 'evento_list' %}">Eventos</a></li>
         <li><a href="{% url 'minhas_escalas' %}">Minhas Escalas</a></li>
+
+        <li><a href="{% url 'lista_disponivel' %}">Disponibilidades</a></li>  <!-- Link para disponibilidades -->
+        <li><a href="{% url 'lista_ocupado' %}">Indisponibilidades</a></li>  <!-- Link para indisponibilidades -->
+
         {% if request.user.is_staff %}
         <li><a href="#">Usuários</a></li>
         {% endif %}

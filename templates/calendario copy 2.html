@@ -88,15 +88,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('eventForm').addEventListener('submit', function(e) {
         e.preventDefault();
-    
+
         var id = document.getElementById('eventId').value;
         var title = document.getElementById('eventTitle').value;
         var start = document.getElementById('eventStart').value;
         var end = document.getElementById('eventEnd').value;
-    
+
         var url = id ? `/api/events/update/${id}/` : '/api/events/create/';
         var method = id ? 'PUT' : 'POST';
-    
+
         fetch(url, {
             method: method,
             headers: {
@@ -109,38 +109,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 end: end
             })
         })
-        .then(response => {
-            if (!response.ok) {
-                if (response.status === 403) {
-                    throw new Error("Você não tem permissão para criar/editar este evento.");
-                } else {
-                    throw new Error("Ocorreu um erro ao processar sua solicitação.");
-                }
-            }
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             if (data.success) {
                 calendar.refetchEvents();
                 modal.style.display = "none";
-            } else {
-                alert("Erro ao salvar o evento: " + (data.message || 'Erro desconhecido'));
             }
-        })
-        .catch(error => {
-            alert("Erro: " + error.message);
-            console.error("Erro ao salvar evento:", error);
         });
-    });    
+    });
 
     document.getElementById('deleteEventBtn').addEventListener('click', function() {
         var id = document.getElementById('eventId').value;
-    
+
         if (!id) {
             alert("Erro: ID do evento não encontrado.");
             return;
         }
-    
+
         if (confirm("Tem certeza que deseja excluir este evento?")) {
             fetch(`/api/events/delete/${id}/`, {
                 method: 'DELETE',
@@ -148,31 +133,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRFToken': '{{ csrf_token }}'
                 }
             })
-            .then(response => {
-                if (!response.ok) {
-                    if (response.status === 403) {
-                        throw new Error("Você não tem permissão para excluir este evento.");
-                    } else {
-                        throw new Error("Ocorreu um erro ao processar sua solicitação para excluir o evento.");
-                    }
-                }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     calendar.refetchEvents();
                     modal.style.display = "none";
                 } else {
-                    alert("Erro ao excluir o evento: " + (data.message || 'Erro desconhecido'));
+                    alert("Erro ao excluir evento.");
                 }
             })
-            .catch(error => {
-                alert("Erro: " + error.message);
-                console.error("Erro ao excluir evento:", error);
-            });
+            .catch(error => console.error("Erro ao excluir evento:", error));
         }
     });
-    
 });
 </script>
 

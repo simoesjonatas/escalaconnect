@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Lista de Indisponibilidade{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="clearfix mb-3">
+        <form method="GET" class="form-inline">
+            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar por usuário..." value="{{ query }}">
+            <button type="submit" class="btn btn-primary mr-2">Buscar</button>
+            <a class="btn btn-secondary" href="{% url 'lista_ocupado' %}">Limpar Filtro</a>
+        </form>
+        <a class="btn btn-success float-right" href="{% url 'adicionar_ocupado' %}">Registrar Indisponibilidade</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    <!-- <th><a href="?q={{ query }}&order_by=id&direction={{ direction }}">ID</a></th> -->
+                    <th><a href="?q={{ query }}&order_by=usuario__username&direction={{ direction }}">Usuário</a></th>
+                    <th><a href="?q={{ query }}&order_by=data_inicio&direction={{ direction }}">Data de Início</a></th>
+                    <th><a href="?q={{ query }}&order_by=data_fim&direction={{ direction }}">Data de Fim</a></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ocupado in page_obj %}
+                <tr onclick="window.location.href='{% url 'detalhes_ocupado' ocupado.pk %}'">
+                    <!-- <td>{{ ocupado.id }}</td> -->
+                    <td>{{ ocupado.usuario.username }}</td>
+                    <td>{{ ocupado.data_inicio }}</td>
+                    <td>{{ ocupado.data_fim }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">Nenhum ocupado encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'includes/pagination.html' %}
+</div>
+{% endblock %}

@@ -47,7 +47,7 @@ def funcao_list(request, equipe_pk):
     return render(request, 'funcao/funcao_list.html', context)
 
 @require_lideranca
-def funcao_detail(request, pk):
+def funcao_detail(request, equipe_pk, pk):
     funcao = get_object_or_404(Funcao, pk=pk)
     return render(request, 'funcao/funcao_detail.html', {'funcao': funcao})
 
@@ -67,7 +67,7 @@ def funcao_create(request, equipe_pk):
     return render(request, 'funcao/funcao_form.html', {'form': form, 'equipe': equipe})
 
 @require_lideranca
-def funcao_update(request, pk):
+def funcao_update(request, equipe_pk, pk):
     funcao = get_object_or_404(Funcao, pk=pk)
     if request.method == 'POST':
         form = FuncaoForm(request.POST, instance=funcao)
@@ -80,7 +80,7 @@ def funcao_update(request, pk):
     return render(request, 'funcao/funcao_form.html', {'form': form, 'funcao': funcao,  'equipe': funcao.equipe})
 
 @require_lideranca
-def funcao_delete(request, pk):
+def funcao_delete(request, equipe_pk, pk):
     funcao = get_object_or_404(Funcao, pk=pk)
     if request.method == 'POST':
         funcao.delete()
