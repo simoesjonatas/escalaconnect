@@ -10,7 +10,9 @@ from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
 from django.contrib import messages
 from ocupado.models import Ocupado
-
+from django.conf import settings
+from usuario.models import Usuario
+from equipe.models import Lideranca
 
 
 def escalas_por_evento(request, pk):
@@ -94,18 +96,29 @@ def escala_detail(request, pk):
     # pega os horários do evento associado a escala
     evento_inicio = escala.evento.data_inicio
     evento_fim = escala.evento.data_fim
+    evento = escala.evento
+    is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
 
     # pega os membros da equipe e filtra aqueles sem indisponibilidade
     membros = escala.funcao.equipe.membros.all()
-    usuarios_disponiveis = [membro.usuario for membro in membros if not Ocupado.objects.filter(
+    
+    # filtra usarios sem indisponibilidades que se sobreponha
+    usuarios_filtrados = [membro.usuario for membro in membros if not Ocupado.objects.filter(
         usuario=membro.usuario,
         data_inicio__lt=evento_fim,
         data_fim__gt=evento_inicio
     ).exists()]
+
+    # filtra usuarios que ja estao escalados para o mesmo evento em qualquer funcao
+    usuarios_disponiveis = [usuario for usuario in usuarios_filtrados if not Escala.objects.filter(
+        usuario=usuario,
+        evento=evento
+    ).exclude(pk=escala.pk).exists()]  # exclui a escala atual na verificacao
     
     return render(request, 'escala/escala_detail.html', 
                 {'escala': escala,
-                'usuarios_disponiveis': usuarios_disponiveis
+                'usuarios_disponiveis': usuarios_disponiveis,
+                'is_leader': is_leader,
 })
 
 
@@ -152,6 +165,42 @@ def minhas_escalas(request):
 def minha_escala_detail(request, pk):
     escala = get_object_or_404(Escala, pk=pk, usuario=request.user)
     return render(request, 'escala/minha_escala_detail.html', {'escala': escala})
+
+@login_required
+def escalar_usuario(request, escala_id, usuario_id):
+    
+    escala = get_object_or_404(Escala, pk=escala_id)
+    
+    # Verifica se o usuário é líder da equipe, staff ou superusuário
+    is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
+    if request.user.is_staff or request.user.is_superuser or is_leader:
+        if not escala.confirmada:
+            usuario = get_object_or_404(Usuario, pk=usuario_id)
+            escala.usuario = usuario
+            escala.save()
+            messages.success(request, 'Usuário escalado com sucesso!')
+            return redirect('escala_detail', pk=escala_id)
+        else:
+            messages.error(request, 'A escala já foi confirmada e não pode ser alterada.')
+    else:
+        messages.error(request, 'Você não tem permissão para realizar esta ação.')
+    return redirect('escala_detail', pk=escala_id)
+
+@login_required
+def cancelar_escala(request, escala_id):
+    escala = get_object_or_404(Escala, pk=escala_id)
+    is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
+
+    if request.user.is_staff or request.user.is_superuser or is_leader:
+        escala.usuario = None
+        escala.confirmada = False
+        escala.data_confirmacao = None
+        escala.save()
+        messages.success(request, 'Escala cancelada com sucesso.')
+    else:
+        messages.error(request, 'Você não tem permissão para cancelar esta escala.')
+
+    return redirect('escala_detail', pk=escala_id)
 
 @login_required
 def confirmar_minha_escala(request, pk):

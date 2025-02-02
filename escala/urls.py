@@ -14,5 +14,9 @@ urlpatterns = [
     path('<int:pk>/editar/', escala_update, name='escala_update'),
     path('<int:pk>/excluir/', escala_delete, name='escala_delete'),
     path('<int:pk>/', escala_detail, name='escala_detail'),
+    
+    path('escala/<int:escala_id>/escalar/<int:usuario_id>/', escalar_usuario, name='escalar_usuario'),
+    path('escala/<int:escala_id>/cancelar/', cancelar_escala, name='cancelar_escala'),
+
 
 ]

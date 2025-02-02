@@ -26,17 +26,39 @@
         <a class="btn btn-secondary" href="{% url 'evento_escalas' escala.evento.pk %}">Voltar</a>
         <a class="btn btn-warning" href="{% url 'escala_update' escala.pk %}">Editar</a>
         <a class="btn btn-danger" href="{% url 'escala_delete' escala.pk %}">Excluir</a>
+        {% if escala.confirmada %}
+            {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+            <a class="btn btn-info" href="{% url 'cancelar_escala' escala.pk %}">Cancelar Escala</a>
+            {% endif %}
+        {% endif %}
     </div>
 
-
-    <h3>Usuários Disponíveis:</h3>
-
-    <ul>
-        {% for usuario in usuarios_disponiveis %}
-            <li>{{ usuario.username }}</li>
-        {% empty %}
-            <li>Nenhum usuário disponível.</li>
-        {% endfor %}
-    </ul>
+    {% if not escala.confirmada %}
+        <h3>Usuários Disponíveis:</h3>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Usuário</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usuario in usuarios_disponiveis %}
+                    <tr>
+                        <td>{{ usuario.username }}</td>
+                        <td>
+                            <a class="btn btn-success" href="{% url 'escalar_usuario' escala.pk usuario.pk %}">
+                                <i class="fa fa-user-plus"></i> Escalar
+                            </a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="2">Nenhum usuário disponível.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
 </div>
 {% endblock %}
