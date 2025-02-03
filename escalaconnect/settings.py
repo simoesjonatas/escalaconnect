@@ -64,6 +64,11 @@ INSTALLED_APPS = [
 
 ]
 
+AUTHENTICATION_BACKENDS = [
+    'usuario.backends.CustomBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -73,6 +78,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'escalaconnect.middleware.admin_required_middleware.AdminRequiredMiddleware',
+    'usuario.middleware.FirstLoginMiddleware',
 
 ]
 

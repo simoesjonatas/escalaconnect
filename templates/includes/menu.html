@@ -10,8 +10,9 @@
         <li><a href="{% url 'lista_disponivel' %}">Disponibilidades</a></li>  <!-- Link para disponibilidades -->
         <li><a href="{% url 'lista_ocupado' %}">Indisponibilidades</a></li>  <!-- Link para indisponibilidades -->
 
+        <!-- <li><a href="{% url 'usuario_list' %}">Usuários</a></li> -->
         {% if request.user.is_staff %}
-        <li><a href="#">Usuários</a></li>
+        <li><a href="{% url 'usuario_list' %}">Usuários</a></li>
         {% endif %}
         
         {% if request.user.is_superuser %}

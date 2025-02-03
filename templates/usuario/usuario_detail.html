@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes do Usuário {{ usuario.username }}{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'usuario_list' %}">Lista de Usuários</a></li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>{{ usuario.username }}</h3>
+    <ul>
+        <li><strong>ID:</strong> {{ usuario.id }}</li>
+        <li><strong>Email:</strong> {{ usuario.email }}</li>
+        <li><strong>Telefone:</strong> {{ usuario.telefone }}</li>
+        <li><strong>Aniversário:</strong> {{ usuario.aniversario|date:"Y-m-d" }}</li>
+        <li><strong>CPF:</strong> {{ usuario.cpf }}</li>
+    </ul>
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'usuario_list' %}">Voltar</a>
+        <a class="btn btn-warning" href="{% url 'usuario_update' usuario.pk %}">Editar</a>
+        <a class="btn btn-danger" href="{% url 'usuario_delete' usuario.pk %}">Excluir</a>
+        <!-- <a class="btn btn-primary" href="{% url 'change_password' %}">Trocar Senha</a>  -->
+        <a class="btn btn-danger" href="{% url 'reset_user_password' usuario.pk %}">trocar senha</a>
+    </div>
+</div>
+{% endblock %}

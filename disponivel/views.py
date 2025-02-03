@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import DisponivelForm
 from .models import Disponivel
+from ocupado.models import Ocupado
+from django.contrib import messages
 
 @login_required
 def lista_disponivel(request):
@@ -18,9 +20,20 @@ def adicionar_disponivel(request):
     if request.method == "POST":
         form = DisponivelForm(request.POST)
         if form.is_valid():
-            disponivel = form.save(commit=False)
-            disponivel.usuario = request.user
-            disponivel.save()
+            nova_disponivel = form.save(commit=False)
+            nova_disponivel.usuario = request.user
+            
+            # Verificar se existe alguma indisponibilidade no mesmo horário
+            conflitos = Ocupado.objects.filter(
+                usuario=request.user,
+                data_inicio__lt=nova_disponivel.data_fim,
+                data_fim__gt=nova_disponivel.data_inicio
+            )
+            if conflitos.exists():
+                messages.error(request, "Existe uma indisponibilidade registrada que conflita com este período de disponibilidade.")
+                return render(request, 'disponivel/adicionar.html', {'form': form})
+            
+            nova_disponivel.save()
             return redirect('lista_disponivel')
     else:
         form = DisponivelForm()
@@ -32,7 +45,19 @@ def editar_disponivel(request, pk):
     if request.method == "POST":
         form = DisponivelForm(request.POST, instance=disponivel)
         if form.is_valid():
-            form.save()
+            disponivel_atualizada = form.save(commit=False)
+            
+            # Verificar conflitos com indisponibilidades
+            conflitos = Ocupado.objects.filter(
+                usuario=request.user,
+                data_inicio__lt=disponivel_atualizada.data_fim,
+                data_fim__gt=disponivel_atualizada.data_inicio
+            )
+            if conflitos.exists():
+                messages.error(request, "Existe uma indisponibilidade registrada que conflita com este período de disponibilidade.")
+                return render(request, 'disponivel/editar.html', {'form': form})
+
+            disponivel_atualizada.save()
             return redirect('lista_disponivel')
     else:
         form = DisponivelForm(instance=disponivel)

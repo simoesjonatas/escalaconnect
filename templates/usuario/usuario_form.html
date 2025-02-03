@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Adicionar/Editar Usuário{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'usuario_list' %}">Lista de Usuários</a></li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Salvar</button>
+        <a class="btn btn-secondary" href="{% url 'usuario_list' %}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
