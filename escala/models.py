@@ -21,6 +21,14 @@ class Escala(models.Model):
     confirmada = models.BooleanField(default=False)
     data_confirmacao = models.DateTimeField(null=True, blank=True)
     
+    @property
+    def equipe(self):
+        return self.funcao.equipe if self.funcao else None
+    
+    @property
+    def data_inicio(self):
+        return self.evento.data_inicio if self.evento.data_inicio else None
+    
     def __str__(self):
         return self.nome
 

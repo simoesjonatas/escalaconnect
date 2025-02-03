@@ -88,3 +88,7 @@ def usuario_delete(request, pk):
         usuario.delete()
         return redirect('usuario_list')
     return render(request, 'usuario/usuario_confirm_delete.html', {'usuario': usuario})
+
+@login_required
+def perfil_usuario(request):
+    return render(request, 'perfil_usuario.html', {'user': request.user})

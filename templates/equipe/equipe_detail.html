@@ -27,16 +27,17 @@
 <br>
 <div class="container">
     <div class="clearfix">
-        <a class="btn btn-primary" href="{% url 'listar_funcoes' equipe.pk %}" >
+        <a class="btn btn-primary" href="{% url 'listar_funcoes' equipe.pk %}">
             Funções
         </a>
-
         <a class="btn btn-secondary" href="{% url 'listar_liderancas' equipe.pk %}">
-            Lideres 
+            Líderes 
         </a>
-
         <a class="btn btn-warning" href="{% url 'listar_membros_equipe' equipe.pk %}">
             Integrantes 
+        </a>
+        <a class="btn btn-info" href="{% url 'listar_escalas' equipe.pk %}">
+            Escalas
         </a>
     </div>
 </div>

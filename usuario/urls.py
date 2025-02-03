@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import usuario_list, usuario_detail, usuario_create, usuario_update, usuario_delete
+from .views import usuario_list, usuario_detail, usuario_create, usuario_update, usuario_delete, perfil_usuario
 from .views_pass import set_password, change_password, reset_user_password
 urlpatterns = [
     path('', usuario_list, name='usuario_list'),
@@ -11,6 +11,9 @@ urlpatterns = [
     path('set-password/', set_password, name='set_password'),
     path('change-password/', change_password, name='change_password'),
     path('reset-password/<int:user_id>/', reset_user_password, name='reset_user_password'),
+    
+    path('perfil/', perfil_usuario, name='perfil_usuario'),
+    path('perfil/change-password/', change_password, name='change_password'),
 
 
 ]

@@ -11,6 +11,7 @@
         <li><a href="{% url 'lista_ocupado' %}">Indisponibilidades</a></li>  <!-- Link para indisponibilidades -->
 
         <!-- <li><a href="{% url 'usuario_list' %}">Usuários</a></li> -->
+        <li><a href="{% url 'perfil_usuario' %}">Meu Perfil</a></li>
         {% if request.user.is_staff %}
         <li><a href="{% url 'usuario_list' %}">Usuários</a></li>
         {% endif %}

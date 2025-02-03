@@ -1,0 +1,63 @@
+
+{% extends 'base.html' %}
+
+{% block page_title %}
+Escalas da Equipe {{ equipe.nome }}
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
+    <li class="breadcrumb-item active">Lista de Escalas</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <div class="clearfix mb-3">
+        <form method="GET" class="form-inline">
+            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar Escala..." value="{{ query }}">
+            <button type="submit" class="btn btn-primary mr-2">Buscar</button>
+            <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">Limpar Filtro</a>
+        </form>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    {% for field_display in escala_fields %}
+                    <th>
+                        <a href="?q={{ query }}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
+                            {{ field_display.1 }}
+                            {% if order_by == field_display.0 %}
+                                <i class="fa {% if direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+                            {% endif %}
+                        </a>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for escala in page_obj %}
+                <tr onclick="window.location.href='{% url 'escala_detail' escala.pk %}'">
+                    <!-- <td>{{ escala.id }}</td> -->
+                    <td>{{ escala.evento.nome }}</td>
+                    <td>{{ escala.evento.data_inicio|date:"d/m/Y H:i" }}</td>
+                    <td>{{ escala.funcao.nome }}</td>
+                    <td>{{ escala.usuario.username }}</td>
+                    <td>{{ escala.confirmada|yesno:"✅ Sim,❌ Não" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">Nenhuma escala encontrada para esta equipe.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Paginação -->
+    {% include 'includes/pagination.html' %}
+</div>
+{% endblock %}
