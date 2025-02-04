@@ -5,12 +5,14 @@ from django.urls import reverse
 from .forms import UsuarioForm
 from django.core.paginator import Paginator
 from django.db.models import Q
+from usuario.models import Usuario
 
 User = get_user_model()
 
 def can_change(user):
+    usuario = get_object_or_404(Usuario, pk=user.pk)
     # Verificar se o usuário é líder de equipe, staff ou superuser
-    return user.groups.filter(name='Lideres').exists() or user.is_staff or user.is_superuser
+    return usuario.is_leader() or user.is_staff or user.is_superuser
 
 @login_required
 @user_passes_test(can_change)

@@ -24,6 +24,7 @@ Escalas da Equipe {{ equipe.nome }}
         </form>
     </div>
     <div class="table-responsive">
+        <!-- <a href="{% url 'exportar_pdf' equipe_pk=equipe.pk %}" class="btn btn-info">Exportar PDF</a> -->
         <table class="table table-bordered mt-3">
             <thead>
                 <tr>
@@ -41,7 +42,7 @@ Escalas da Equipe {{ equipe.nome }}
             </thead>
             <tbody>
                 {% for escala in page_obj %}
-                <tr onclick="window.location.href='{% url 'escala_detail' escala.pk %}'">
+                <tr onclick="window.location.href='{% url 'escala_detail_equipe' equipe.pk escala.pk %}'">
                     <!-- <td>{{ escala.id }}</td> -->
                     <td>{{ escala.evento.nome }}</td>
                     <td>{{ escala.evento.data_inicio|date:"d/m/Y H:i" }}</td>

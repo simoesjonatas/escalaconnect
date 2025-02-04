@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from .utils import validate_cpf
+from equipe.models import Lideranca
 
 class Usuario(AbstractUser):
     telefone = models.CharField(max_length=255, blank=True, null=True)
@@ -18,3 +19,5 @@ class Usuario(AbstractUser):
     def __str__(self):
         return f"{self.username} ({self.email})"
 
+    def is_leader(self):
+        return Lideranca.objects.filter(usuario=self).exists()

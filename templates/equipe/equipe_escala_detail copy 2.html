@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes da Escala{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
+    <li class="breadcrumb-item active"><a href="{% url 'listar_escalas' equipe.pk %}">Lista de Escalas</a></li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>Escala para o Evento: {{ escala.evento.nome }}</h3>
+    <h4>Dia do Evento: {{ escala.evento.data_inicio }}</h4>
+    <ul>
+        <li><strong>Usuário:</strong> {{ escala.usuario }}</li>
+        <li><strong>Equipe:</strong> {{ escala.funcao.equipe.nome }}</li>
+        <li><strong>Função:</strong> {{ escala.funcao.nome }}</li>
+        <li><strong>Confirmada:</strong> {% if escala.confirmada %}✅ Sim {% else %}❌ Não {% endif %}</li>
+        <li><strong>Data de Confirmação:</strong> {{ escala.data_confirmacao|default:"-" }}</li>
+    </ul>
+    
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe.pk %}">Voltar</a>
+        {% if escala.confirmada %}
+            {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+            <a class="btn btn-info" href="{% url 'cancelar_escala' escala.pk %}">Cancelar Escala</a>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if not escala.confirmada %}
+    
+    <!-- Criando as abas -->
+    <ul class="nav nav-tabs mt-4" id="escalaTabs">
+        <li class="nav-item">
+            <a class="nav-link active" id="disponiveis-tab" data-toggle="tab" href="#disponiveis">Usuários Disponíveis</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" id="escalados-tab" data-toggle="tab" href="#escalados">Usuários Escalados</a>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3">
+        <!-- Aba de Usuários Disponíveis -->
+        <div class="tab-pane fade show active" id="disponiveis">
+            <h3>Usuários Disponíveis:</h3>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios_disponiveis %}
+                        <tr>
+                            <td>{{ usuario.username }}</td>
+                            <td>
+                                <a class="btn btn-success" href="{% url 'escalar_usuario' escala.pk usuario.pk %}">
+                                    <i class="fa fa-user-plus"></i> Escalar
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="2">Nenhum usuário disponível.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Aba de Usuários Escalados -->
+        <div class="tab-pane fade" id="escalados">
+            <h3>Usuários Escalados:</h3>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Usuário</th>
+                        <th>Função</th>
+                        <th>Equipe</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for escala in usuarios_escalados %}
+                        <tr>
+                            <td>{{ escala.usuario.username }}</td>
+                            <td>{{ escala.funcao.nome }}</td>
+                            <td>{{ escala.funcao.equipe.nome }}</td>
+                            <td>
+                                <a class="btn btn-danger" href="{% url 'cancelar_escala' escala.pk %}">
+                                    <i class="fa fa-user-minus"></i> Remover
+                                </a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">Nenhum usuário escalado ainda.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Script para ativar abas -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var tabLinks = document.querySelectorAll(".nav-link");
+    tabLinks.forEach(function(tab) {
+        tab.addEventListener("click", function(event) {
+            event.preventDefault();
+            var activeTab = document.querySelector(".tab-pane.active");
+            if (activeTab) activeTab.classList.remove("active", "show");
+
+            var target = document.querySelector(this.getAttribute("href"));
+            if (target) target.classList.add("active", "show");
+
+            document.querySelector(".nav-link.active").classList.remove("active");
+            this.classList.add("active");
+        });
+    });
+});
+</script>
+
+{% endblock %}

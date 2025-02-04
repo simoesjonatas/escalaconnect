@@ -1,0 +1,57 @@
+/* Estilização geral das abas */
+.nav-tabs {
+    display: flex;  /* Garante que os itens da aba sejam dispostos em linha */
+    flex-wrap: nowrap;  /* Previne quebra de linha dos itens da aba */
+    align-items: center;  /* Centraliza verticalmente os links das abas */
+    border-bottom: 1px solid #ccc;  /* Linha sob as abas para separar do conteúdo */
+    padding-left: 0; /* Remove padding padrão para listas */
+    list-style-type: none; /* Remove os marcadores de lista */
+}
+
+.nav-link {
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    color: #007bff;
+    background-color: #fff;
+    padding: 8px 16px;  /* Aumenta o padding para um toque maior */
+    margin-right: 2px;
+}
+
+.nav-link:hover,
+.nav-link:focus {
+    border-color: #e9ecef #e9ecef #dee2e6;
+    text-decoration: none; /* Remove sublinhado */
+    background-color: #e9ecef; /* Cor de fundo ao passar o mouse */
+    color: #0056b3; /* Cor do texto ao passar o mouse */
+}
+
+.nav-link.active {
+    color: #495057;
+    background-color: #f8f9fa;
+    border-color: #ccc #ccc transparent;  /* Estiliza a aba ativa para parecer estar "acima" do conteúdo */
+}
+
+/* Estilização específica para o conteúdo da aba */
+.tab-content>.tab-pane {
+    padding: 20px;
+    border: 1px solid #dee2e6;
+    border-top: none;
+    background-color: #f8f9fa;
+}
+
+/* Adiciona espaço ao redor das tabelas dentro das abas */
+.tab-content table {
+    margin-bottom: 0;
+}
+
+/* Ajustes para links desativados */
+.nav-tabs .nav-link.disabled {
+    color: #6c757d; /* Cor do texto para links desativados */
+    background-color: #f8f9fa; /* Cor de fundo para links desativados */
+    cursor: not-allowed; /* Cursor de não-permitido */
+}
+
+/* Melhora no foco visual para usuários de teclado */
+.nav-link:focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}

@@ -12,7 +12,7 @@
 
         <!-- <li><a href="{% url 'usuario_list' %}">Usuários</a></li> -->
         <li><a href="{% url 'perfil_usuario' %}">Meu Perfil</a></li>
-        {% if request.user.is_staff %}
+        {% if request.user.is_leader or request.user.is_staff or request.user.is_superuser %}
         <li><a href="{% url 'usuario_list' %}">Usuários</a></li>
         {% endif %}
         

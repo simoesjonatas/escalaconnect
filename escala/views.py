@@ -190,6 +190,43 @@ def escalar_usuario(request, escala_id, usuario_id):
     return redirect('escala_detail', pk=escala_id)
 
 @login_required
+def escalar_usuario_equipe(request, escala_id, usuario_id):
+    
+    escala = get_object_or_404(Escala, pk=escala_id)
+    
+    # Verifica se o usuário é líder da equipe, staff ou superusuário
+    is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
+    if request.user.is_staff or request.user.is_superuser or is_leader:
+        if not escala.confirmada:
+            usuario = get_object_or_404(Usuario, pk=usuario_id)
+            escala.usuario = usuario
+            escala.save()
+            messages.success(request, 'Usuário escalado com sucesso!')
+            return redirect(reverse('listar_escalas', kwargs={'equipe_pk': escala.equipe.pk}))
+        else:
+            messages.error(request, 'A escala já foi confirmada e não pode ser alterada.')
+    else:
+        messages.error(request, 'Você não tem permissão para realizar esta ação.')
+    return redirect(reverse('listar_escalas', kwargs={'equipe_pk': escala.equipe.pk}))
+
+@login_required
+def cancelar_escala_equipe(request, escala_id):
+    escala = get_object_or_404(Escala, pk=escala_id)
+    is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
+
+    if request.user.is_staff or request.user.is_superuser or is_leader:
+        escala.usuario = None
+        escala.confirmada = False
+        escala.data_confirmacao = None
+        escala.save()
+        messages.success(request, 'Escala cancelada com sucesso.')
+    else:
+        messages.error(request, 'Você não tem permissão para cancelar esta escala.')
+
+    return redirect(reverse('listar_escalas', kwargs={'equipe_pk': escala.equipe.pk}))
+
+
+@login_required
 def cancelar_escala(request, escala_id):
     escala = get_object_or_404(Escala, pk=escala_id)
     is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()

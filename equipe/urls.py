@@ -4,6 +4,7 @@ from .views_funcao import *
 from .views_lideranca import *
 from .views_membros import *
 from .views_escala import *
+from .views_pdf import *
 
 urlpatterns = [
     path('', equipe_list, name='equipe_list'),
@@ -34,6 +35,10 @@ urlpatterns = [
     path('<int:equipe_pk>/membro/<int:pk>/excluir/', membros_equipe_delete, name='membros_equipe_delete'),
 
     path('<int:equipe_pk>/escalas/', listar_escalas, name='listar_escalas'),
+    path('<int:equipe_pk>/escalas/<int:pk>', escala_detail_equipe, name='escala_detail_equipe'),
+
+    path('equipe/<int:equipe_pk>/escalas/exportar-pdf/', exportar_tabela_para_pdf, name='exportar_pdf'),
+
 
 
 ]

@@ -16,7 +16,9 @@ urlpatterns = [
     path('<int:pk>/', escala_detail, name='escala_detail'),
     
     path('escala/<int:escala_id>/escalar/<int:usuario_id>/', escalar_usuario, name='escalar_usuario'),
+    path('escala/<int:escala_id>/escalar/<int:usuario_id>/equipe', escalar_usuario_equipe, name='escalar_usuario_equipe'),
     path('escala/<int:escala_id>/cancelar/', cancelar_escala, name='cancelar_escala'),
+    path('escala/<int:escala_id>/cancelar/equipe', cancelar_escala_equipe, name='cancelar_escala_equipe'),
 
 
 ]

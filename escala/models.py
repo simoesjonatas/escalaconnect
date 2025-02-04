@@ -30,7 +30,7 @@ class Escala(models.Model):
         return self.evento.data_inicio if self.evento.data_inicio else None
     
     def __str__(self):
-        return self.nome
+        return self.evento.nome
 
 
 class SolicitacaoTroca(models.Model):
