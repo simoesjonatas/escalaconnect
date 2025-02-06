@@ -9,7 +9,7 @@ def is_admin(user):
 def admin_required(view_func):
     @wraps(view_func)
     @login_required
-    @user_passes_test(is_admin, login_url=None)  # Evita redirecionamento automático
+    # @user_passes_test(is_admin, login_url=None)  # Evita redirecionamento automático
     def wrapper(request, *args, **kwargs):
         if not is_admin(request.user):
             return render(request, '403_forbidden.html', status=403)
