@@ -2,6 +2,13 @@
 
 {% block page_title %}Confirmar Exclusão{% endblock %}
 
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'lista_disponivel' %}">Lista de Disponibilidades</a></li>
+</ul>
+{% endblock breadcrumb %}
+
 {% block content %}
 <div class="container">
     <h2>Confirmar Exclusão</h2>

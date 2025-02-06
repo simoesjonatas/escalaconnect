@@ -4,7 +4,7 @@
 
 {% block breadcrumb %}
 <ul class="app-breadcrumb breadcrumb">
-    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
     <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
     <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
     <li class="breadcrumb-item active"><a href="{% url 'listar_escalas' equipe.pk %}">Lista de Escalas</a></li>
@@ -43,8 +43,8 @@
             </li>
         </ul>
 
-        <div class="tab-content" id="escalaTabsContent">
-            <div class="tab-pane fade show active" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
+        <div class="tab-content table-responsive" id="escalaTabsContent">
+            <div class="tab-pane fade show active table-responsive" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
                 <h3>Usuários Disponíveis:</h3>
                 <table class="table table-hover">
                     <thead>
@@ -71,7 +71,7 @@
                     </tbody>
                 </table>
             </div>
-            <div class="tab-pane fade" id="escalados" role="tabpanel" aria-labelledby="escalados-tab">
+            <div class="tab-pane fade table-responsive" id="escalados" role="tabpanel" aria-labelledby="escalados-tab">
                 <h3>Usuários Escalados:</h3>
                 <table class="table table-hover">
                     <thead>
@@ -85,7 +85,7 @@
                     </thead>
                     <tbody>
                         {% for escalado in usuarios_escalados %}
-                            <tr>
+                        <tr onclick="window.location.href='{% url 'escala_detail_equipe' escalado.funcao.equipe.pk escalado.pk %}'">
                                 <td>{{ escalado.usuario.username }}</td>
                                 <td>{{ escalado.funcao.nome }}</td>
                                 <td>{{ escalado.funcao.equipe.nome }}</td>

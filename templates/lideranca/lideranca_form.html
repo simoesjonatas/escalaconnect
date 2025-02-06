@@ -4,7 +4,7 @@
 
 {% block breadcrumb %}
 <ul class="app-breadcrumb breadcrumb">
-    <li class="breadcrumb-item"><i class="fa fa-home fa-lg"></i></li>
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
     <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
     <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
     <li class="breadcrumb-item">Adicionar/Editar Liderança</li>
