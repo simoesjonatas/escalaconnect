@@ -58,7 +58,8 @@ def escala_detail_equipe(request,equipe_pk, pk):
     is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
 
     # pega os membros da equipe e filtra aqueles sem indisponibilidade
-    membros = escala.funcao.equipe.membros.aprovados()
+    membros = escala.funcao.equipe.membros.filter(aprovado=True)
+
     
     # filtra usarios sem indisponibilidades que se sobreponha
     usuarios_sem_indisponibilidade = [membro.usuario for membro in membros if not Ocupado.objects.filter(
