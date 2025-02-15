@@ -10,7 +10,6 @@
     <div class="signup-container">
         <div class="signup-card">
             <h1>Cadastro</h1>
-
             <!-- Exibir erros globais do formulário -->
             {% if form.errors %}
                 <div class="error-messages">
@@ -28,9 +27,18 @@
                 {% csrf_token %}
                 
                 <div class="form-group">
-                    <label for="id_username">Usuário</label>
-                    {{ form.username }}
+                    <label id="usernamePreview" for="id_username">Usuário</label>
                     <small class="error">{{ form.username.errors }}</small>
+                </div>
+                <div class="form-group">
+                    <label for="first_name">Primerio nome</label>
+                    {{ form.first_name }}
+                    <small class="error">{{ form.first_name.errors }}</small>
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Ultimo nome</label>
+                    {{ form.last_name }}
+                    <small class="error">{{ form.last_name.errors }}</small>
                 </div>
                 <div class="form-group">
                     <label for="id_email">E-mail</label>
@@ -107,6 +115,21 @@
             toggleButton.textContent = "Mostrar";
         }
     }
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstNameInput = document.querySelector('input[name="first_name"]');
+        const lastNameInput = document.querySelector('input[name="last_name"]');
+        const usernamePreview = document.getElementById('usernamePreview');
+
+        function updateUsername() {
+            const firstName = firstNameInput.value.trim();
+            const lastName = lastNameInput.value.trim();
+            const username = `${firstName}.${lastName}`.toLowerCase().replace(/\s+/g, '');
+            usernamePreview.innerText = `Seu nome de usuário será: ${username}`;
+        }
+
+        firstNameInput.addEventListener('input', updateUsername);
+        lastNameInput.addEventListener('input', updateUsername);
+    });
     </script>
     
 </html>
