@@ -23,7 +23,7 @@ def membros_equipe_list(request, equipe_pk):
     # ).order_by(order_by)
     
     membros = equipe.membros.filter(
-        Q(usuario__username__icontains=query)
+        Q(usuario__username__icontains=query) & Q(aprovado=True)
     ).order_by(order_by)
     
     paginator = Paginator(membros, 10)
@@ -58,6 +58,7 @@ def membros_equipe_create(request, equipe_pk):
         if form.is_valid():
             membro = form.save(commit=False)
             membro.equipe = equipe
+            membro.aprovado = True
             membro.save()
             return redirect(reverse('listar_membros_equipe', args=[equipe_pk]))
     else:

@@ -38,6 +38,12 @@
 
 </head>
 <body>
+        {% if not user.is_in_team %}
+            <script>
+                <!-- window.location.href = "x/"; -->
+                window.location.href = "api/user/inscricao";
+            </script>
+        {% endif %}
         <!-- Sidebar Menu -->
         {% include 'includes/menu.html' %}
 

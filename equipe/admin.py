@@ -7,7 +7,7 @@ class EquipeAdmin(admin.ModelAdmin):
 
 @admin.register(MembrosEquipe)
 class MembrosEquipeAdmin(admin.ModelAdmin):
-    list_display = ['equipe', 'usuario']
+    list_display = ['equipe', 'usuario', 'aprovado']
     list_filter = ['equipe']
 
 @admin.register(Lideranca)

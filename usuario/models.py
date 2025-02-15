@@ -1,11 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from .utils import validate_cpf
-from equipe.models import Lideranca
+from equipe.models import Lideranca, Equipe, MembrosEquipe
 
 class Usuario(AbstractUser):
     telefone = models.CharField(max_length=255, blank=True, null=True)
     aniversario = models.DateTimeField(blank=True, null=True)
+    batismo = models.DateTimeField(blank=True, null=True)
     is_first_login = models.BooleanField(default=True)
 
     # cpf = models.CharField(max_length=255, unique=True)
@@ -21,3 +22,11 @@ class Usuario(AbstractUser):
 
     def is_leader(self):
         return Lideranca.objects.filter(usuario=self).exists()
+    
+    def is_in_team(self):
+        # Verifica se o usuário é superuser ou staff, o que automaticamente o qualifica como 'em uma equipe'
+        if self.is_staff or self.is_superuser:
+            return True
+
+        # Verifica se o usuário é membro aprovado de pelo menos uma equipe
+        return MembrosEquipe.objects.filter(usuario=self, aprovado=True).exists()

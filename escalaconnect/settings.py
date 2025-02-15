@@ -37,7 +37,8 @@ ADMIN_PROTECTED_PATHS = [
 ]
 
 ADMIN_ALLOWED_PATHS = [
-    '/usuario/perfil/'  # Libera o acesso a /usuario/perfil/
+    '/usuario/perfil/',  # Libera o acesso a /usuario/perfil/
+    '/api/user/signup/'
 ]
 
 # CSRF_TRUSTED_ORIGINS = [

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Escalaconnect</title>
+    <link rel="stylesheet" href="/static/css/signup.css">
+</head>
+<body>
+    <div class="signup-container">
+        <div class="signup-card">
+            <h1>Cadastro</h1>
+
+            <!-- Exibir erros globais do formulário -->
+            {% if form.errors %}
+                <div class="error-messages">
+                    <ul>
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="id_username">Usuário</label>
+                    {{ form.username }}
+                    <small class="error">{{ form.username.errors }}</small>
+                </div>
+                <div class="form-group">
+                    <label for="id_email">E-mail</label>
+                    {{ form.email }}
+                    <small class="error">{{ form.email.errors }}</small>
+                </div>
+                <!-- <div class="form-group">
+                    <label for="id_password1">Senha</label>
+                    {{ form.password1 }}
+                    <small class="error">{{ form.password1.errors }}</small>
+                </div>
+                <div class="form-group">
+                    <label for="id_password2">Confirme a Senha</label>
+                    {{ form.password2 }}
+                    <small class="error">{{ form.password2.errors }}</small>
+                </div> -->
+                <div class="form-group">
+                    <label for="id_password1">Senha</label>
+                    <input type="password" id="id_password1" name="password1">
+                    <button type="button" onclick="togglePasswordVisibility('id_password1', this)">Mostrar</button>
+                    <small class="error">{{ form.password1.errors }}</small>
+                </div>
+                <div class="form-group">
+                    <label for="id_password2">Confirme a Senha</label>
+                    <input type="password" id="id_password2" name="password2">
+                    <button type="button" onclick="togglePasswordVisibility('id_password2', this)">Mostrar</button>
+                    <small class="error">{{ form.password2.errors }}</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="id_telefone">Telefone</label>
+                    {{ form.telefone }}
+                    <small class="error">{{ form.telefone.errors }}</small>
+                </div>
+                <div class="form-group">
+                    <label for="id_aniversario">Data de Aniversário</label>
+                    {{ form.aniversario }}
+                    <small class="error">{{ form.aniversario.errors }}</small>
+                </div>
+                <div class="form-group">
+                    <label for="id_batismo">Data de Batismo</label>
+                    {{ form.batismo }}
+                    <small class="error">{{ form.batismo.errors }}</small>
+                </div>
+                <div class="form-group">
+                    <label for="id_cpf">CPF</label>
+                    {{ form.cpf }}
+                    <small class="error">{{ form.cpf.errors }}</small>
+                </div>
+                
+                <div class="form-check">
+                    {{ form.aceitar_termos }}
+                    <label class="form-check-label">
+                        Aceito os <a href="{% url 'termos_de_uso' %}" target="_blank">Termos de Uso</a>
+                    </label>
+                    <small class="error">{{ form.aceitar_termos.errors }}</small>
+                </div>
+
+                <button type="submit">Cadastrar</button>
+                <p class="login-link">Já tem uma conta? <a href="/login/">Faça login</a></p>
+            </form>
+        </div>
+    </div>
+</body>
+
+<script>
+    function togglePasswordVisibility(fieldId, toggleButton) {
+        var passwordField = document.getElementById(fieldId);
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+            toggleButton.textContent = "Esconder";
+        } else {
+            passwordField.type = "password";
+            toggleButton.textContent = "Mostrar";
+        }
+    }
+    </script>
+    
+</html>

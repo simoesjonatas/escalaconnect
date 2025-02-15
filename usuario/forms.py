@@ -7,9 +7,10 @@ User = get_user_model()
 class UsuarioForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['username', 'email', 'telefone', 'aniversario', 'cpf']
+        fields = ['username', 'email', 'telefone', 'aniversario', 'cpf','batismo']
         widgets = {
             'aniversario': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'batismo': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'telefone': forms.TextInput(attrs={'class': 'form-control'}),
             'cpf': forms.TextInput(attrs={'class': 'form-control'}),
             'username': forms.TextInput(attrs={'class': 'form-control'}),

@@ -1,23 +1,29 @@
-/* Estilo para a página de login */
+/* Estilo geral para todas as páginas */
 body {
     margin: 0;
     font-family: Arial, sans-serif;
     display: flex;
     justify-content: center;
-    align-items: center;
-    height: 100vh;
+    align-items: flex-start; /* Mudança de center para flex-start */
+    min-height: 100vh; /* Usar min-height ao invés de height para cobrir conteúdos maiores que a tela */
     background-color: #f4f4f4;
+    padding: 10px;
+    overflow: auto; /* Permite a rolagem quando o conteúdo excede a altura da viewport */
 }
 
+/* Container principal */
 .login-container {
     width: 100%;
     max-width: 400px;
     padding: 20px;
+    margin-top: 40px; /* Adiciona um espaçamento no topo para evitar sobreposição */
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     background-color: #fff;
     border-radius: 8px;
+    text-align: center;
 }
 
+/* Título */
 .login-card h1 {
     text-align: center;
     margin-bottom: 20px;
@@ -25,8 +31,10 @@ body {
     color: #2c3e50;
 }
 
+/* Grupos de formulário */
 .form-group {
     margin-bottom: 15px;
+    text-align: left;
 }
 
 .form-group label {
@@ -42,24 +50,38 @@ body {
     border-radius: 4px;
     font-size: 16px;
     box-sizing: border-box;
+    transition: all 0.3s ease;
 }
 
+.form-group input:focus {
+    border-color: #1abc9c;
+    outline: none;
+    box-shadow: 0 0 5px rgba(26, 188, 156, 0.5);
+}
+
+/* Botões */
 button {
     width: 100%;
-    padding: 10px;
+    padding: 12px;
     border: none;
     border-radius: 4px;
     background-color: #2c3e50;
     color: #fff;
     font-size: 16px;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.1s ease-in-out;
 }
 
 button:hover {
     background-color: #1abc9c;
+    transform: scale(1.05);
 }
 
+button:active {
+    transform: scale(0.98);
+}
+
+/* Links */
 .signup {
     margin-top: 15px;
     text-align: center;
@@ -69,8 +91,62 @@ button:hover {
 .signup a {
     color: #3498db;
     text-decoration: none;
+    font-weight: bold;
 }
 
 .signup a:hover {
     text-decoration: underline;
+}
+
+/* Termos de Uso */
+.termos-content {
+    text-align: left;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.termos-content h3 {
+    color: #2c3e50;
+    margin-top: 20px;
+    font-size: 18px;
+}
+
+.termos-content ul {
+    padding-left: 20px;
+}
+
+.termos-content ul li {
+    margin-bottom: 8px;
+}
+
+/* Botão na página de Termos de Uso */
+.btn-termos {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: #1abc9c;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-weight: bold;
+    transition: all 0.3s ease-in-out;
+}
+
+.btn-termos:hover {
+    background-color: #16a085;
+    transform: scale(1.05);
+}
+
+/* Ajuste para dispositivos menores */
+@media (max-width: 500px) {
+    .login-container {
+        width: 90%;
+        padding: 10px; /* Reduz o padding em dispositivos menores */
+    }
+
+    button {
+        font-size: 14px;
+    }
 }
