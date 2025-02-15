@@ -36,7 +36,7 @@
                 <button type="submit" class="btn btn-success">Confirmar Escala</button>
             </form>
         {% else %}
-            <form method="post" action="#" style="display:inline;">
+            <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}" style="display:inline;">
                 <!-- url 'sinalizar_impedimento' escala.pk  -->
                 {% csrf_token %}
                 <button type="submit" class="btn btn-danger btn-sm">Sinalizar Impedimento</button>

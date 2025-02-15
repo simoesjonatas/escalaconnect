@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Sinalizar Desistência{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'minhas_escalas' %}">Minhas Escalas</a></li>
+    <li class="breadcrumb-item active">Sinalizar Desistência</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h2 class="text-danger">Sinalizar Desistência</h2>
+
+    <div class="card">
+        <div class="card-body">
+            <h4><strong>Evento:</strong> {{ escala.evento.nome }}</h4>
+            <p><strong>Data do Evento:</strong> {{ escala.evento.data_inicio|date:"d/m/Y H:i" }} - {{ escala.evento.data_fim|date:"d/m/Y H:i" }}</p>
+            <p><strong>Equipe:</strong> {{ escala.funcao.equipe.nome }}</p>
+            <p><strong>Função:</strong> {{ escala.funcao.nome }}</p>
+        </div>
+    </div>
+
+    <hr>
+
+    <form method="POST" action="{% url 'sinalizar_impedimento' escala.pk %}">
+        {% csrf_token %}
+
+        {% if form.errors %}
+            <div class="alert alert-danger">
+                {{ form.non_field_errors }}
+                {% for field in form %}
+                    {% for error in field.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+        <div class="form-group">
+            <label for="motivo"><strong>Motivo da Desistência:</strong></label>
+            <textarea id="motivo" name="motivo" class="form-control" rows="4" required></textarea>
+        </div>
+
+        <div class="mt-3">
+            <button type="submit" class="btn btn-danger">Sinalizar Desistência</button>
+            <a href="{% url 'minhas_escalas' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

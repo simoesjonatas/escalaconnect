@@ -2,6 +2,7 @@ from django.urls import path
 from .views import *
 from escala.views import *
 from escala.views2 import *
+from escala.desistencia_views import *
 
 urlpatterns = [
     
@@ -19,6 +20,9 @@ urlpatterns = [
     path('escala/<int:escala_id>/escalar/<int:usuario_id>/equipe', escalar_usuario_equipe, name='escalar_usuario_equipe'),
     path('escala/<int:escala_id>/cancelar/', cancelar_escala, name='cancelar_escala'),
     path('escala/<int:escala_id>/cancelar/equipe', cancelar_escala_equipe, name='cancelar_escala_equipe'),
+    
+    path('desistencia/<int:escala_id>/', create_desistencia, name='sinalizar_impedimento'),
+
 
 
 ]

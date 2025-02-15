@@ -48,11 +48,13 @@ class SolicitacaoTroca(models.Model):
 
 
 class Desistencia(models.Model):
-    escala = models.ForeignKey(Escala, on_delete=models.CASCADE)
+    escala = models.ForeignKey('Escala', on_delete=models.CASCADE)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    aprovada = models.BooleanField()
-    data_solicitacao = models.DateTimeField()
-    data_aprovacao = models.DateTimeField()
+    motivo = models.TextField(verbose_name="Motivo da Desistência")
+    aprovada = models.BooleanField(default=False)
+    data_solicitacao = models.DateTimeField(auto_now_add=True)
+    data_aprovacao = models.DateTimeField(null=True, blank=True)
+
     def __str__(self):
         return f"Desistência: {self.usuario} - Escala: {self.escala}"
 
