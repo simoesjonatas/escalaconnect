@@ -7,7 +7,9 @@ from django.template.loader import render_to_string
 from weasyprint import HTML
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
+from equipe.decorators import require_lideranca
 
+@require_lideranca
 def exportar_tabela_para_pdf(request, equipe_pk):
     if request.method == 'POST':
         equipe = get_object_or_404(Equipe, pk=equipe_pk)
