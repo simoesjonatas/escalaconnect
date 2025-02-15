@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Membros Pendentes da Equipe {{ equipe }}
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'listar_membros_equipe' equipe.pk %}">Lista de Membros</a></li>
+    <li class="breadcrumb-item">Membros Pendentes</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <div class="clearfix mb-3">
+        <form method="GET" class="form-inline">
+            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar Membro..." value="{{ request.GET.q }}">
+            <button type="submit" class="btn btn-primary mr-2">Buscar</button>
+            <a class="btn btn-secondary" href="{% url 'listar_membros_pendentes' equipe_pk=equipe.pk %}">Limpar Filtro</a>
+        </form>
+    </div>
+    <h2 class="mb-3">Membros Pendentes de Aprovação</h2>
+    <div class="table-responsive">
+        <table class="table table-bordered mt-3">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuário</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for membro in page_obj %}
+                <tr>
+                    <td>{{ membro.id }}</td>
+                    <td>{{ membro.usuario.get_full_name }}</td>
+                    <td>
+                        <a href="{% url 'aprovar_membro' equipe_pk=equipe.pk membro_pk=membro.pk %}" class="btn btn-success btn-sm">Aprovar</a>
+                        <a href="{% url 'rejeitar_membro' equipe_pk=equipe.pk membro_pk=membro.pk %}" class="btn btn-danger btn-sm">Rejeitar</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center">Nenhum membro pendente de aprovação.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <!-- Paginação -->
+    {% include 'includes/pagination.html' %}
+</div>
+{% endblock %}

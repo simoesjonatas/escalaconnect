@@ -22,6 +22,7 @@ Membros da Equipe {{ equipe }}
             <a class="btn btn-secondary" href="{% url 'listar_membros_equipe' equipe_pk=equipe.pk %}">Limpar Filtro</a>
         </form>
         <a class="btn btn-success float-right" href="{% url 'membros_equipe_create' equipe_pk=equipe.pk %}">Adicionar Membro</a>
+        <a class="btn btn-secondary float-right" href="{% url 'listar_membros_pendentes' equipe_pk=equipe.pk %}">Aprovar Membro</a>
     </div>
     <div class="table-responsive">
         <table class="table table-bordered mt-3">

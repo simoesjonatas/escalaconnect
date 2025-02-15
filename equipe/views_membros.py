@@ -87,3 +87,30 @@ def membros_equipe_delete(request, equipe_pk, pk):
         return redirect('listar_membros_equipe', equipe_pk=membro.equipe.pk)
     
     return render(request, 'membros_equipe/membros_equipe_confirm_delete.html', {'membro': membro})
+
+@require_lideranca
+def aprovar_membro(request, equipe_pk, membro_pk):
+    membro = get_object_or_404(MembrosEquipe, pk=membro_pk, equipe_id=equipe_pk)
+    membro.aprovado = True
+    membro.save()
+    return redirect('listar_membros_pendentes', equipe_pk=equipe_pk)
+
+@require_lideranca
+def rejeitar_membro(request, equipe_pk, membro_pk):
+    membro = get_object_or_404(MembrosEquipe, pk=membro_pk, equipe_id=equipe_pk)
+    membro.delete()
+    return redirect('listar_membros_pendentes', equipe_pk=equipe_pk)
+
+def listar_membros_pendentes(request, equipe_pk):
+    equipe = get_object_or_404(Equipe, pk=equipe_pk)
+    query = request.GET.get('q', '')
+
+    membros = MembrosEquipe.objects.filter(equipe=equipe, aprovado=False)
+    if query:
+        membros = membros.filter(usuario__username__icontains=query)
+
+    paginator = Paginator(membros, 10)  # Mostra 10 membros por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'membros_equipe/membros_pendentes.html', {'equipe': equipe, 'page_obj': page_obj, 'query': query})

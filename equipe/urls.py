@@ -38,7 +38,10 @@ urlpatterns = [
     path('<int:equipe_pk>/escalas/<int:pk>', escala_detail_equipe, name='escala_detail_equipe'),
 
     path('equipe/<int:equipe_pk>/escalas/exportar-pdf/', exportar_tabela_para_pdf, name='exportar_pdf'),
-
+    
+    path('equipe/<int:equipe_pk>/membros-pendentes/', listar_membros_pendentes, name='listar_membros_pendentes'),
+    path('equipe/<int:equipe_pk>/aprovar-membro/<int:membro_pk>/', aprovar_membro, name='aprovar_membro'),
+    path('equipe/<int:equipe_pk>/rejeitar-membro/<int:membro_pk>/', rejeitar_membro, name='rejeitar_membro'),
 
 
 ]
