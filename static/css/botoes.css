@@ -65,6 +65,14 @@
     gap: 10px; /* Adiciona espaçamento entre os botões */
 }
 
+.user-info {
+    padding: 10px;
+    color: #ffffff; /* Cor do texto */
+    /* background-color: #4CAF50; Cor de fundo */
+    text-align: center;
+    margin-bottom: 10px; /* Espaço entre o nome do usuário e o botão Sair */
+}
+
 
 /* Estilização do botão de logout */
 .logout-button {
