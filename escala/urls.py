@@ -22,6 +22,9 @@ urlpatterns = [
     path('escala/<int:escala_id>/cancelar/equipe', cancelar_escala_equipe, name='cancelar_escala_equipe'),
     
     path('desistencia/<int:escala_id>/', create_desistencia, name='sinalizar_impedimento'),
+    path('escala/<int:escala_id>/desistencia/', DetalhesDesistenciaPorEscalaView.as_view(), name='detalhes_desistencia_escala'),
+    path('desistencia/aprovar/<int:desistencia_id>/', aprovar_desistencia, name='aprovar_desistencia'),
+
 
 
 

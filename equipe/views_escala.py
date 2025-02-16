@@ -1,10 +1,21 @@
 from django.shortcuts import render, get_object_or_404
 from .models import Equipe, Lideranca
-from escala.models import Escala
+from escala.models import Escala, Desistencia
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils import timezone
 from ocupado.models import Ocupado
+
+def get_unapproved_desistencias(equipe_id):
+    equipe = get_object_or_404(Equipe, pk=equipe_id)
+    
+    # Realiza a consulta para obter desistências não aprovadas
+    desistencias = Desistencia.objects.filter(
+        escala__funcao__equipe=equipe, 
+        aprovada=False
+    )
+    
+    return desistencias
 
 def listar_escalas(request, equipe_pk):
     equipe = get_object_or_404(Equipe, pk=equipe_pk)
@@ -17,8 +28,12 @@ def listar_escalas(request, equipe_pk):
         order_by = f'-{order_by}'
 
     # Filter escalas from today onwards
-    current_date = timezone.now()
-    escalas_list = Escala.objects.filter(funcao__equipe=equipe, evento__data_inicio__gte=current_date).order_by(order_by)
+    # current_date = timezone.now()
+    today = timezone.now().date()
+    escalas_list = Escala.objects.filter(
+        funcao__equipe=equipe, 
+        evento__data_inicio__date__gte=today
+        ).order_by(order_by)
     
     if query:
         escalas_list = escalas_list.filter(
@@ -31,6 +46,8 @@ def listar_escalas(request, equipe_pk):
     paginator = Paginator(escalas_list, 10)  # Display 10 escalas per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    # desistencias =get_unapproved_desistencias(equipe.pk)
 
     return render(request, 'equipe/escalas_equipe.html', {
         'equipe': equipe,
@@ -38,6 +55,7 @@ def listar_escalas(request, equipe_pk):
         'order_by': order_by.strip('-'),
         'direction': direction,
         'query': query,
+        # 'desistencias': desistencias,
         'escala_fields': [
             ('evento__nome', 'Evento'),
             ('evento__data_inicio', 'Data Início'),

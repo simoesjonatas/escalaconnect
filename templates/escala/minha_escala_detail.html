@@ -31,17 +31,24 @@
         <a class="btn btn-secondary" href="{% url 'minhas_escalas' %}">Voltar</a>
         
         {% if not escala.confirmada %}
+            <!-- Se a escala não está confirmada, permite a confirmação -->
             <form method="POST" action="{% url 'confirmar_minha_escala' escala.pk %}" style="display: inline;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-success">Confirmar Escala</button>
             </form>
         {% else %}
-            <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}" style="display:inline;">
-                <!-- url 'sinalizar_impedimento' escala.pk  -->
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger btn-sm">Sinalizar Impedimento</button>
-            </form>
+            {% if escala.has_impedimento %}
+                <!-- Se há Impedimento Notificado, mostra um botão desativado indicando isso -->
+                <button class="btn btn-warning btn-sm" disabled>Impedimento Notificado</button>
+            {% else %}
+                <!-- Se a escala está confirmada e não há impedimentos em análise, permite sinalizar um novo impedimento -->
+                <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-sm">Sinalizar Impedimento</button>
+                </form>
+            {% endif %}
         {% endif %}
+
 
     </div>
 </div>

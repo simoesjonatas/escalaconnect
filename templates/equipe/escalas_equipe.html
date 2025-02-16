@@ -46,7 +46,21 @@ Escalas da Equipe {{ equipe.nome }}
                     <td>{{ escala.evento.data_inicio|date:"d/m/Y H:i" }}</td>
                     <td>{{ escala.funcao.nome }}</td>
                     <td>{{ escala.usuario.username }}</td>
-                    <td>{{ escala.confirmada|yesno:"✅ Sim,❌ Não" }}</td>
+                    {% if escala.has_impedimento%}
+                    <!-- <td>
+                        <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="text-danger">
+                            <i class="fa fa-exclamation-circle text-danger" title="Impedimento pendente. Clique para mais detalhes."></i>
+                            Impedimento
+                        </a>
+                    </td> -->
+                    <td>
+                        <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger" role="button">
+                            <i class="fa fa-exclamation-circle" title="Impedimento pendente. Clique para mais detalhes."></i> Impedimento
+                        </a>
+                    </td>                    
+                    {%else%}
+                        <td>{{ escala.confirmada|yesno:"✅ Sim,❌ Não" }}</td>
+                    {% endif %}
                 </tr>
                 {% empty %}
                 <tr>

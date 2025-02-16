@@ -55,18 +55,25 @@ Minhas Escalas
                     <td>{{ escala.data_confirmacao|default:"-" }}</td>
                     <td>
                         {% if escala.confirmada %}
-                            <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}" style="display:inline;">
-                                <!-- url 'sinalizar_impedimento' escala.pk  -->
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger btn-sm">Sinalizar Impedimento</button>
-                            </form>
+                            {% if escala.has_impedimento %}
+                                <!-- Botão desativado indicando que o impedimento está em análise -->
+                                <button class="btn btn-warning btn-sm" disabled>Impedimento Notificado</button>
+                            {% else %}
+                                <!-- Formulário para sinalizar impedimento se a escala estiver confirmada e não houver impedimentos em análise -->
+                                <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-danger btn-sm">Sinalizar Impedimento</button>
+                                </form>
+                            {% endif %}
                         {% else %}
+                            <!-- Formulário para confirmar escala se ela não estiver confirmada -->
                             <form method="post" action="{% url 'confirmar_minha_escala' escala.pk %}" style="display:inline;">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-success btn-sm">Confirmar Escala</button>
                             </form>
                         {% endif %}
                     </td>
+                    
                 </tr>
                 {% empty %}
                 <tr>

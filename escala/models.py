@@ -31,6 +31,10 @@ class Escala(models.Model):
     
     def __str__(self):
         return self.evento.nome
+    
+    def has_impedimento(self):
+        """ Verifica se há desistências não aprovadas para esta escala. """
+        return Desistencia.objects.filter(escala=self, aprovada=False).exists()
 
 
 class SolicitacaoTroca(models.Model):
