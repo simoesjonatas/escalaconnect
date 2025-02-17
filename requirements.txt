@@ -10,6 +10,7 @@ psycopg2-binary==2.9.10
 pycparser==2.22
 pydyf==0.11.0
 pyphen==0.17.2
+python-decouple==3.8
 sqlparse==0.5.3
 tinycss2==1.4.0
 tinyhtml5==2.0.0
