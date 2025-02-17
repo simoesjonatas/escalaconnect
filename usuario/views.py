@@ -40,6 +40,7 @@ def usuario_list(request):
         ('username', 'Username'),
         ('email', 'Email'),
         ('telefone', 'Telefone'),
+        ('aniversario', 'Aniversário'),
     ]
 
     context = {
