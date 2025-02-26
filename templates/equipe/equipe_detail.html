@@ -18,8 +18,11 @@
     </ul>
     <div class="clearfix">
         <a class="btn btn-secondary" href="{% url 'equipe_list' %}">Voltar</a>
+        <!-- request.user.is_leader or  -->
+        {% if request.user.is_staff or request.user.is_superuser %}
         <a class="btn btn-warning" href="{% url 'equipe_update' equipe.pk %}">Editar</a>
         <a class="btn btn-danger" href="{% url 'equipe_delete' equipe.pk %}">Excluir</a>
+        {% endif %}
     </div>
 
     

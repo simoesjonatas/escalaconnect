@@ -20,8 +20,10 @@
     </ul>
     <div class="clearfix">
         <a class="btn btn-secondary" href="{% url 'evento_list' %}">Voltar</a>
+        {% if request.user.is_staff or request.user.is_superuser %}
         <a class="btn btn-warning" href="{% url 'evento_update' evento.pk %}">Editar</a>
         <a class="btn btn-danger" href="{% url 'evento_delete' evento.pk %}">Excluir</a>
+        {% endif %}
         <a class="btn btn-info" href="{% url 'evento_escalas' evento.pk %}">Planejamento de Equipe</a>
     </div>
 </div>

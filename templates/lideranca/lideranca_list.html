@@ -21,7 +21,9 @@ Lideranças da Equipe {{ equipe }}
             <button type="submit" class="btn btn-primary mr-2">Buscar</button>
             <a class="btn btn-secondary" href="{% url 'listar_liderancas' equipe_pk=equipe.pk %}">Limpar Filtro</a>
         </form>
+        {% if request.user.is_staff or request.user.is_superuser %}
         <a class="btn btn-success float-right" href="{% url 'lideranca_create' equipe_pk=equipe.pk %}">Adicionar Líder</a>
+        {% endif %}
     </div>
     <div class="table-responsive">
         <table class="table table-bordered mt-3">

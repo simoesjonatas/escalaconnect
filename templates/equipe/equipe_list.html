@@ -17,7 +17,9 @@
             <button type="submit" class="btn btn-primary mr-2">Buscar</button>
             <a class="btn btn-secondary" href="{% url 'equipe_list' %}">Limpar Filtro</a>
         </form>
+        {% if request.user.is_staff or request.user.is_superuser %}
         <a class="btn btn-success float-right" href="{% url 'equipe_create' %}">Adicionar Equipe</a>
+        {% endif %}
     </div>
 
     <div class="table-responsive">

@@ -21,8 +21,10 @@ Escalas do Evento {{ evento.nome }}
             <button type="submit" class="btn btn-primary mr-2">Buscar</button>
             <a class="btn btn-secondary" href="{% url 'evento_escalas' evento.pk %}">Limpar Filtro</a>
         </form>
+        {% if request.user.is_staff or request.user.is_superuser %}
         <!-- <a class="btn btn-success float-right" href="{% url 'escala_create' evento.pk %}">Adicionar Escala</a> -->
         <a class="btn btn-success" href="{% url 'multi_escala_create' evento.pk %}">Adicionar Escala</a>
+        {% endif %}
     </div>
 
     <div class="table-responsive">
