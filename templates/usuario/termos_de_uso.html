@@ -1,3 +1,5 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -5,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Termos de Uso - Escalaconnect</title>
     <link rel="stylesheet" href="/static/css/login.css">
+    <link rel="icon" href="{% static 'images/logo_pibvp_2022.png' %}" type="image/png">
     
 </head>
 <body>
@@ -41,7 +44,7 @@
                     <li>O usuário pode solicitar a exclusão de sua conta a qualquer momento.</li>
                 </ul>
             </div>
-            <!-- <a href="/signup/" class="btn-termos">Voltar para Cadastro</a> -->
+            <button onclick="window.close();" class="btn-close">Fechar</button>
         </div>
     </div>
 </body>
