@@ -2,6 +2,14 @@
 
 {% block page_title %}Excluir Indisponibilidade{% endblock %}
 
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'lista_ocupado' %}">Lista de Indisponibilidade</a></li>
+    <li class="breadcrumb-item">Excluir Indisponibilidade</li>
+</ul>
+{% endblock breadcrumb %}
+
 {% block content %}
 <div class="container">
     <h2>Confirmar Exclusão</h2>

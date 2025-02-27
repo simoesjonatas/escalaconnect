@@ -1,0 +1,69 @@
+<!-- registrar_por_evento.html -->
+{% extends 'base.html' %}
+
+{% block page_title %}Indisponibilidade{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'lista_ocupado' %}">Lista de Indisponibilidade</a></li>
+    <li class="breadcrumb-item">Adicionar Indisponibilidade</li>
+</ul>
+{% endblock breadcrumb %}
+
+
+{% block content %}
+
+<div class="dashboard-container">
+    <h2>Registrar Indisponibilidade por Evento</h2>
+    <form method="post" action="{% url 'processar_indisponibilidade_evento' %}">
+        {% csrf_token %}
+        <div class="event-grid">
+            {% for evento in eventos %}
+            <div class="event-card">
+                <h3>{{ evento.nome }}</h3>
+                <!-- <p>{{ evento.data_inicio|date:"d M Y H:i" }} - {{ evento.data_fim|date:"d M Y H:i" }}</p> -->
+                <p>{{ evento.data_inicio|date:"D, d M Y H:i" }} - {{ evento.data_fim|date:"D, d M Y H:i" }}</p>
+
+                <!-- <button type="button" class="btn btn-danger toggle-select"  data-evento-id="{{ evento.id }}">
+                    Marcar Indisponibilidade
+                </button> -->
+                <button type="button" class="btn btn-success toggle-select" data-evento-id="{{ evento.id }}">
+                    Marcar Indisponibilidade
+                </button>
+                
+                <!-- Campo oculto para armazenar o ID do evento quando selecionado -->
+                <input type="hidden" name="event_ids" value="{{ evento.id }}" disabled>
+            </div>
+            {% endfor %}
+
+        </div>
+        <br>
+        <input type="submit" value="Registrar Indisponibilidades" class="btn btn-secondary submit-btn">
+    </form>
+</div>
+
+<script>
+    document.querySelectorAll('.toggle-select').forEach(button => {
+        button.addEventListener('click', function() {
+            const card = this.closest('.event-card');
+            const input = card.querySelector('input[type="hidden"]');
+            card.classList.toggle('selected');
+            if (card.classList.contains('selected')) {
+                this.textContent = 'Desmarcar';
+                this.classList.remove('btn-success');
+                this.classList.add('btn-danger');
+                input.disabled = false; // Habilita o input para enviar o ID
+            } else {
+                this.textContent = 'Marcar Indisponibilidade';
+                this.classList.remove('btn-danger');
+                this.classList.add('btn-success');
+                input.disabled = true; // Desabilita o input para não enviar o ID
+            }
+        });
+    });
+    
+    
+</script>
+
+{% endblock %}

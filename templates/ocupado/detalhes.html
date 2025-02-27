@@ -2,12 +2,21 @@
 
 {% block page_title %}Detalhes da Indisponibilidade{% endblock %}
 
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'lista_ocupado' %}">Lista de Indisponibilidade</a></li>
+    <li class="breadcrumb-item">Detalhe da Indisponibilidade</li>
+</ul>
+{% endblock breadcrumb %}
+
 {% block content %}
 <div class="container">
     <h3>Indisponibilidade de {{ ocupado.usuario.username }}</h3>
     <ul>
         <li><strong>Data de Início:</strong> {{ ocupado.data_inicio|date:"d M Y H:i" }}</li>
         <li><strong>Data de Fim:</strong> {{ ocupado.data_fim|date:"d M Y H:i" }}</li>
+        <li><strong>Observação:</strong> {{ ocupado.motivo }}</li>
     </ul>
     <div class="clearfix">
         <a class="btn btn-secondary" href="{% url 'lista_ocupado' %}">Voltar</a>

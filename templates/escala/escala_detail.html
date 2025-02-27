@@ -24,8 +24,10 @@
     
     <div class="clearfix">
         <a class="btn btn-secondary" href="{% url 'evento_escalas' escala.evento.pk %}">Voltar</a>
+        {% if request.user.is_staff or request.user.is_superuser %}
         <a class="btn btn-warning" href="{% url 'escala_update' escala.pk %}">Editar</a>
         <a class="btn btn-danger" href="{% url 'escala_delete' escala.pk %}">Excluir</a>
+        {% endif %}
         {% if escala.confirmada %}
             {% if request.user.is_staff or request.user.is_superuser or is_leader %}
             <a class="btn btn-info" href="{% url 'cancelar_escala' escala.pk %}">Cancelar Escala</a>

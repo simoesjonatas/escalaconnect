@@ -17,7 +17,7 @@
             <button type="submit" class="btn btn-primary mr-2">Buscar</button>
             <a class="btn btn-secondary" href="{% url 'lista_ocupado' %}">Limpar Filtro</a>
         </form>
-        <a class="btn btn-success float-right" href="{% url 'adicionar_ocupado' %}">Registrar Indisponibilidade</a>
+        <a class="btn btn-success float-right" href="{% url 'registrar_indisponibilidade' %}">Registrar Indisponibilidade</a>
     </div>
 
     <div class="table-responsive">
@@ -25,18 +25,20 @@
             <thead>
                 <tr>
                     <!-- <th><a href="?q={{ query }}&order_by=id&direction={{ direction }}">ID</a></th> -->
-                    <th><a href="?q={{ query }}&order_by=usuario__username&direction={{ direction }}">Usuário</a></th>
+                    <!-- <th><a href="?q={{ query }}&order_by=usuario__username&direction={{ direction }}">Usuário</a></th> -->
                     <th><a href="?q={{ query }}&order_by=data_inicio&direction={{ direction }}">Data de Início</a></th>
                     <th><a href="?q={{ query }}&order_by=data_fim&direction={{ direction }}">Data de Fim</a></th>
+                    <th><a href="?q={{ query }}&order_by=data_fim&direction={{ direction }}">Observacao</a></th>
                 </tr>
             </thead>
             <tbody>
                 {% for ocupado in page_obj %}
                 <tr onclick="window.location.href='{% url 'detalhes_ocupado' ocupado.pk %}'">
                     <!-- <td>{{ ocupado.id }}</td> -->
-                    <td>{{ ocupado.usuario.username }}</td>
+                    <!-- <td>{{ ocupado.usuario.username }}</td> -->
                     <td>{{ ocupado.data_inicio }}</td>
                     <td>{{ ocupado.data_fim }}</td>
+                    <td>{{ ocupado.motivo|default:"" }}</td>
                 </tr>
                 {% empty %}
                 <tr>

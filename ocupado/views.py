@@ -6,7 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseForbidden
 from django.contrib import messages
 from disponivel.models import  Disponivel
-
+# from django.http import HttpResponseRedirect
+from datetime import datetime, timedelta
+from evento.models import Evento
 
 # validar se o usuario ja foi escalado em algum evento no horario da indisponibilidade
 @login_required
@@ -101,3 +103,27 @@ def excluir_ocupado(request, pk):
         ocupado.delete()
         return redirect('lista_ocupado')
     return render(request, 'ocupado/confirmar_exclusao.html', {'ocupado': ocupado})
+
+@login_required
+def registrar_indisponibilidade_view(request):
+    return render(request, 'ocupado/registrar_indisponibilidade.html')
+
+@login_required
+def processar_indisponibilidade_evento(request):
+    if request.method == 'POST':
+        selected_event_ids = request.POST.getlist('event_ids')
+        print(selected_event_ids)
+        for event_id in selected_event_ids:
+            print(event_id)
+            # Crie aqui os registros de indisponibilidade...
+            pass
+        return redirect('lista_ocupado') #certo
+    return redirect('lista_ocupado') #errado
+# HttpResponseRedirect('/caminho-de-erro/')
+
+
+def registrar_por_evento(request):
+    hoje = datetime.now()
+    daqui_a_dois_meses = hoje + timedelta(days=60)  # Ajusta para dois meses a frente
+    eventos_futuros = Evento.objects.filter(data_inicio__gte=hoje, data_inicio__lte=daqui_a_dois_meses).order_by('data_inicio')
+    return render(request, 'ocupado/registrar_por_evento.html', {'eventos': eventos_futuros})

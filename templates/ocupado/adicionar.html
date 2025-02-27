@@ -1,6 +1,14 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Adicionar/Editar Indisponibilidade{% endblock %}
+{% block page_title %}Adicionar Indisponibilidade{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'lista_ocupado' %}">Lista de Indisponibilidade</a></li>
+    <li class="breadcrumb-item">adicionar Indisponibilidade</li>
+</ul>
+{% endblock breadcrumb %}
 
 {% block content %}
 <div class="container">
@@ -12,7 +20,7 @@
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit" class="btn btn-success">Salvar</button>
-        <a class="btn btn-secondary" href="{% url 'lista_ocupado' %}">Cancelar</a>
+        <a class="btn btn-secondary" href="{% url 'registrar_indisponibilidade' %}">Cancelar</a>
     </form>
 </div>
 {% endblock %}

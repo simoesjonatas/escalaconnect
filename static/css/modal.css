@@ -49,3 +49,23 @@ close:focus {
     border-radius: 5px;
     border: 1px solid #ccc;
 }
+
+
+.event-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+.event-card {
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: #f9f9f9;
+}
+.event-card.selected {
+    background: #d9edf7;
+    border-color: #bce8f1;
+}
+.toggle-select {
+    margin-top: 10px;
+}

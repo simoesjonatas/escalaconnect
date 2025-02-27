@@ -1,0 +1,35 @@
+<!-- registrar_indisponibilidade.html -->
+{% extends 'base.html' %}
+
+{% block page_title %}Indisponibilidade{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'lista_ocupado' %}">Lista de Indisponibilidade</a></li>
+</ul>
+{% endblock breadcrumb %}
+
+
+{% block content %}
+
+<div class="dashboard-container">
+    <h2>Escolha o tipo de indisponibilidade que deseja registrar:</h2>
+
+    <div class="dashboard-grid">
+        <a href="{% url 'registrar_por_horario' %}" class="dashboard-card">
+            <i class="fa fa-clock"></i>
+            <h3>Por Horário</h3>
+            <p>Informe a indisponibilidade por horário específico.</p>
+        </a>
+        {% if request.user.is_staff or request.user.is_superuser %}
+        <a href="{% url 'registrar_por_evento' %}" class="dashboard-card">
+            <i class="fa fa-calendar-times"></i>
+            <h3>Por Evento</h3>
+            <p>Informe a indisponibilidade por eventos marcados.</p>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

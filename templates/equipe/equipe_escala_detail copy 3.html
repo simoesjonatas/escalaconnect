@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Detalhes da Escala{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
+    <li class="breadcrumb-item active"><a href="{% url 'listar_escalas' equipe.pk %}">Lista de Escalas</a></li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>Escala para o Evento: {{ escala.evento.nome }}</h3>
+    <h4>Dia do Evento: {{ escala.evento.data_inicio }}</h4>
+    <ul>
+        <li><strong>Usuário:</strong> {{ escala.usuario }}</li>
+        <li><strong>Equipe:</strong> {{ escala.funcao.equipe.nome }}</li>
+        <li><strong>Função:</strong> {{ escala.funcao.nome }}</li>
+        <li><strong>Confirmada:</strong> {% if escala.confirmada %}✅ Sim {% else %}❌ Não {% endif %}</li>
+        <li><strong>Data de Confirmação:</strong> {{ escala.data_confirmacao|default:"-" }}</li>
+    </ul>
+
+    <div class="clearfix">
+        <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe.pk %}">Voltar</a>
+        {% if escala.confirmada %}
+            {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+            <a class="btn btn-info" href="{% url 'cancelar_escala' escala.pk %}">Cancelar Escala</a>
+            {% endif %}
+        {% endif %}
+    </div>
+
+    {% if not escala.confirmada %}
+        <!-- Abas com Bootstrap -->
+        <ul class="nav nav-tabs" id="escalaTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="disponiveis-tab" data-bs-toggle="tab" href="#disponiveis" role="tab" aria-controls="disponiveis" aria-selected="true">Usuários Disponíveis</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="escalados-tab" data-bs-toggle="tab" href="#escalados" role="tab" aria-controls="escalados" aria-selected="false">Usuários Escalados</a>
+            </li>
+        </ul>
+
+        <div class="tab-content table-responsive" id="escalaTabsContent">
+            <div class="tab-pane fade show active table-responsive" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
+                <h3>Usuários Disponíveis:</h3>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for usuario in usuarios_disponiveis %}
+                            <tr>
+                                <td>{{ usuario.username }}</td>
+                                <td>
+                                    <a class="btn btn-success" href="{% url 'escalar_usuario_equipe' escala.pk usuario.pk %}">
+                                        <i class="fa fa-user-plus"></i> Escalar
+                                    </a>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="2">Nenhum usuário disponível.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade table-responsive" id="escalados" role="tabpanel" aria-labelledby="escalados-tab">
+                <h3>Usuários Escalados:</h3>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Função</th>
+                            <th>Equipe</th>
+                            <th>Confirmado</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for escalado in usuarios_escalados %}
+                        <tr onclick="window.location.href='{% url 'escala_detail_equipe' escalado.funcao.equipe.pk escalado.pk %}'">
+                                <td>{{ escalado.usuario.username }}</td>
+                                <td>{{ escalado.funcao.nome }}</td>
+                                <td>{{ escalado.funcao.equipe.nome }}</td>
+                                <td>{{ escalado.confirmada|yesno:"✅ Sim,❌ Não" }}</td>
+                                <td>
+                                    <!-- <a class="btn btn-danger" href="{% url 'cancelar_escala' escalado.pk %}">
+                                        <i class="fa fa-user-minus"></i> Remover
+                                    </a> -->
+                                    <!-- <a class="btn btn-success" href="{% url 'escalar_usuario_equipe' escala.pk escalado.usuario.pk %}">
+                                        <i class="fa fa-user-plus"></i> Escalar
+                                    </a> -->
+                                    <a class="btn btn-success" href="javascript:void(0);" onclick="confirmarEscala('{% url 'escalar_usuario_equipe' escala.pk escalado.usuario.pk %}', '{{ escalado.usuario.username }}')">
+                                        <i class="fa fa-user-plus"></i> Escalar
+                                    </a>
+                                    
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4">Nenhum usuário escalado ainda.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% endif %}
+</div>
+<script>
+    function confirmarEscala(url, username) {
+        const mensagem = "O usuário " + username + " já possui uma escala neste evento. Deseja escalá-lo para outra função também?";
+        if (confirm(mensagem)) {
+            window.location.href = url;
+        }
+    }
+    
+</script>
+{% endblock %}
