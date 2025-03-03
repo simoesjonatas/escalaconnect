@@ -22,13 +22,11 @@
             <h3>Por Horário</h3>
             <p>Informe a indisponibilidade por horário específico.</p>
         </a>
-        {% if request.user.is_staff or request.user.is_superuser %}
         <a href="{% url 'registrar_por_evento' %}" class="dashboard-card">
             <i class="fa fa-calendar-times"></i>
             <h3>Por Evento</h3>
             <p>Informe a indisponibilidade por eventos marcados.</p>
         </a>
-        {% endif %}
     </div>
 </div>
 

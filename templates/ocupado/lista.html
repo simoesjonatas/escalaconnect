@@ -26,9 +26,9 @@
                 <tr>
                     <!-- <th><a href="?q={{ query }}&order_by=id&direction={{ direction }}">ID</a></th> -->
                     <!-- <th><a href="?q={{ query }}&order_by=usuario__username&direction={{ direction }}">Usuário</a></th> -->
+                    <th><a href="?q={{ query }}&order_by=data_fim&direction={{ direction }}">Evento</a></th>
                     <th><a href="?q={{ query }}&order_by=data_inicio&direction={{ direction }}">Data de Início</a></th>
                     <th><a href="?q={{ query }}&order_by=data_fim&direction={{ direction }}">Data de Fim</a></th>
-                    <th><a href="?q={{ query }}&order_by=data_fim&direction={{ direction }}">Observacao</a></th>
                 </tr>
             </thead>
             <tbody>
@@ -36,9 +36,9 @@
                 <tr onclick="window.location.href='{% url 'detalhes_ocupado' ocupado.pk %}'">
                     <!-- <td>{{ ocupado.id }}</td> -->
                     <!-- <td>{{ ocupado.usuario.username }}</td> -->
+                    <td>{{ ocupado.evento.nome | default:'' }}</td>
                     <td>{{ ocupado.data_inicio }}</td>
                     <td>{{ ocupado.data_fim }}</td>
-                    <td>{{ ocupado.motivo|default:"" }}</td>
                 </tr>
                 {% empty %}
                 <tr>

@@ -16,11 +16,16 @@
     <ul>
         <li><strong>Data de Início:</strong> {{ ocupado.data_inicio|date:"d M Y H:i" }}</li>
         <li><strong>Data de Fim:</strong> {{ ocupado.data_fim|date:"d M Y H:i" }}</li>
-        <li><strong>Observação:</strong> {{ ocupado.motivo }}</li>
+        {% if ocupado.evento %}
+        <li><strong>Evento:</strong> {{ ocupado.evento.nome }}</li>
+        <!-- <li><strong>Data Evento:</strong> {{ ocupado.data_fim|date:"d M Y H:i" }}</li> -->
+        {% endif %}
     </ul>
     <div class="clearfix">
         <a class="btn btn-secondary" href="{% url 'lista_ocupado' %}">Voltar</a>
+        {% if not ocupado.evento %}
         <a class="btn btn-warning" href="{% url 'atualizar_ocupado' ocupado.pk %}">Editar</a>
+        {% endif %}
         <a class="btn btn-danger" href="{% url 'excluir_ocupado' ocupado.pk %}">Excluir</a>
     </div>
 </div>
