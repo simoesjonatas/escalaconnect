@@ -20,8 +20,9 @@
             <form action="/login/" method="POST">
                 <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
                 <div class="form-group">
-                    <label for="username">Usuário</label>
-                    <input type="text" id="username" name="username" placeholder="Digite seu usuário" required>
+                    <label for="username">Usuário ou E-mail</label>
+                    <input type="text" id="username" name="username" placeholder="Digite seu usuário ou e-mail" required>
+                    <small class="form-text text-muted">Você pode usar seu nome de usuário ou e-mail para entrar.</small>
                 </div>
                 <div class="form-group">
                     <label for="password">Senha</label>
