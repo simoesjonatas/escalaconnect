@@ -10,6 +10,17 @@ class Evento(models.Model):
     
     def __str__(self):
         return f"{self.nome} ({self.data_inicio} - {self.data_fim})"
+    def has_issues(self):
+        """
+        Verifica se há solicitações de troca não aprovadas ou desistências não aprovadas
+        em qualquer escala deste evento.
+        """
+        from escala.models import Escala  # Import here to avoid circular dependency
+        escalas = Escala.objects.filter(evento=self)
+        for escala in escalas:
+            if escala.has_solicitacao_troca_aberta() or escala.has_impedimento():
+                return True
+        return False
 
 
 class Disponibilidade(models.Model):

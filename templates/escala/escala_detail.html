@@ -22,7 +22,7 @@
         <li><strong>Data de Confirmação:</strong> {{ escala.data_confirmacao|default:"-" }}</li>
     </ul>
     
-    <div class="clearfix">
+    <div class="clearfix mb-4">
         <a class="btn btn-secondary" href="{% url 'evento_escalas' escala.evento.pk %}">Voltar</a>
         {% if request.user.is_staff or request.user.is_superuser %}
         <a class="btn btn-warning" href="{% url 'escala_update' escala.pk %}">Editar</a>
@@ -34,33 +34,117 @@
             {% endif %}
         {% endif %}
     </div>
+    
+    
+    {% if escala.has_impedimento or escala.has_solicitacao_troca_aberta%}
+        {% if escala.has_impedimento%}
+        <td>
+            <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger" role="button">
+                <i class="fa fa-exclamation-circle" title="Impedimento pendente. Clique para mais detalhes."></i> Impedimento
+            </a>
+        </td>            
+        {% endif %}   
+        {% if escala.has_solicitacao_troca_aberta%}
+        <td>
+            {% with troca_id=escala.get_pending_troca_id %}
+                {% if troca_id %}
+                    <a href="{% url 'detalhes_solicitacao_troca' troca_id %}" class="btn btn-danger" role="button">
+                        <i class="fa fa-exclamation-circle" title="Solicitação de troca. Clique para mais detalhes."></i> Troca
+                    </a>
+                {% endif %}
+            {% endwith %}
+        </td>            
+        {% endif %}        
+    {% else %}
 
     {% if not escala.confirmada %}
         <h3>Usuários Disponíveis:</h3>
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>Usuário</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for usuario in usuarios_disponiveis %}
-                    <tr>
-                        <td>{{ usuario.username }}</td>
-                        <td>
-                            <a class="btn btn-success" href="{% url 'escalar_usuario' escala.pk usuario.pk %}">
-                                <i class="fa fa-user-plus"></i> Escalar
+        
+        <!-- Barra de busca e filtros -->
+        <div class="row mb-3">
+            <div class="col-md-8">
+                <form method="get" class="form-inline">
+                    <div class="input-group w-100">
+                        <input type="text" name="q" class="form-control" placeholder="Buscar usuários..." value="{{ query }}">
+                        <input type="hidden" name="order_by" value="{{ order_by }}">
+                        <input type="hidden" name="direction" value="{{ direction }}">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">
+                                <i class="fa fa-search"></i> Buscar
+                            </button>
+                            {% if query %}
+                            <a href="?order_by={{ order_by }}&direction={{ direction }}" class="btn btn-secondary">
+                                <i class="fa fa-times"></i> Limpar
                             </a>
-                        </td>
-                    </tr>
-                {% empty %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="col-md-4 text-right">
+                <!-- <span class="text-muted">Total: {{ page_obj.paginator.count }} usuários</span> -->
+            </div>
+        </div>
+        
+        <!-- Tabela de usuários -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
                     <tr>
-                        <td colspan="2">Nenhum usuário disponível.</td>
+                        {% for field, label in usuario_fields %}
+                        <th>
+                            <a href="?order_by={{ field }}&direction={% if order_by == field and direction == 'asc' %}desc{% else %}asc{% endif %}&q={{ query }}" class="text-dark">
+                                {{ label }}
+                                {% if order_by == field %}
+                                    {% if direction == 'asc' %}
+                                        <i class="fa fa-sort-up"></i>
+                                    {% else %}
+                                        <i class="fa fa-sort-down"></i>
+                                    {% endif %}
+                                {% else %}
+                                    <i class="fa fa-sort text-muted"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        {% endfor %}
+                        {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+                        <th>Ações</th>
+                        {% endif %}
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for usuario in page_obj %}
+                        <tr>
+                            <td>{{ usuario.username }}</td>
+                            <td>{{ usuario.first_name|default:"-" }}</td>
+                            <td>{{ usuario.last_name|default:"-" }}</td>
+                            <td>{{ usuario.email|default:"-" }}</td>
+                            {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+                            <td>
+                                <a class="btn btn-success btn-sm" href="{% url 'escalar_usuario' escala.pk usuario.pk %}">
+                                    <i class="fa fa-user-plus"></i> Escalar
+                                </a>
+                            </td>
+                            {% endif %}
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="{% if request.user.is_staff or request.user.is_superuser or is_leader %}5{% else %}4{% endif %}" class="text-center">
+                                {% if query %}
+                                    Nenhum usuário encontrado para "{{ query }}".
+                                {% else %}
+                                    Nenhum usuário disponível.
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Paginação -->
+        {% include 'includes/pagination.html' %}
     {% endif %}
+    {% endif %}     
 </div>
 {% endblock %}

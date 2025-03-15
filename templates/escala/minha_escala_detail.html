@@ -31,11 +31,27 @@
         <a class="btn btn-secondary" href="{% url 'minhas_escalas' %}">Voltar</a>
         
         {% if not escala.confirmada %}
+        
+            {% if not escala.has_solicitacao_troca_aberta %}
+            <form method="post" action="{% url 'solicitar_desistencia' escala.id %}">
+                {% csrf_token %}
+                {{ desistencia_form.as_p }}
+                <button type="submit" class="btn btn-warning">Solicitar Desistência</button>
+            </form>
             <!-- Se a escala não está confirmada, permite a confirmação -->
             <form method="POST" action="{% url 'confirmar_minha_escala' escala.pk %}" style="display: inline;">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-success">Confirmar Escala</button>
             </form>
+            {% else %}
+            <div class="alert alert-info" role="alert">
+                Existe uma solicitação de troca pendente para esta escala. Caso deseje desistir da troca, você pode cancelar a solicitação.
+                <form method="post" action="{% url 'cancelar_solicitacao_troca' escala.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Cancelar Solicitação de Troca</button>
+                </form>
+            </div>
+            {% endif %}
         {% else %}
             {% if escala.has_impedimento %}
                 <!-- Se há Impedimento Notificado, mostra um botão desativado indicando isso -->

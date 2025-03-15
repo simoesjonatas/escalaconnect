@@ -6,8 +6,11 @@ from django.views.generic.detail import DetailView
 from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from equipe.decorators import require_lider
+
 
 @login_required
+@require_lider
 def aprovar_desistencia(request, desistencia_id):
     desistencia = get_object_or_404(Desistencia, pk=desistencia_id)
     escala = desistencia.escala  # Obtenha a escala relacionada à desistência
@@ -35,7 +38,7 @@ def aprovar_desistencia(request, desistencia_id):
         return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)
 
 
-@method_decorator(login_required, name='dispatch')
+@method_decorator(require_lider, name='dispatch')
 class DetalhesDesistenciaPorEscalaView(DetailView):
     model = Desistencia
     template_name = 'desistencia/desistencia_detalhes.html'

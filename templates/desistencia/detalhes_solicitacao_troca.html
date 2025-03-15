@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Detalhes da Solicitação de Troca
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' troca.escala_origem.equipe.pk %}">{{ troca.escala_origem.equipe.nome }}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'listar_escalas' troca.escala_origem.equipe.pk %}">Lista de Escalas</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'escala_detail_equipe' troca.escala_origem.funcao.equipe.pk troca.escala_origem.pk %}">{{ troca.escala_origem.evento.nome }}</a></li>
+    <li class="breadcrumb-item active">Detalhes da Solicitação de Troca</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <div class="card-body">
+            <h3 class="card-title"><strong>Evento:</strong> {{ troca.escala_origem.evento.nome }}</h3>
+            <p class="card-text"><strong>Função:</strong> {{ troca.escala_origem.funcao }}</p>
+            <p class="card-text"><strong>Equipe:</strong> {{ troca.escala_origem.equipe }}</p>
+            <p class="card-text"><strong>Data:</strong> {{ troca.escala_origem.evento.data_inicio|date:"d/m/Y H:i" }} - {{ troca.escala_origem.evento.data_fim|date:"d/m/Y H:i" }}</p>
+            <p class="card-text"><strong>Usuário:</strong> {{ troca.solicitante.username }}</p>
+            <p class="card-text"><strong>Motivo:</strong> Solicitação para troca</p>
+            <p class="card-text"><strong>Aprovada:</strong> {{ troca.aprovada|yesno:"Sim,Não" }}</p>
+            <p class="card-text"><strong>Data de Solicitação:</strong> {{ troca.data_solicitacao|date:"d/m/Y H:i" }}</p>
+            <p class="card-text"><strong>Data de Aprovação:</strong> {{ troca.data_aprovacao|date:"d/m/Y H:i" }}</p>
+        </div>
+    </div>
+    <div class="mt-3">
+        <form method="post" action="{% url 'aprovar_solicitacao_troca' troca.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">Aprovar Troca</button>
+        </form>
+        <!-- <a href="{% url 'escala_detail_equipe' troca.escala_origem.funcao.equipe.pk troca.escala_origem.pk %}" class="btn btn-primary">Voltar</a> -->
+    </div>
+</div>
+{% endblock %}

@@ -5,6 +5,7 @@ from django.urls import reverse
 from escala.models import Escala
 from evento.models import Evento
 from escala.forms import EscalaForm
+from escala.solicitacao_desistencia_forms import DesistenciaForm
 from equipe.decorators import require_lideranca 
 from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
@@ -99,6 +100,14 @@ def escala_detail(request, pk):
     evento = escala.evento
     is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
 
+    # Adiciona parâmetros de busca e ordenação
+    order_by = request.GET.get('order_by', 'username')
+    direction = request.GET.get('direction', 'asc')
+    query = request.GET.get('q', '')
+
+    if direction == 'desc':
+        order_by = f'-{order_by}'
+
     # pega os membros da equipe e filtra aqueles sem indisponibilidade
     # membros = escala.funcao.equipe.membros.all()
     membros = escala.funcao.equipe.membros.filter(aprovado=True)
@@ -116,11 +125,50 @@ def escala_detail(request, pk):
         evento=evento
     ).exclude(pk=escala.pk).exists()]  # exclui a escala atual na verificacao
     
-    return render(request, 'escala/escala_detail.html', 
-                {'escala': escala,
-                'usuarios_disponiveis': usuarios_disponiveis,
-                'is_leader': is_leader,
-})
+    # Aplica o filtro de busca
+    if query:
+        usuarios_disponiveis = [
+            usuario for usuario in usuarios_disponiveis 
+            if query.lower() in usuario.username.lower() or 
+               query.lower() in usuario.first_name.lower() or 
+               query.lower() in usuario.last_name.lower() or 
+               query.lower() in usuario.email.lower()
+        ]
+    
+    # Ordena os usuários (convertendo para lista para poder ordenar)
+    field = order_by.lstrip('-')
+    reverse = order_by.startswith('-')
+    
+    # Manipulando ordem de forma manual (já que estamos trabalhando com lista, não queryset)
+    usuarios_disponiveis = sorted(
+        usuarios_disponiveis,
+        key=lambda u: getattr(u, field, '').lower() if isinstance(getattr(u, field, ''), str) else getattr(u, field, ''),
+        reverse=reverse
+    )
+    
+    # Aplica paginação
+    paginator = Paginator(usuarios_disponiveis, 10)  # 10 usuários por página
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Campos para ordenação da tabela
+    usuario_fields = [
+        ('username', 'Nome de Usuário'),
+        ('first_name', 'Nome'),
+        ('last_name', 'Sobrenome'),
+        ('email', 'Email'),
+    ]
+    
+    return render(request, 'escala/escala_detail.html', {
+        'escala': escala,
+        'usuarios_disponiveis': page_obj,  # Agora usamos o objeto de página em vez da lista completa
+        'is_leader': is_leader,
+        'page_obj': page_obj,
+        'order_by': order_by.lstrip('-'),
+        'direction': direction,
+        'usuario_fields': usuario_fields,
+        'query': query
+    })
 
 
 @login_required
@@ -168,7 +216,16 @@ def minhas_escalas(request):
 @login_required
 def minha_escala_detail(request, pk):
     escala = get_object_or_404(Escala, pk=pk, usuario=request.user)
-    return render(request, 'escala/minha_escala_detail.html', {'escala': escala})
+    if request.method == 'POST':
+        form = DesistenciaForm(request.POST)
+        if not form.is_valid():
+            # Se o formulário não for válido, renderiza novamente com erros
+            return render(request, 'escala/minha_escala_detail.html', {'escala': escala, 'desistencia_form': form})
+    else:
+        # Se não for uma solicitação POST, simplesmente exibe a página com o formulário vazio
+        form = DesistenciaForm(initial={'escala_origem': escala})
+        return render(request, 'escala/minha_escala_detail.html', {'escala': escala, 'desistencia_form': form})
+
 
 @login_required
 def escalar_usuario(request, escala_id, usuario_id):

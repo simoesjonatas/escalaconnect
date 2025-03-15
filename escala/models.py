@@ -35,17 +35,34 @@ class Escala(models.Model):
     def has_impedimento(self):
         """ Verifica se há desistências não aprovadas para esta escala. """
         return Desistencia.objects.filter(escala=self, aprovada=False).exists()
+    
+    def has_solicitacao_troca_aberta(self):
+        """ Verifica se há solicitações de troca não aprovadas para esta escala. """
+        return SolicitacaoTroca.objects.filter(escala_origem=self, aprovada=False).exists()
+    
+    def get_pending_troca_id(self):
+        """ Retorna o ID da solicitação de troca aberta, se existir. """
+        troca = SolicitacaoTroca.objects.filter(escala_origem=self, aprovada=False).first()
+        return troca.id if troca else None
+    
+    def clear_escala(self):
+        """ Limpa a escala removendo a confirmação, a data de confirmação e o usuário associado. """
+        self.data_confirmacao = None
+        self.confirmada = False
+        self.usuario = None
+        self.save()
+
 
 
 class SolicitacaoTroca(models.Model):
     escala_origem = models.ForeignKey(Escala, related_name='solicitacoes_origem', on_delete=models.CASCADE)
     escala_destino = models.ForeignKey(Escala, related_name='solicitacoes_destino', on_delete=models.SET_NULL, null=True)
     solicitante = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='solicitacoes_feitas', on_delete=models.CASCADE)
-    lider_aprovador = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='solicitacoes_aprovadas', on_delete=models.CASCADE)
+    lider_aprovador = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='solicitacoes_aprovadas', on_delete=models.CASCADE, null=True)
     tipo_solicitacao = models.CharField(max_length=255)  # 'troca', 'desistencia', 'rendimento'
-    aprovada = models.BooleanField()
+    aprovada = models.BooleanField(default=False)
     data_solicitacao = models.DateTimeField()
-    data_aprovacao = models.DateTimeField()
+    data_aprovacao = models.DateTimeField(null=True,blank=True)
     
     def __str__(self):
         return f"Solicitação: {self.tipo_solicitacao} - Origem: {self.escala_origem} - Destino: {self.escala_destino}"

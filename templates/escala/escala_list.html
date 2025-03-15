@@ -48,7 +48,28 @@ Escalas do Evento {{ evento.nome }}
                 <tr onclick="window.location.href='{% url 'escala_detail' escala.pk %}'">
                     <td>{{ escala.usuario.username }}</td>
                     <td>{{ escala.funcao }}</td>
-                    <td>{{ escala.confirmada|yesno:"Sim,Não" }}</td>
+                        {% if escala.has_impedimento or escala.has_solicitacao_troca_aberta%}
+                            {% if escala.has_impedimento%}
+                            <td>
+                                <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger" role="button">
+                                    <i class="fa fa-exclamation-circle" title="Impedimento pendente. Clique para mais detalhes."></i> Impedimento
+                                </a>
+                            </td>            
+                            {% endif %}   
+                            {% if escala.has_solicitacao_troca_aberta%}
+                            <td>
+                                {% with troca_id=escala.get_pending_troca_id %}
+                                    {% if troca_id %}
+                                        <a href="{% url 'detalhes_solicitacao_troca' troca_id %}" class="btn btn-danger" role="button">
+                                            <i class="fa fa-exclamation-circle" title="Solicitação de troca. Clique para mais detalhes."></i> Troca
+                                        </a>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>            
+                            {% endif %}  
+                        {% else %}  
+                        <td>{{ escala.confirmada|yesno:"Sim,Não" }}</td>
+                        {% endif %}
                     <td>{{ escala.data_confirmacao|default:"-" }}</td>
                 </tr>
                 {% empty %}

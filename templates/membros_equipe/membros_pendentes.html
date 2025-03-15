@@ -30,6 +30,7 @@ Membros Pendentes da Equipe {{ equipe }}
                 <tr>
                     <th>ID</th>
                     <th>Usuário</th>
+                    <!-- <th>Nome</th> -->
                     <th>Ações</th>
                 </tr>
             </thead>
@@ -38,6 +39,7 @@ Membros Pendentes da Equipe {{ equipe }}
                 <tr>
                     <td>{{ membro.id }}</td>
                     <td>{{ membro.usuario.get_full_name }}</td>
+                    <!-- <td>{{ membro.usuario }}</td> -->
                     <td>
                         <a href="{% url 'aprovar_membro' equipe_pk=equipe.pk membro_pk=membro.pk %}" class="btn btn-success btn-sm">Aprovar</a>
                         <a href="{% url 'rejeitar_membro' equipe_pk=equipe.pk membro_pk=membro.pk %}" class="btn btn-danger btn-sm">Rejeitar</a>

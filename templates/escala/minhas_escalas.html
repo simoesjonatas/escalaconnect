@@ -66,11 +66,16 @@ Minhas Escalas
                                 </form>
                             {% endif %}
                         {% else %}
+                            {% if  escala.has_solicitacao_troca_aberta %}
+                            <button class="btn btn-warning btn-sm" disabled> Desistência Notificada</button>
+
+                            {% else %}
                             <!-- Formulário para confirmar escala se ela não estiver confirmada -->
                             <form method="post" action="{% url 'confirmar_minha_escala' escala.pk %}" style="display:inline;">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-success btn-sm">Confirmar Escala</button>
                             </form>
+                            {% endif %}
                         {% endif %}
                     </td>
                     

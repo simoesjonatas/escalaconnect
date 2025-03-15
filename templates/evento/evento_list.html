@@ -52,7 +52,9 @@
             
             <tbody>
                 {% for evento in page_obj %}
-                <tr onclick="window.location.href='{% url 'evento_detail' evento.pk %}'">
+                <!-- <tr onclick="window.location.href='{% url 'evento_detail' evento.pk %}'"> -->
+                <tr onclick="window.location.href='{% url 'evento_detail' evento.pk %}'" class="{% if evento.has_issues %}issue-row{% endif %}">
+
                     <td>{{ evento.id }}</td>
                     <td>{{ evento.nome }}</td>
                     <td>{{ evento.data_inicio }}</td>
