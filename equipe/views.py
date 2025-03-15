@@ -1,10 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
-from .models import Equipe
 from .forms import EquipeForm
 from equipe.decorators import require_lideranca  # Importando o decorador personalizado
 from escalaconnect.utils import admin_required
-
+from django.contrib.auth.decorators import login_required
+from .models import Equipe, MembrosEquipe
+from django.contrib import messages
+from django.db.models import Q, Exists, OuterRef
 
 
 def equipe_list(request):
@@ -72,3 +74,46 @@ def equipe_delete(request, pk):
 def equipe_detail(request, pk):
     equipe = get_object_or_404(Equipe, pk=pk)
     return render(request, 'equipe/equipe_detail.html', {'equipe': equipe})
+
+@login_required
+def candidatura_equipe(request):
+    # subquery para verificar se o usuario e membro pendente ou aprovado de cada equipe
+    pendente_subquery = MembrosEquipe.objects.filter(
+        equipe=OuterRef('pk'), 
+        usuario=request.user, 
+        aprovado=False
+    )
+    aprovado_subquery = MembrosEquipe.objects.filter(
+        equipe=OuterRef('pk'), 
+        usuario=request.user, 
+        aprovado=True
+    )
+
+    # busca todas as equipes onde o usuario pode se candidatar ou cancelar a candidatura
+    todas_equipes = Equipe.objects.annotate(
+        is_member_pendente=Exists(pendente_subquery),
+        is_member_aprovado=Exists(aprovado_subquery)
+    ).filter(Q(is_member_pendente=True) | ~Q(is_member_aprovado=True))
+
+    context = {
+        'equipes': todas_equipes
+    }
+
+    if request.method == 'POST':
+        candidatar_ids = request.POST.getlist('candidatar_ids')
+        cancelar_ids = request.POST.getlist('cancelar_ids')
+
+        # processar candidaturas
+        for equipe_id in candidatar_ids:
+            equipe = Equipe.objects.get(id=equipe_id)
+            MembrosEquipe.objects.get_or_create(usuario=request.user, equipe=equipe)
+
+        # processar cancelamentos
+        for equipe_id in cancelar_ids:
+            equipe = Equipe.objects.get(id=equipe_id)
+            MembrosEquipe.objects.filter(usuario=request.user, equipe=equipe).delete()
+
+        messages.success(request, 'Suas candidaturas foram atualizadas com sucesso!')
+        return redirect('equipe_list')
+
+    return render(request, 'equipe/candidatura_equipe.html', context)

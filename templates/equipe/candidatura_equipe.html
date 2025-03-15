@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Cadastro de Equipes{% endblock page_title %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+    <li class="breadcrumb-item">Cadastro de Equipes</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- <h2>Candidatura a Equipes</h2> -->
+    <h2>Cadastro de Candidaturas a Equipes</h2>
+    <p>Selecione as equipes às quais deseja se candidatar ou cancele sua inscrição, e depois clique em "Atualizar Candidaturas" para confirmar suas escolhas.</p>
+
+    <form method="post" action="{% url 'processar_candidatura' %}">
+        {% csrf_token %}
+        <div class="event-grid">
+            {% for equipe in equipes %}
+            <div class="event-card">
+                <h3>{{ equipe.nome }}</h3>
+                {% if equipe.is_member_aprovado %}
+                <!-- Se já aprovado, não mostra nenhum botão -->
+                {% elif equipe.is_member_pendente %}
+                <!-- Se membro pendente, mostra botão para cancelar candidatura -->
+                <button type="button" class="btn btn-danger toggle-select" data-equipe-id="{{ equipe.id }}">
+                    Cancelar Candidatura
+                </button>
+                <input type="hidden" name="cancelar_ids" value="{{ equipe.id }}" disabled>
+                {% else %}
+                <!-- Se não é membro ou não está pendente, mostra botão para candidatar-se -->
+                <button type="button" class="btn btn-success toggle-select" data-equipe-id="{{ equipe.id }}">
+                    Candidatar-se
+                </button>
+                <input type="hidden" name="candidatar_ids" value="{{ equipe.id }}" disabled>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        <br>
+        <input type="submit" value="Atualizar Candidaturas" class="btn btn-secondary submit-btn">
+    </form>
+</div>
+
+<script>
+    document.querySelectorAll('.toggle-select').forEach(button => {
+        button.addEventListener('click', function() {
+            const card = this.closest('.event-card');
+            const input = card.querySelector('input[type="hidden"]');
+            const isCancelling = this.classList.contains('btn-danger');
+
+            // Toggle the disabled state of the input
+            input.disabled = !input.disabled;
+
+            // Change the text and classes based on the current state
+            if (isCancelling) {
+                this.textContent = 'Candidatar-se';
+                this.classList.remove('btn-danger');
+                this.classList.add('btn-success');
+            } else {
+                this.textContent = 'Cancelar Candidatura';
+                this.classList.remove('btn-success');
+                this.classList.add('btn-danger');
+            }
+        });
+    });
+</script>
+
+
+{% endblock %}

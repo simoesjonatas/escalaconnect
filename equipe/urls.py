@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import equipe_list, equipe_create, equipe_update, equipe_delete, equipe_detail
+from .views import equipe_list, equipe_create, equipe_update, equipe_delete, equipe_detail, candidatura_equipe
 from .views_funcao import *
 from .views_lideranca import *
 from .views_membros import *
@@ -12,6 +12,8 @@ urlpatterns = [
     path('<int:pk>/', equipe_detail, name='equipe_detail'),
     path('<int:pk>/edit/', equipe_update, name='equipe_update'),
     path('<int:pk>/delete/', equipe_delete, name='equipe_delete'),
+    path('candidatura/', candidatura_equipe, name='processar_candidatura'),
+
     
     # funcao
     path('<int:equipe_pk>/funcoes/', funcao_list, name='listar_funcoes'),
