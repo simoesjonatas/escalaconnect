@@ -18,7 +18,8 @@
             <a class="btn btn-secondary" href="{% url 'evento_list' %}">Limpar Filtro</a>
         </form>
         {% if request.user.is_staff or request.user.is_superuser %}
-        <a class="btn btn-success float-right" href="{% url 'evento_create' %}">Adicionar Evento</a>
+        <!-- <a class="btn btn-success float-right" href="{% url 'evento_create' %}">Adicionar Evento</a> -->
+        <a class="btn btn-success float-right" href="{% url 'create_evento_planejamento' %}">Adicionar Evento</a>
         <a class="btn btn-primary float-right" href="{% url 'evento_create_recorrente' %}">Adicionar Eventos Recorrentes</a>
         <!-- <a class="btn btn-primary float-right" href="{% url 'planejamento_equipes' %}">planejamentos equipes</a>
         <a class="btn btn-primary float-right" href="{% url 'gerar_eventos_planejamento' %}">planejamentos completo</a> -->

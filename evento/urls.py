@@ -32,6 +32,7 @@ urlpatterns = [
 
     # planejamento 
     path('planejamento-equipes/', planejamento_equipes, name='planejamento_equipes'),
+    path('evento-planejamento-equipes/', create_evento_planejamento, name='create_evento_planejamento'),
     
     # evento com planejamento recorrente
     path('gerar-eventos-planejamento/', gerar_eventos_planejamento, name='gerar_eventos_planejamento'),

@@ -59,3 +59,32 @@ class EventoRecorrenteForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+
+class EventoComPlanejamentoForm(forms.ModelForm):
+    planejamento = forms.ModelChoiceField(
+        queryset=Planejamento.objects.all(),
+        label="Planejamento",
+        required=False,
+        help_text="Selecione um planejamento para este evento",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = Evento
+        fields = ['nome', 'data_inicio', 'data_fim', 'observacao', 'planejamento']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'data_inicio': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
+            'data_fim': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}, format='%Y-%m-%dT%H:%M'),
+            'observacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        data_inicio = cleaned_data.get('data_inicio')
+        data_fim = cleaned_data.get('data_fim')
+
+        if data_inicio and data_fim and data_inicio > data_fim:
+            raise forms.ValidationError("A data de início não pode ser depois da data de fim.")
+
+        return cleaned_data

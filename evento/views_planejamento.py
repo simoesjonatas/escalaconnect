@@ -3,7 +3,10 @@ from django.utils.timezone import now
 from escala.models import Escala,Funcao
 from evento.models import Evento
 from equipe.models import Equipe
+from django.db import transaction
 from evento.forms_planejamento import PlanejamentoEquipeForm
+from .forms import EventoComPlanejamentoForm
+from planejamento.models import PlanejamentoFuncao
 
 def planejamento_equipes(request):
     if request.method == 'POST':
@@ -32,3 +35,25 @@ def planejamento_equipes(request):
         form = PlanejamentoEquipeForm()
 
     return render(request, 'escala/planejamento_equipes.html', {'form': form})
+
+def create_evento_planejamento(request):
+    if request.method == 'POST':
+        form = EventoComPlanejamentoForm(request.POST)
+        if form.is_valid():
+            with transaction.atomic():
+                evento = form.save()  # Salva o evento
+                planejamento = form.cleaned_data['planejamento']
+                
+                if planejamento:
+                    funcoes = PlanejamentoFuncao.objects.filter(planejamento=planejamento)
+                    for pf in funcoes:
+                        Escala.objects.create(
+                            funcao=pf.funcao,
+                            evento=evento,
+                        )
+                
+            return redirect('evento_list')
+    else:
+        form = EventoComPlanejamentoForm()
+    
+    return render(request, 'evento/evento_form.html', {'form': form})

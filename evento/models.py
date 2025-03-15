@@ -6,7 +6,7 @@ class Evento(models.Model):
     nome = models.CharField(max_length=255)
     data_inicio = models.DateTimeField()
     data_fim = models.DateTimeField()
-    observacao = models.TextField()
+    observacao = models.TextField(null=True, blank=True)
     
     def __str__(self):
         return f"{self.nome} ({self.data_inicio} - {self.data_fim})"
