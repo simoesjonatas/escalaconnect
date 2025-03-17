@@ -1,5 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect
+
 
 
 # View para renderizar a página base
@@ -15,3 +17,6 @@ def calendario_view(request):
 
 def custom_403(request, exception):
     return render(request, '403_forbidden.html', status=403)
+
+def redirect_to_home(request, exception=None):
+    return HttpResponseRedirect('/')
