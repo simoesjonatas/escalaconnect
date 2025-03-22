@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Detalhes da Equipe {{equipe}}  {% endblock page_title %}
+{% block page_title %}Detalhes da Equipe {{ equipe }}{% endblock page_title %}
 
 {% block breadcrumb %}
 <ul class="app-breadcrumb breadcrumb">
@@ -9,41 +9,32 @@
 </ul>
 {% endblock breadcrumb %}
 
-
 {% block content %}
 <div class="container">
     <h3>{{ equipe.nome }}</h3>
-    <ul>
-        <!-- <li><strong>ID:</strong> {{ equipe.id }}</li> -->
-    </ul>
     <div class="clearfix">
         <a class="btn btn-secondary" href="{% url 'equipe_list' %}">Voltar</a>
-        <!-- request.user.is_leader or  -->
         {% if request.user.is_staff or request.user.is_superuser %}
         <a class="btn btn-warning" href="{% url 'equipe_update' equipe.pk %}">Editar</a>
         <a class="btn btn-danger" href="{% url 'equipe_delete' equipe.pk %}">Excluir</a>
         {% endif %}
     </div>
-
-    
 </div>
 <br>
 <div class="container">
     <div class="clearfix">
-        <a class="btn btn-primary" href="{% url 'listar_funcoes' equipe.pk %}">
-            Funções
-        </a>
-        <a class="btn btn-secondary" href="{% url 'listar_liderancas' equipe.pk %}">
-            Líderes 
-        </a>
-        <a class="btn btn-warning" href="{% url 'listar_membros_equipe' equipe.pk %}">
-            Integrantes 
-        </a>
-        <a class="btn btn-info" href="{% url 'listar_escalas' equipe.pk %}">
-            Escalas
-        </a>
+        <a class="btn btn-primary" href="{% url 'listar_funcoes' equipe.pk %}">Funções</a>
+        <a class="btn btn-secondary" href="{% url 'listar_liderancas' equipe.pk %}">Líderes</a>
+        <a class="btn btn-warning" href="{% url 'listar_membros_equipe' equipe.pk %}">Integrantes</a>
+        <a class="btn btn-info" href="{% url 'listar_escalas' equipe.pk %}">Escalas</a>
     </div>
 </div>
-
-
+<br>
+{% if membros_pendentes %}
+    <div class="container">
+        <div class="alert alert-warning" role="alert">
+            <strong>Atenção:</strong> Há membros aguardando aprovação nesta equipe. Por favor, verifique e aprove conforme necessário.
+        </div>
+    </div>
+{% endif %}
 {% endblock %}

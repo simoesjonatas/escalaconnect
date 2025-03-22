@@ -73,6 +73,12 @@ def equipe_delete(request, pk):
 @require_lideranca
 def equipe_detail(request, pk):
     equipe = get_object_or_404(Equipe, pk=pk)
+    membros_pendentes = MembrosEquipe.objects.filter(equipe=equipe, aprovado=False).exists()
+    return render(request, 'equipe/equipe_detail.html', {
+        'equipe': equipe,
+        'membros_pendentes': membros_pendentes
+    })
+
     return render(request, 'equipe/equipe_detail.html', {'equipe': equipe})
 
 @login_required
