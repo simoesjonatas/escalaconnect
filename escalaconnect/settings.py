@@ -30,6 +30,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+DEFAULT_DOMAIN = "https://connect.simoesti.com.br"
 
 ADMIN_PROTECTED_PATHS = [
     '/admin/',              # Exemplo de URL padrão do Django Admin

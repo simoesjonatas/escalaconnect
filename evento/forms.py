@@ -59,6 +59,11 @@ class EventoRecorrenteForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+    data_inicial = forms.DateField(
+        label="Data Inicial (opcional - início da criação dos eventos recorrentes)",
+        required=False,
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
 
 class EventoComPlanejamentoForm(forms.ModelForm):
     planejamento = forms.ModelChoiceField(

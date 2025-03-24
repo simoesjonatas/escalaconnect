@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import usuario_list, usuario_detail, usuario_create, usuario_update, usuario_delete, perfil_usuario
-from .views_pass import set_password, change_password, reset_user_password
+from .views_pass import *
 from .views_signup import * 
+from .mail import *
 urlpatterns = [
     path('', usuario_list, name='usuario_list'),
     path('<int:pk>/', usuario_detail, name='usuario_detail'),
@@ -22,6 +23,15 @@ urlpatterns = [
     path('equipes/candidatar/<int:pk>/', candidatar_equipe, name='candidatar_equipe'),
     path('equipes/cancelar/<int:pk>/', cancelar_inscricao, name='cancelar_inscricao'),
 
+    path('esqueci-senha/', recuperar_senha, name='recuperar_senha'),
+    path('esqueci-senha/sucesso/', recuperar_senha_sucesso, name='recuperar_senha_sucesso'),
+    # path('redefinir-senha/<int:user_id>/', password_reset_confirm, name='password_reset_confirm'),
+    path('recuperar-senha/confirmar/<uuid:hash>/', password_reset_confirm, name='password_reset_confirm'),
 
+
+
+    path('testar-emails/', pagina_teste_emails, name='testar_emails'),
+    path('email/lembrete', view_enviar_lembrete, name='enviar_lembrete'),
+    path('email/confirma', view_enviar_confirmacao, name='enviar_confirmacao'),
 
 ]

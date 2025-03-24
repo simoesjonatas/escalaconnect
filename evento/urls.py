@@ -36,5 +36,10 @@ urlpatterns = [
     
     # evento com planejamento recorrente
     path('gerar-eventos-planejamento/', gerar_eventos_planejamento, name='gerar_eventos_planejamento'),
+    
+    #notificar    
+    path('evento/<int:evento_id>/notificar-confirmacao/', view_enviar_confirmacao, name='evento_notificar_confirmacao'),
+    path('evento/<int:evento_id>/notificar-colaboradores/', view_enviar_lembrete, name='evento_notificar_colaboradores'),
+
 
 ]

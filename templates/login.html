@@ -30,6 +30,12 @@
                 </div>
                 <input type="hidden" name="next" value="{{ request.GET.next }}">
                 <button type="submit">Entrar</button>
+                {% if form.errors %}
+                <div class="form-group forgot-password signup">
+                    <a href="{% url 'recuperar_senha' %}">Esqueci minha senha</a>
+                </div>
+                {% endif %}
+                
                 <p class="signup">Não tem uma conta? <a href="{% url 'signup' %}">Cadastre-se</a></p>
             </form>
         </div>

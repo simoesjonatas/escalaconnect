@@ -50,6 +50,15 @@
             <p>Gerencie suas equipes e membros.</p>
         </a>
 
+        {% if request.user.is_superuser %}
+
+        <a href="{% url 'testar_emails' %}" class="dashboard-card">
+            <i class="fa fa-users"></i>
+            <h3>testar email</h3>
+            <p>Gerencie suas equipes e membros.</p>
+        </a>
+        {% endif %}
+
 
         <!-- <a class="dashboard-card logout-card">
             <form action="{% url 'logout' %}" method="post" class="dashboard-card logout-card">

@@ -1,0 +1,37 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'images/logo_pibvp_2022.png' %}" type="image/png">
+    <title>Recuperar Senha - Escalaconnect</title>
+    <link rel="stylesheet" href="/static/css/login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h1>Recuperar Senha</h1>
+
+            {% if form.errors %}
+                <div class="error-messages">
+                    <p>Ocorreu um erro. Verifique os dados e tente novamente.</p>
+                </div>
+            {% endif %}
+
+            <form action="" method="POST">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_email">E-mail</label>
+                    <input type="email" id="id_email" name="email" placeholder="Digite seu e-mail cadastrado" required>
+                    <small class="form-text text-muted">Informe o e-mail vinculado à sua conta.</small>
+                </div>
+
+                <button type="submit">Enviar instruções por e-mail</button>
+
+                <p class="signup">Lembrou sua senha? <a href="{% url 'login' %}">Faça login</a></p>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

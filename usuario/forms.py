@@ -34,3 +34,8 @@ class UsuarioForm(forms.ModelForm):
         if commit:
             usuario.save()
         return usuario
+
+
+class RecuperarSenhaForm(forms.Form):
+    cpf = forms.CharField(max_length=14, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'CPF'}))
+    data_nascimento = forms.DateField(widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}))

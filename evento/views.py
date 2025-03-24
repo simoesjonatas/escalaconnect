@@ -2,12 +2,16 @@ from django.http import JsonResponse
 from .models import Evento
 from django.views.decorators.csrf import csrf_exempt
 import json
+from escala.models import Escala
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from .forms import EventoForm
 from escalaconnect.utils import admin_required
 from equipe.decorators import require_lideranca 
 from django.utils.timezone import now
+from escalaconnect.tasks import enviar_email_confirmacao_task
+from django.contrib import messages
+
 
 
 def eventos_api(request):
@@ -134,3 +138,33 @@ def evento_delete(request, pk):
 def evento_detail(request, pk):
     evento = get_object_or_404(Evento, pk=pk)
     return render(request, 'evento/evento_detail.html', {'evento': evento})
+
+def view_enviar_confirmacao(request, evento_id):
+    # Obtém o evento
+    evento = get_object_or_404(Evento, pk=evento_id)
+
+    # Busca todas as escalas associadas ao evento que não foram confirmadas
+    escalas_nao_confirmadas = Escala.objects.filter(evento=evento, confirmada=False)
+
+    if escalas_nao_confirmadas.exists():
+        for escala in escalas_nao_confirmadas:
+            if escala.usuario and escala.usuario.email:
+                # print(escala.usuario)
+                # print(escala.usuario.email)
+                enviar_email_confirmacao_task.delay(
+                    evento.nome,
+                    escala.usuario.email
+                )
+        messages.success(request, "Emails de confirmação enviados com sucesso para os participantes não confirmados.")
+    else:
+        messages.info(request, "Todos os participantes já confirmaram ou não há participantes para confirmar.")
+
+    return redirect('evento_detail', pk=evento_id)
+
+def view_enviar_lembrete(request, evento_id):
+    evento = get_object_or_404(Evento, pk=evento_id)
+    # emails_participantes = [e.email for e in evento.participantes]  # Ajuste conforme seu modelo
+    # for email in emails_participantes:
+    #     send_email_task.delay('Lembrete de Escala', 'Não esqueça do evento!', 'jonatasimoes.js@gmail.com', [email])
+    messages.success(request, "Emails de lembrete enviados com sucesso!")
+    return redirect('evento_detail', pk=evento_id)

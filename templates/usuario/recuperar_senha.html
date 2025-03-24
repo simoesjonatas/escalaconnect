@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'images/logo_pibvp_2022.png' %}" type="image/png">
+    <title>Recuperar Senha - Escalaconnect</title>
+    <link rel="stylesheet" href="/static/css/login.css">
+    <style>
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ffffff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h1>Recuperar Senha</h1>
+
+            {% if form.errors %}
+                <div class="error-messages">
+                    <p>Ocorreu um erro. Verifique os dados e tente novamente.</p>
+                </div>
+            {% endif %}
+
+            <form action="" method="POST" id="resetForm">
+                {% csrf_token %}
+                {{ form.as_p }}
+
+                <button type="submit" id="submitBtn">Enviar instruções por e-mail</button>
+
+                <p class="signup">Lembrou sua senha? <a href="{% url 'login' %}">Faça login</a></p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('resetForm').addEventListener('submit', function() {
+            var submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Enviando...<span class="spinner"></span>';
+        });
+    </script>
+</body>
+</html>

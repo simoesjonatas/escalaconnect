@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #eeeeee; /* Fundo menos branco para maior conforto visual */
+            padding: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        img.logo {
+            max-width: 200px;
+            margin-bottom: 20px;
+        }
+        a.button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 20px 0;
+            background-color: #007BFF;
+            color: #ffffff;
+            border-radius: 5px;
+            text-decoration: none;
+            text-align: center;
+            font-weight: bold;
+        }
+        .highlight {
+            color: #d10000; /* Cor vermelha para chamar atenção */
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .important {
+            background-color: #f8f8f8; /* Fundo cinza claro para áreas importantes */
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="https://connect.simoesti.com.br/static/images/logo_pibvp_2022.png" alt="Logo PIBVP" class="logo">
+        <p>Querido(a) colaborador(a),</p>
+        <p>Somos profundamente gratos pelo seu contínuo compromisso e dedicação ao serviço divino. Sua participação é fundamental para nós.</p>
+        
+        <div class="important">
+            <p class="highlight">Você está escalado para o evento: {{ evento }}</p>
+            <p><strong>Atenção:</strong> Você ainda não confirmou sua presença para esta escala.</p>
+        </div>
+
+        <a href="https://connect.pibvp.org.br/api/escala/minhas-escalas/" class="button">Confirmar minha presença</a>
+        <p>Por favor, confirme sua participação o quanto antes para garantir a organização adequada do evento.</p>
+        <p>Que sua jornada seja sempre iluminada e abençoada.</p>
+        <p>Com gratidão,</p>
+        <p>Sua equipe PIBVP</p>
+    </div>
+</body>
+</html>

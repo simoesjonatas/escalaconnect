@@ -18,8 +18,13 @@ def evento_create_recorrente(request):
             dia_da_semana = int(form.cleaned_data['dia_da_semana'])
             repeticoes = form.cleaned_data['repeticoes']
             planejamento = form.cleaned_data['planejamento']
+            
+            # add apartir de qual data para nao sobrescrever os outros eventos
+            data_inicial = form.cleaned_data.get('data_inicial')
+            # Caso não informe data_inicial, usar data atual
+            data_atual = data_inicial if data_inicial else timezone.now().date()
 
-            data_atual = timezone.now().date()
+            # data_atual = timezone.now().date()
 
             eventos_criados = []
             count = 0

@@ -1,0 +1,20 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'images/logo_pibvp_2022.png' %}" type="image/png">
+    <title>Recuperar Senha - Escalaconnect</title>
+    <link rel="stylesheet" href="/static/css/login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h3>Instruções enviadas!</h3>
+            <p>Enviamos um e-mail com as instruções para redefinir sua senha.</p>
+        </div>
+        <p class="signup">Lembrou sua senha? <a href="{% url 'login' %}">Faça login</a></p>
+    </div>
+</body>
+</html>

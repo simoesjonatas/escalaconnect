@@ -1,0 +1,20 @@
+
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'images/logo_pibvp_2022.png' %}" type="image/png">
+    <title>Link Inválido</title>
+    <link rel="stylesheet" href="/static/css/login.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <h2>Link de redefinição inválido ou expirado.</h2>
+            <p><a class = "signup" href="{% url 'recuperar_senha' %}">Clique aqui para solicitar novamente.</a></p>        
+        </div>
+    </div>
+</body>
+</html>
