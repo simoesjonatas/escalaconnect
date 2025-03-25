@@ -2,6 +2,8 @@ from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.conf import settings
+from django.urls import reverse
 
 def pagina_teste_emails(request):
     return render(request, 'email/testar_emails.html')
@@ -52,9 +54,6 @@ def enviar_email_lembrete(email, evento):
     email.content_subtype = 'html'  # Especifica que o conteúdo é HTML
     email.send()
     
-from django.conf import settings
-from django.urls import reverse
-
 
 def enviar_email_redefinicao_senha(email_usuario, reset_request):
     reset_link = settings.DEFAULT_DOMAIN + reverse('password_reset_confirm', args=[reset_request.hash])
