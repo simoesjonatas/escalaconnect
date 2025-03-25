@@ -42,7 +42,11 @@ Minhas Escalas
                 
                 {% for escala in page_obj %}
                 <tr onclick="window.location.href='{% url 'minha_escala_detail' escala.pk %}'">
-                    <td>{{ escala.evento.nome }}</td>
+                    <td>
+                        {{ escala.evento.nome }}<br>
+                        {{ escala.evento.data_inicio_com_dia_da_semana|safe }}
+                    </td>
+                    
                     <td>{{ escala.funcao.equipe.nome }}</td>
                     <td>{{ escala.funcao.nome }}</td>
                     <td>

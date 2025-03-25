@@ -121,7 +121,7 @@
                                         <!-- <a class="btn btn-success" href="{% url 'escalar_usuario_equipe' escala.pk escalado.usuario.pk %}">
                                             <i class="fa fa-user-plus"></i> Escalar
                                         </a> -->
-                                        <a class="btn btn-success" href="javascript:void(0);" onclick="confirmarEscala('{% url 'escalar_usuario_equipe' escala.pk escalado.usuario.pk %}', '{{ escalado.usuario.username }}')">
+                                        <a class="btn btn-success" href="javascript:void(0);" onclick="confirmarEscala(event, '{% url 'escalar_usuario_equipe' escala.pk escalado.usuario.pk %}', '{{ escalado.usuario.username }}')">
                                             <i class="fa fa-user-plus"></i> Escalar
                                         </a>
                                         
@@ -140,12 +140,13 @@
     {% endif %}
 </div>
 <script>
-    function confirmarEscala(url, username) {
+    function confirmarEscala(event, url, username) {
+        event.stopPropagation(); // Impede a propagação do evento
         const mensagem = "O usuário " + username + " já possui uma escala neste evento. Deseja escalá-lo para outra função também?";
         if (confirm(mensagem)) {
             window.location.href = url;
         }
     }
-    
 </script>
+
 {% endblock %}
