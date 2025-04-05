@@ -14,7 +14,7 @@ def signup(request):
             login(request, user)
             user.is_first_login = False
             user.save()
-            return redirect('base_page')
+            return redirect('inscricao')
     else:
         form = SignupForm()
     
