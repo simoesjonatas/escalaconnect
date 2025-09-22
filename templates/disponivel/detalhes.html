@@ -16,10 +16,15 @@
         <li><strong>Usuário:</strong> {{ disponivel.usuario.username }}</li>
         <li><strong>Data de Início:</strong> {{ disponivel.data_inicio|date:"d M Y H:i" }}</li>
         <li><strong>Data de Fim:</strong> {{ disponivel.data_fim|date:"d M Y H:i" }}</li>
+        {% if disponivel.evento %}
+        <li><strong>Evento:</strong> {{ disponivel.evento.nome }}</li>
+        {% endif %}
     </ul>
     <div class="clearfix">
         <a class="btn btn-secondary" href="{% url 'lista_disponivel' %}">Voltar</a>
+        {% if not disponivel.evento %}
         <a class="btn btn-warning" href="{% url 'editar_disponivel' disponivel.pk %}">Editar</a>
+        {% endif %}
         <a class="btn btn-danger" href="{% url 'excluir_disponivel' disponivel.pk %}">Excluir</a>
     </div>
 </div>

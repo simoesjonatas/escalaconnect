@@ -1,0 +1,32 @@
+<!-- registrar_disponibilidade.html -->
+{% extends 'base.html' %}
+
+{% block page_title %}Disponibilidade{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'lista_disponivel' %}">Lista de Disponibilidade</a></li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+
+<div class="dashboard-container">
+    <h2>Escolha o tipo de disponibilidade que deseja registrar:</h2>
+
+    <div class="dashboard-grid">
+        <a href="{% url 'registrar_disponibilidade_horario' %}" class="dashboard-card">
+            <i class="fa fa-clock"></i>
+            <h3>Por Horário</h3>
+            <p>Informe a disponibilidade por horário específico.</p>
+        </a>
+        <a href="{% url 'registrar_disponibilidade_evento' %}" class="dashboard-card">
+            <i class="fa fa-calendar-check"></i>
+            <h3>Por Evento</h3>
+            <p>Informe a disponibilidade para eventos marcados.</p>
+        </a>
+    </div>
+</div>
+
+{% endblock %}

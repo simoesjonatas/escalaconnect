@@ -8,4 +8,9 @@ urlpatterns = [
     path('excluir/<int:pk>/', views.excluir_disponivel, name='excluir_disponivel'),
     path('detalhes/<int:pk>/', views.detalhes_disponivel, name='detalhes_disponivel'),
 
+    path('registrar-disponibilidade/', views.registrar_disponibilidade_view, name='registrar_disponibilidade'),
+    path('registrar-disponibilidade/por-horario/', views.adicionar_disponivel, name='registrar_disponibilidade_horario'),
+    path('registrar-disponibilidade/por-evento/', views.registrar_por_evento, name='registrar_disponibilidade_evento'),
+    path('processar-disponibilidade-evento/', views.processar_disponibilidade_evento, name='processar_disponibilidade_evento'),
+
 ]
