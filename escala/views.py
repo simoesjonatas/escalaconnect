@@ -14,6 +14,7 @@ from ocupado.models import Ocupado
 from django.conf import settings
 from usuario.models import Usuario
 from equipe.models import Lideranca
+from disponivel.models import Disponivel
 
 
 def escalas_por_evento(request, pk):
@@ -100,7 +101,7 @@ def escala_detail(request, pk):
     evento = escala.evento
     is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
 
-    # Adiciona parâmetros de busca e ordenação
+    # Parâmetros de busca e ordenação
     order_by = request.GET.get('order_by', 'username')
     direction = request.GET.get('direction', 'asc')
     query = request.GET.get('q', '')
@@ -108,60 +109,71 @@ def escala_detail(request, pk):
     if direction == 'desc':
         order_by = f'-{order_by}'
 
-    # pega os membros da equipe e filtra aqueles sem indisponibilidade
-    # membros = escala.funcao.equipe.membros.all()
     membros = escala.funcao.equipe.membros.filter(aprovado=True)
-    
-    # filtra usarios sem indisponibilidades que se sobreponha
-    usuarios_filtrados = [membro.usuario for membro in membros if not Ocupado.objects.filter(
-        usuario=membro.usuario,
-        data_inicio__lt=evento_fim,
-        data_fim__gt=evento_inicio
-    ).exists()]
 
-    # filtra usuarios que ja estao escalados para o mesmo evento em qualquer funcao
-    usuarios_disponiveis = [usuario for usuario in usuarios_filtrados if not Escala.objects.filter(
-        usuario=usuario,
-        evento=evento
-    ).exclude(pk=escala.pk).exists()]  # exclui a escala atual na verificacao
-    
+    # Filtra usuários sem indisponibilidade
+    usuarios_sem_indisponibilidade = [
+        membro.usuario for membro in membros
+        if not Ocupado.objects.filter(
+            usuario=membro.usuario,
+            data_inicio__lt=evento_fim,
+            data_fim__gt=evento_inicio
+        ).exists()
+    ]
+
+    # Filtra usuários que têm disponibilidade para o evento
+    usuarios_com_disponibilidade = [
+        usuario for usuario in usuarios_sem_indisponibilidade
+        if Disponivel.objects.filter(
+            usuario=usuario,
+            data_inicio__lte=evento_inicio,
+            data_fim__gte=evento_fim
+        ).exists()
+    ]
+
+    # Filtra usuários que já estão escalados para o mesmo evento
+    usuarios_disponiveis = [
+        usuario for usuario in usuarios_com_disponibilidade
+        if not Escala.objects.filter(
+            usuario=usuario,
+            evento=evento
+        ).exclude(pk=escala.pk).exists()
+    ]
+
     # Aplica o filtro de busca
     if query:
         usuarios_disponiveis = [
-            usuario for usuario in usuarios_disponiveis 
-            if query.lower() in usuario.username.lower() or 
-               query.lower() in usuario.first_name.lower() or 
-               query.lower() in usuario.last_name.lower() or 
+            usuario for usuario in usuarios_disponiveis
+            if query.lower() in usuario.username.lower() or
+               query.lower() in usuario.first_name.lower() or
+               query.lower() in usuario.last_name.lower() or
                query.lower() in usuario.email.lower()
         ]
-    
-    # Ordena os usuários (convertendo para lista para poder ordenar)
+
+    # Ordena os usuários
     field = order_by.lstrip('-')
     reverse = order_by.startswith('-')
-    
-    # Manipulando ordem de forma manual (já que estamos trabalhando com lista, não queryset)
     usuarios_disponiveis = sorted(
         usuarios_disponiveis,
         key=lambda u: getattr(u, field, '').lower() if isinstance(getattr(u, field, ''), str) else getattr(u, field, ''),
         reverse=reverse
     )
-    
-    # Aplica paginação
-    paginator = Paginator(usuarios_disponiveis, 10)  # 10 usuários por página
+
+    # Paginação
+    paginator = Paginator(usuarios_disponiveis, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    # Campos para ordenação da tabela
+
     usuario_fields = [
         ('username', 'Nome de Usuário'),
         ('first_name', 'Nome'),
         ('last_name', 'Sobrenome'),
         ('email', 'Email'),
     ]
-    
+
     return render(request, 'escala/escala_detail.html', {
         'escala': escala,
-        'usuarios_disponiveis': page_obj,  # Agora usamos o objeto de página em vez da lista completa
+        'usuarios_disponiveis': page_obj,
         'is_leader': is_leader,
         'page_obj': page_obj,
         'order_by': order_by.lstrip('-'),

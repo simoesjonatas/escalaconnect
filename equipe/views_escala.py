@@ -5,6 +5,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils import timezone
 from ocupado.models import Ocupado
+from disponivel.models import Disponivel
 
 def get_unapproved_desistencias(equipe_id):
     equipe = get_object_or_404(Equipe, pk=equipe_id)
@@ -66,48 +67,55 @@ def listar_escalas(request, equipe_pk):
     })
 
 
-def escala_detail_equipe(request,equipe_pk, pk):
+def escala_detail_equipe(request, equipe_pk, pk):
     escala = get_object_or_404(Escala, pk=pk)
     equipe = get_object_or_404(Equipe, pk=equipe_pk)
-    # pega os horários do evento associado a escala
     evento_inicio = escala.evento.data_inicio
     evento_fim = escala.evento.data_fim
     evento = escala.evento
     is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
 
-    # pega os membros da equipe e filtra aqueles sem indisponibilidade
     membros = escala.funcao.equipe.membros.filter(aprovado=True)
 
-    
-    # filtra usarios sem indisponibilidades que se sobreponha
-    usuarios_sem_indisponibilidade = [membro.usuario for membro in membros if not Ocupado.objects.filter(
-        usuario=membro.usuario,
-        data_inicio__lt=evento_fim,
-        data_fim__gt=evento_inicio
-    ).exists()]
-    
-    # # filtra usuarios que ja estao escalados para o mesmo evento em qualquer funcao
-    # usuarios_ja_escalados = [usuario for usuario in usuarios_sem_indisponibilidade if Escala.objects.filter(
-    #     usuario=usuario,
-    #     evento=evento
-    # ).exclude(pk=escala.pk).exists()]
-    
-    # Detalhes adicionais para usuários já escalados
+    # Usuários sem indisponibilidade
+    usuarios_sem_indisponibilidade = [
+        membro.usuario for membro in membros
+        if not Ocupado.objects.filter(
+            usuario=membro.usuario,
+            data_inicio__lt=evento_fim,
+            data_fim__gt=evento_inicio
+        ).exists()
+    ]
+
+    # Usuários com disponibilidade para o evento
+    usuarios_com_disponibilidade = [
+        usuario for usuario in usuarios_sem_indisponibilidade
+        if Disponivel.objects.filter(
+            usuario=usuario,
+            data_inicio__lte=evento_inicio,
+            data_fim__gte=evento_fim
+        ).exists()
+    ]
+
+    # Usuários já escalados para o evento
     usuarios_ja_escalados = Escala.objects.filter(
         usuario__in=usuarios_sem_indisponibilidade,
         evento=evento
     ).exclude(pk=escala.pk).select_related('funcao', 'funcao__equipe')
 
-    # filtra usuarios que ja estao escalados para o mesmo evento em qualquer funcao
-    usuarios_disponiveis = [usuario for usuario in usuarios_sem_indisponibilidade if not Escala.objects.filter(
-        usuario=usuario,
-        evento=evento
-    ).exclude(pk=escala.pk).exists()]  # exclui a escala atual na verificacao
-    
-    return render(request, 'equipe/equipe_escala_detail.html', 
-                {'escala': escala,
-                'equipe': equipe,
-                'usuarios_disponiveis': usuarios_disponiveis,
-                'usuarios_escalados': usuarios_ja_escalados,
-                'is_leader': is_leader,
-})
+    # Usuários disponíveis e não escalados
+    usuarios_disponiveis = [
+        usuario for usuario in usuarios_com_disponibilidade
+        if not Escala.objects.filter(
+            usuario=usuario,
+            evento=evento
+        ).exclude(pk=escala.pk).exists()
+    ]
+
+    return render(request, 'equipe/equipe_escala_detail.html', {
+        'escala': escala,
+        'equipe': equipe,
+        'usuarios_disponiveis': usuarios_disponiveis,
+        'usuarios_escalados': usuarios_ja_escalados,
+        'is_leader': is_leader,
+    })
