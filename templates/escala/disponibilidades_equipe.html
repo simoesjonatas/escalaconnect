@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Disponibilidades da Equipe {{ equipe.nome }}
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+  <li class="breadcrumb-item">
+    <a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a>
+  </li>
+  <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">Lista de Escalas</a></li>
+  <li class="breadcrumb-item active">Disponibilidades</li>
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="clearfix mb-3">
+    <form method="GET" class="form-inline">
+      <input type="text" name="q" class="form-control mr-2" placeholder="Buscar por DATA ou Evento..." value="{{ query }}">
+      <select name="user" class="form-control mr-2">
+        <option value="">-- Todos os usuários --</option>
+        {% for u in membros %}
+          <option value="{{ u.id }}" {% if selected_user == u.id|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn btn-primary mr-2">Buscar</button>
+      <a class="btn btn-secondary" href="{% url 'disponibilidades_equipe' equipe_pk=equipe.pk %}">Limpar Filtro</a>
+      <a class="btn btn-success ml-2" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">Voltar p/ Escalas</a>
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered mt-3">
+      <thead>
+        <tr>
+          {% for field_display in disponibilidade_fields %}
+          <th>
+            <a href="?q={{ query }}{% if selected_user %}&user={{ selected_user }}{% endif %}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
+              {{ field_display.1 }}
+              {% if order_by == field_display.0 %}
+                <i class="fa {% if direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+              {% endif %}
+            </a>
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for d in page_obj %}
+        {% comment %} <tr onclick="window.location.href='{% url 'listar_escalas' equipe_pk=equipe.pk %}?evento={{ d.evento.pk }}'"> {% endcomment %}
+           {% comment %} <tr onclick="window.location.href='{% url 'escala_detail_equipe' equipe.pk escala.pk %}'"> {% endcomment %}
+            <tr>
+            <td>{{ d.usuario.username }}</td>
+            <td>{{ d.evento.nome }}</td>
+            <td>{{ d.data_inicio|date:"d/m/Y H:i" }}</td>
+            <td>{{ d.data_fim|date:"d/m/Y H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-center">Nenhuma disponibilidade encontrada.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include 'includes/pagination.html' %}
+</div>
+{% endblock %}

@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 from ocupado.models import Ocupado
 from disponivel.models import Disponivel
+from equipe.decorators import require_lideranca
 
 def get_unapproved_desistencias(equipe_id):
     equipe = get_object_or_404(Equipe, pk=equipe_id)
@@ -18,6 +19,7 @@ def get_unapproved_desistencias(equipe_id):
     
     return desistencias
 
+@require_lideranca
 def listar_escalas(request, equipe_pk):
     equipe = get_object_or_404(Equipe, pk=equipe_pk)
     

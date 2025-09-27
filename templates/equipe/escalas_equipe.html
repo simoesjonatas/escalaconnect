@@ -24,6 +24,12 @@ Escalas da Equipe {{ equipe.nome }}
     </div>
     <div class="table-responsive">
         <a href="#" class="btn btn-info" data-toggle="modal" data-target="#exportModal">Exportar PDF</a>
+
+        <!-- dentro do bloco content, antes/ao lado do Exportar PDF -->
+        <a href="{% url 'disponibilidades_equipe' equipe_pk=equipe.pk %}" class="btn btn-success" > 
+            {% comment %} class="btn btn-outline-info ml-2" {% endcomment %}
+        Ver Disponibilidades
+        </a>
         <table class="table table-bordered mt-3">
             <thead>
                 <tr>

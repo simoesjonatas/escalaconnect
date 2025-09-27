@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import equipe_list, equipe_create, equipe_update, equipe_delete, equipe_detail, candidatura_equipe
+from .views import equipe_list, equipe_create, equipe_update, equipe_delete, equipe_detail, candidatura_equipe, disponibilidades_equipe
 from .views_funcao import *
 from .views_lideranca import *
 from .views_membros import *
@@ -44,6 +44,13 @@ urlpatterns = [
     path('equipe/<int:equipe_pk>/membros-pendentes/', listar_membros_pendentes, name='listar_membros_pendentes'),
     path('equipe/<int:equipe_pk>/aprovar-membro/<int:membro_pk>/', aprovar_membro, name='aprovar_membro'),
     path('equipe/<int:equipe_pk>/rejeitar-membro/<int:membro_pk>/', rejeitar_membro, name='rejeitar_membro'),
+
+
+    path(
+        "equipes/<int:equipe_pk>/disponibilidades/",
+        disponibilidades_equipe,
+        name="disponibilidades_equipe",
+    ),
 
 
 ]
