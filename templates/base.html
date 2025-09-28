@@ -37,6 +37,73 @@
     https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js
     "></script> -->
 
+    <style>
+        /* ---- Modal responsivo e centrado ---- */
+        .modal {
+            display: none;              /* escondido por padrão */
+            position: fixed;
+            inset: 0;                   /* top/right/bottom/left:0 */
+            z-index: 2000;              /* acima do header */
+            background: rgba(0,0,0,.45);
+            padding: 16px;              /* respiro nas bordas do mobile */
+            box-sizing: border-box;
+            /* centraliza com flex para evitar "quebra" */
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.is-open { display: flex; }
+
+        .modal-content {
+            position: relative;
+            width: 520px;               /* desktop confortável */
+            max-width: 100%;
+            border-radius: 10px;
+            background: #fff;
+            padding: 16px 18px 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,.2);
+            box-sizing: border-box;
+            max-height: 85vh;           /* evita estourar a tela */
+            overflow: auto;             /* cria scroll interno quando necessário */
+        }
+
+        .close {
+            position: absolute;
+            top: 8px; right: 12px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Inputs ocupam toda a largura e têm espaçamento */
+        #eventForm label { margin-top: .5rem; }
+        #eventForm input[type="text"],
+        #eventForm input[type="datetime-local"] {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Botões lado a lado no desktop e empilhados no mobile */
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0,1fr));
+            gap: .5rem;
+            margin-top: .75rem;
+        }
+        .modal-buttons .btn,
+        .modal-buttons a.btn { width: 100%; }
+
+        @media (max-width: 640px) {
+            .modal-content { width: 100%; max-width: 520px; }
+            .modal-buttons { grid-template-columns: 1fr; } /* empilha */
+        }
+
+        /* Evita “zoom” do iOS por fonte pequena nos inputs */
+        input, select, textarea { font-size: 16px; }
+        
+        /* Evita scroll do fundo quando o modal abre */
+        body.no-scroll { overflow: hidden; }
+        </style>
+
+
 </head>
 <body>
         {% if not user.is_in_team %}
