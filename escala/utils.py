@@ -1,8 +1,6 @@
 # escala/utils.py
 from django.db.models import Q
-from .models import Escala
-from disponivel.models import Disponivel
-from ocupado.models import Ocupado
+from django.apps import apps
 
 def usuarios_disponiveis_para_evento(equipe, evento, excluir_escala_id=None):
     """
@@ -13,6 +11,14 @@ def usuarios_disponiveis_para_evento(equipe, evento, excluir_escala_id=None):
       - com 'Disponivel' cobrindo totalmente o intervalo,
       - não já escalados neste mesmo evento.
     """
+
+    """
+    Retorna lista de user_ids disponíveis para o intervalo do evento.
+    Evita import circular resolvendo os modelos via apps.get_model.
+    """
+    Ocupado    = apps.get_model('ocupado', 'Ocupado')
+    Disponivel = apps.get_model('disponivel', 'Disponivel')
+    Escala     = apps.get_model('escala', 'Escala')
     # Membros aprovados da equipe
     membros_aprovados = equipe.membros.filter(aprovado=True).select_related('usuario')
     membro_user_ids = list(membros_aprovados.values_list('usuario_id', flat=True))

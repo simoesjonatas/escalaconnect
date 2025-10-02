@@ -52,7 +52,7 @@ Escalas da Equipe {{ equipe.nome }}
             </thead>
             <tbody>
                 {% for escala in page_obj %}
-                    {% with c=escala.disponiveis_count %}
+                    {% with c=escala.disponiveis_count names=escala.disponiveis_names %}
                     <tr
                     class="{% if c == 0 %}table-danger{% elif c == 1 %}table-warning{% else %}table-success{% endif %}"
                     onclick="window.location.href='{% url 'escala_detail_equipe' equipe.pk escala.pk %}'"
@@ -62,14 +62,24 @@ Escalas da Equipe {{ equipe.nome }}
                     <td>{{ escala.funcao.nome }}</td>
                     <!-- DISPONIBILIDADE (pílula colorida) -->
                     <td class="disp-col">
+                    <div>
                         <span class="badge-disp
-                        {% if c == 0 %}red
-                        {% elif c == 1 %}yellow
-                        {% else %}green
-                        {% endif %}">
-                        {{ c }}
+                            {% if c == 0 %}red
+                            {% elif c == 1 %}yellow
+                            {% else %}green
+                            {% endif %}">
+                            {{ c }}
                         </span>
-                    </td>
+                    </div>
+                    <small class="disp-names d-block mt-1">
+                    {% if names %}
+                        {% for n in names|slice:":3" %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        {% if names|length > 3 %}
+                        +{{ names|length|add:"-3" }}
+                        {% endif %}
+                    {% else %}—{% endif %}
+                    </small>
+                </td>
                     <td>{{ escala.usuario.username }}</td>
 
                     {% if escala.has_impedimento or escala.has_solicitacao_troca_aberta %}

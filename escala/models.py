@@ -2,6 +2,9 @@ from django.db import models
 from django.conf import settings
 from evento.models import Evento
 from django.utils.functional import cached_property
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class Funcao(models.Model):
@@ -47,20 +50,33 @@ class Escala(models.Model):
         return troca.id if troca else None
     
     @cached_property
-    def disponiveis_count(self):
-        """
-        Quantos usuários da equipe estão disponíveis para este evento,
-        seguindo as mesmas regras da tela de detalhes.
-        """
+    def disponiveis_qs(self):
+        """QuerySet de usuários disponíveis para este evento (ordenados)."""
+        # IMPORT LAZY para evitar ciclo
         from .utils import usuarios_disponiveis_para_evento
+
         equipe = self.funcao.equipe if self.funcao else None
         if not (equipe and self.evento):
-            return 0
-        return len(usuarios_disponiveis_para_evento(
+            return User.objects.none()
+
+        ids = usuarios_disponiveis_para_evento(
             equipe=equipe,
             evento=self.evento,
             excluir_escala_id=self.pk
-        ))
+        )
+        return User.objects.filter(id__in=ids).order_by('first_name', 'username')
+
+    @cached_property
+    def disponiveis_names(self):
+        nomes = []
+        for u in self.disponiveis_qs:
+            nome = (u.get_full_name() or u.first_name or u.username or str(u)).strip()
+            nomes.append(nome)
+        return nomes
+
+    @cached_property
+    def disponiveis_count(self):
+        return len(self.disponiveis_names)
     
     def clear_escala(self):
         """ Limpa a escala removendo a confirmação, a data de confirmação e o usuário associado. """
