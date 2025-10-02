@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from evento.models import Evento
+from django.utils.functional import cached_property
 
 
 class Funcao(models.Model):
@@ -44,6 +45,22 @@ class Escala(models.Model):
         """ Retorna o ID da solicitação de troca aberta, se existir. """
         troca = SolicitacaoTroca.objects.filter(escala_origem=self, aprovada=False).first()
         return troca.id if troca else None
+    
+    @cached_property
+    def disponiveis_count(self):
+        """
+        Quantos usuários da equipe estão disponíveis para este evento,
+        seguindo as mesmas regras da tela de detalhes.
+        """
+        from .utils import usuarios_disponiveis_para_evento
+        equipe = self.funcao.equipe if self.funcao else None
+        if not (equipe and self.evento):
+            return 0
+        return len(usuarios_disponiveis_para_evento(
+            equipe=equipe,
+            evento=self.evento,
+            excluir_escala_id=self.pk
+        ))
     
     def clear_escala(self):
         """ Limpa a escala removendo a confirmação, a data de confirmação e o usuário associado. """

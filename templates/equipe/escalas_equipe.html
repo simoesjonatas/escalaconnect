@@ -14,6 +14,7 @@ Escalas da Equipe {{ equipe.nome }}
 {% endblock breadcrumb %}
 
 {% block content %}
+
 <div class="container">
     <div class="clearfix mb-3">
         <form method="GET" class="form-inline">
@@ -31,63 +32,80 @@ Escalas da Equipe {{ equipe.nome }}
         Ver Disponibilidades
         </a>
         <table class="table table-bordered mt-3">
-            <thead>
+           <thead>
                 <tr>
                     {% for field_display in escala_fields %}
-                    <th>
-                        <a href="?q={{ query }}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
-                            {{ field_display.1 }}
-                            {% if order_by == field_display.0 %}
+                        {% if field_display.0 != '__disponiveis__' %}
+                            <th>
+                            <a href="?q={{ query }}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
+                                {{ field_display.1 }}
+                                {% if order_by == field_display.0 %}
                                 <i class="fa {% if direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
-                            {% endif %}
-                        </a>
-                    </th>
+                                {% endif %}
+                            </a>
+                            </th>
+                        {% else %}
+                            <th>{{ field_display.1 }}</th>
+                        {% endif %}
                     {% endfor %}
                 </tr>
             </thead>
             <tbody>
                 {% for escala in page_obj %}
-                <tr onclick="window.location.href='{% url 'escala_detail_equipe' equipe.pk escala.pk %}'">
+                    {% with c=escala.disponiveis_count %}
+                    <tr
+                    class="{% if c == 0 %}table-danger{% elif c == 1 %}table-warning{% else %}table-success{% endif %}"
+                    onclick="window.location.href='{% url 'escala_detail_equipe' equipe.pk escala.pk %}'"
+                    >
                     <td>{{ escala.evento.nome }}</td>
                     <td>{{ escala.evento.data_inicio|date:"d/m/Y H:i" }}</td>
                     <td>{{ escala.funcao.nome }}</td>
+                    <!-- DISPONIBILIDADE (pílula colorida) -->
+                    <td class="disp-col">
+                        <span class="badge-disp
+                        {% if c == 0 %}red
+                        {% elif c == 1 %}yellow
+                        {% else %}green
+                        {% endif %}">
+                        {{ c }}
+                        </span>
+                    </td>
                     <td>{{ escala.usuario.username }}</td>
-                    {% if escala.has_impedimento or escala.has_solicitacao_troca_aberta%}
-                    <!-- <td>
-                        <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="text-danger">
-                            <i class="fa fa-exclamation-circle text-danger" title="Impedimento pendente. Clique para mais detalhes."></i>
-                            Impedimento
-                        </a>
-                    </td> -->
-                        {% if escala.has_impedimento%}
+
+                    {% if escala.has_impedimento or escala.has_solicitacao_troca_aberta %}
+                        {% if escala.has_impedimento %}
                         <td>
                             <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger" role="button">
-                                <i class="fa fa-exclamation-circle" title="Impedimento pendente. Clique para mais detalhes."></i> Impedimento
+                            <i class="fa fa-exclamation-circle" title="Impedimento pendente. Clique para mais detalhes."></i> Impedimento
                             </a>
-                        </td>            
-                        {% endif %}   
-                        {% if escala.has_solicitacao_troca_aberta%}
-                        
+                        </td>
+                        {% endif %}
+                        {% if escala.has_solicitacao_troca_aberta %}
                         <td>
                             {% with troca_id=escala.get_pending_troca_id %}
-                                {% if troca_id %}
-                                    <a href="{% url 'detalhes_solicitacao_troca' troca_id %}" class="btn btn-danger" role="button">
-                                        <i class="fa fa-exclamation-circle" title="Solicitação de troca. Clique para mais detalhes."></i> Troca
-                                    </a>
-                                {% endif %}
+                            {% if troca_id %}
+                                <a href="{% url 'detalhes_solicitacao_troca' troca_id %}" class="btn btn-danger" role="button">
+                                <i class="fa fa-exclamation-circle" title="Solicitação de troca. Clique para mais detalhes."></i> Troca
+                                </a>
+                            {% endif %}
                             {% endwith %}
-                        </td>            
-                        {% endif %}        
-                    {%else%}
+                        </td>
+                        {% endif %}
+                    {% else %}
                         <td>{{ escala.confirmada|yesno:"✅ Sim,❌ Não" }}</td>
                     {% endif %}
-                </tr>
+                    </tr>
+                    {% endwith %}
                 {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center">Nenhuma escala encontrada para esta equipe.</td>
-                </tr>
+                    <tr>
+                    <td colspan="6" class="text-center">Nenhuma escala encontrada para esta equipe.</td>
+                    </tr>
                 {% endfor %}
-            </tbody>
+                </tbody>
+
+
+
+
         </table>
     </div>
     {% include 'includes/pagination.html' %}

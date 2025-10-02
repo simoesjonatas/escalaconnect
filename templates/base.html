@@ -96,6 +96,30 @@
             .modal-buttons { grid-template-columns: 1fr; } /* empilha */
         }
 
+        /* centraliza a coluna de disponibilidade */
+        th.disp-col, td.disp-col { text-align:center; width: 80px; }
+
+        /* melhora o hover da linha sem sobrescrever o Bootstrap */
+        tr.table-danger:hover { background-color: #f8d7da !important; }
+
+        /* coluna de disponibilidade centralizada */
+        th.disp-col, td.disp-col { text-align: center; width: 80px; }
+
+        /* pílulas personalizadas (independente da versão do Bootstrap) */
+        .badge-disp{
+            display:inline-block; min-width:1.8rem;
+            padding:.15rem .5rem; border-radius:999px;
+            font-weight:600; font-size:.85rem; line-height:1;
+        }
+        .badge-disp.green  { background:#d1e7dd; border:1px solid #badbcc; color:#0f5132; }
+        .badge-disp.yellow { background:#fff3cd; border:1px solid #ffecb5; color:#664d03; }
+        .badge-disp.red    { background:#f8d7da; border:1px solid #f5c2c7; color:#842029; }
+
+        /* manter a cor ao passar o mouse (desktop) */
+        tr.table-success:hover { background-color:#d1e7dd !important; }
+        tr.table-warning:hover { background-color:#fff3cd !important; }
+        tr.table-danger:hover  { background-color:#f8d7da !important; }
+
         /* Evita “zoom” do iOS por fonte pequena nos inputs */
         input, select, textarea { font-size: 16px; }
         

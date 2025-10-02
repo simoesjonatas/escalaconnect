@@ -33,11 +33,11 @@ def listar_escalas(request, equipe_pk):
     # Filter escalas from today onwards
     # current_date = timezone.now()
     today = timezone.now().date()
-    escalas_list = Escala.objects.filter(
-        funcao__equipe=equipe, 
-        evento__data_inicio__date__gte=today
-        ).order_by(order_by)
-    
+    escalas_list = (Escala.objects
+        .filter(funcao__equipe=equipe, evento__data_inicio__date__gte=today)
+        .select_related('funcao', 'funcao__equipe', 'evento', 'usuario')
+        .order_by(order_by)
+    )
     if query:
         escalas_list = escalas_list.filter(
             Q(evento__nome__icontains=query) | 
@@ -63,6 +63,7 @@ def listar_escalas(request, equipe_pk):
             ('evento__nome', 'Evento'),
             ('evento__data_inicio', 'Data Início'),
             ('funcao__nome', 'Função'),
+            ('__disponiveis__', 'Disp.'),
             ('usuario__username', 'Usuário'),
             ('confirmada', 'Confirmada'),
         ]
