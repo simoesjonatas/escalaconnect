@@ -15,11 +15,38 @@
 
 <div class="dashboard-container">
     <h2>Registrar Disponibilidade por Evento</h2>
+    <!-- Aviso e filtro -->
+    <div class="alert alert-info" role="alert">
+    <i class="fa fa-info-circle"></i>
+    Após marcar suas disponibilidades, clique no botão <strong>Registrar Disponibilidades</strong> no final da página.
+    </div>
+
+    <div class="form-inline mb-3">
+    <label for="filtroMes" class="mr-2"><strong>Filtrar por mês:</strong></label>
+    <select id="filtroMes" class="form-control">
+        <option value="all">Todos</option>
+    </select>
+    <select id="filtroSemana" class="form-control ml-2">
+        <option value="all">Todos os dias</option>
+        <option value="1">Segunda</option>
+        <option value="2">Terça</option>
+        <option value="3">Quarta</option>
+        <option value="4">Quinta</option>
+        <option value="5">Sexta</option>
+        <option value="6">Sábado</option>
+        <option value="0">Domingo</option>
+    </select>
+
+    </div>
+
+    
+
     <form method="post" action="{% url 'processar_disponibilidade_evento' %}">
         {% csrf_token %}
         <div class="event-grid">
             {% for evento in eventos %}
-            <div class="event-card">
+            {% comment %} <div class="event-card"> {% endcomment %}
+                <div class="event-card" data-ym="{{ evento.data_inicio|date:'Y-m' }}" data-dow="{{ evento.data_inicio|date:'w' }}">
                 <h3>{{ evento.nome }}</h3>
                 <p>{{ evento.data_inicio|date:"D, d M Y H:i" }} - {{ evento.data_fim|date:"D, d M Y H:i" }}</p>
                 <button type="button" class="btn btn-success toggle-select" data-evento-id="{{ evento.id }}">
@@ -35,24 +62,69 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    // ---- Seleção de eventos ----
     document.querySelectorAll('.toggle-select').forEach(button => {
-        button.addEventListener('click', function() {
-            const card = this.closest('.event-card');
-            const input = card.querySelector('input[type="hidden"]');
-            card.classList.toggle('selected');
-            if (card.classList.contains('selected')) {
-                this.textContent = 'Desmarcar';
-                this.classList.remove('btn-success');
-                this.classList.add('btn-danger');
-                input.disabled = false;
-            } else {
-                this.textContent = 'Marcar Disponibilidade';
-                this.classList.remove('btn-danger');
-                this.classList.add('btn-success');
-                input.disabled = true;
-            }
+        button.addEventListener('click', function () {
+        const card = this.closest('.event-card');
+        const input = card.querySelector('input[type="hidden"]');
+        card.classList.toggle('selected');
+        if (card.classList.contains('selected')) {
+            this.textContent = 'Desmarcar';
+            this.classList.replace('btn-success', 'btn-danger');
+            input.disabled = false;
+        } else {
+            this.textContent = 'Marcar Disponibilidade';
+            this.classList.replace('btn-danger', 'btn-success');
+            input.disabled = true;
+        }
         });
     });
+
+    // ---- Filtros (mês + dia da semana) ----
+    const cards = document.querySelectorAll('.event-card');
+    const filtroMes = document.getElementById('filtroMes');
+    const filtroSemana = document.getElementById('filtroSemana');
+
+    // Popular meses a partir dos cards (evita "jan/2001" usando Date(ano, mes-1, 1))
+    const mesesSet = new Set([...cards].map(c => c.dataset.ym).filter(Boolean));
+    const meses = [...mesesSet].sort(); // formato "YYYY-MM"
+
+    meses.forEach(ym => {
+        const [y, m] = ym.split('-').map(Number);
+        const d = new Date(y, m - 1, 1);
+        const nomeMes = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+        const opt = document.createElement('option');
+        opt.value = ym;
+        opt.textContent = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+        filtroMes.appendChild(opt);
+    });
+
+    function aplicarFiltros() {
+        const mes = filtroMes.value;          // "YYYY-MM" ou "all"
+        const dow = filtroSemana.value;       // "0".."6" ou "all" (0=Dom, 1=Seg, ...)
+
+        cards.forEach(c => {
+        const okMes = (mes === 'all' || c.dataset.ym === mes);
+        const okDow = (dow === 'all' || c.dataset.dow === dow);
+        c.style.display = (okMes && okDow) ? '' : 'none';
+        });
+    }
+
+    filtroMes.addEventListener('change', aplicarFiltros);
+    filtroSemana.addEventListener('change', aplicarFiltros);
+
+    // Seleciona mês atual automaticamente se existir
+    (function selecionarMesAtual() {
+        const now = new Date();
+        const ymAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        if ([...filtroMes.options].some(o => o.value === ymAtual)) {
+        filtroMes.value = ymAtual;
+        } // senão, permanece "Todos"
+        aplicarFiltros();
+    })();
+    });
 </script>
+
 
 {% endblock %}
