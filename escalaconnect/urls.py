@@ -20,7 +20,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.views import LogoutView, LoginView
 
-from .views import base_view, calendario_view, redirect_to_home
+from .views import base_view, calendario_view, redirect_to_home, confirmar_presenca, view_enviar_confirmacao
 from escala.views2 import carregar_funcoes
 
 urlpatterns = [
@@ -40,6 +40,16 @@ urlpatterns = [
     path('api/free/', include('disponivel.urls')),
     
     path('api/carregar_funcoes/', carregar_funcoes, name='carregar_funcoes'),
+
+    path('teste/<int:evento_id>/notificar/', view_enviar_confirmacao, name='evento_notificar_confirmacao_2'),
+
+    # urls.py
+    path(
+        "api/escala/minhas-escalas/<int:evento_id>/<int:escala_id>/confirmar/",
+        confirmar_presenca,
+        name="minhas_escalas_confirmar",
+    )
+
 
 
 ]

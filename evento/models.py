@@ -2,8 +2,6 @@ from django.db import models
 from django.conf import settings
 from django.utils.formats import date_format
 
-
-
 class Evento(models.Model):
     nome = models.CharField(max_length=255)
     data_inicio = models.DateTimeField()
@@ -39,3 +37,44 @@ class Disponibilidade(models.Model):
     def __str__(self):
         return f"Usuário: {self.usuario} - Evento: {self.evento}"
 
+class Notification(models.Model):
+    CHANNEL_EMAIL = "email"
+    CHANNEL_WPP = "whatsapp"
+    CHANNEL_TG = "telegram"
+    CHANNEL_CHOICES = [
+        (CHANNEL_EMAIL, "Email"),
+        (CHANNEL_WPP, "WhatsApp"),
+        (CHANNEL_TG, "Telegram"),
+    ]
+
+    PURPOSE_CONFIRM = "confirmacao_escala"
+    PURPOSE_REMINDER = "lembrete_escala"
+    PURPOSE_CHOICES = [
+        (PURPOSE_CONFIRM, "Confirmação de Escala"),
+        (PURPOSE_REMINDER, "Lembrete de Escala"),
+    ]
+
+    escala = models.ForeignKey("escala.Escala", on_delete=models.CASCADE, related_name="notifications")
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES, default=CHANNEL_EMAIL)
+    purpose = models.CharField(max_length=40, choices=PURPOSE_CHOICES, default=PURPOSE_CONFIRM)
+
+    total_attempts = models.PositiveIntegerField(default=0)
+    success_count = models.PositiveIntegerField(default=0)
+    last_status = models.CharField(max_length=20, blank=True)  # 'queued' | 'sent' | 'error' | skipped
+    last_error = models.TextField(blank=True)
+    last_response = models.TextField(blank=True)
+    last_sent_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("escala", "usuario", "channel", "purpose")  # 1 registro “acompanhamento” por combinação
+
+class NotificationAttempt(models.Model):
+    notification = models.ForeignKey(Notification, on_delete=models.CASCADE, related_name="attempts")
+    status = models.CharField(max_length=20)  # 'queued' | 'sent' | 'error'
+    error_message = models.TextField(blank=True)
+    response_metadata = models.JSONField(null=True, blank=True)  # opcional: headers/ids do provedor
+    created_at = models.DateTimeField(auto_now_add=True)

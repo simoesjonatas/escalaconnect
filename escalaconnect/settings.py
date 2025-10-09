@@ -200,3 +200,31 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
+# === Celery ===
+# Broker
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://172.16.0.87:6379/0")
+
+# Backend de resultados
+# Se USE_DJANGO_CELERY_RESULTS=true no ambiente, usa django-db (requer migrate)
+USE_DJANGO_CELERY_RESULTS = os.getenv("USE_DJANGO_CELERY_RESULTS", "false").lower() == "true"
+
+if USE_DJANGO_CELERY_RESULTS:
+    CELERY_RESULT_BACKEND = "django-db"
+    CELERY_RESULT_EXTENDED = True
+    if "django_celery_results" not in INSTALLED_APPS:
+        INSTALLED_APPS.append("django_celery_results")
+else:
+    CELERY_RESULT_BACKEND = os.getenv(
+        "CELERY_RESULT_BACKEND",
+        "redis://172.16.0.87:6379/1"
+    )
+
+# QoL
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", str(60 * 5)))
+CELERY_TIMEZONE = "America/Sao_Paulo"
+
+# Execução síncrona (apenas dev)
+CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true"
+CELERY_TASK_EAGER_PROPAGATES = os.getenv("CELERY_TASK_EAGER_PROPAGATES", "true").lower() == "true"

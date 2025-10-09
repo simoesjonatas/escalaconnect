@@ -1,7 +1,7 @@
 version: '3.8'
-  
+
 services:
-  escalaconnect:
+  web:
     container_name: escalaconnect
     hostname: escalaconnect
     restart: always
@@ -11,4 +11,60 @@ services:
     volumes:
       - ./:/code
     ports:
-      - "8090:8000"
+      - "8095:8000"
+    environment:
+      # Celery/Django
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DJANGO_SETTINGS_MODULE: escalaconnect.settings
+      # E-mails:
+      EMAIL_HOST_USER: bla
+      EMAIL_HOST_PASSWORD: BLA
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  celeryworker:
+    container_name: escalaconnect-celery
+    build: .
+    restart: always
+    command: celery -A escalaconnect worker -l INFO
+    volumes:
+      - ./:/code
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DJANGO_SETTINGS_MODULE: escalaconnect.settings
+    depends_on:
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+
+  # Opcional: Celery Beat (tarefas periódicas)
+  # celerybeat:
+  #   container_name: escalaconnect-beat
+  #   build: .
+  #   restart: always
+  #   command: celery -A escalaconnect beat -l INFO
+  #   volumes:
+  #     - ./:/code
+  #   environment:
+  #     CELERY_BROKER_URL: redis://redis:6379/0
+  #     CELERY_RESULT_BACKEND: redis://redis:6379/1
+  #     DJANGO_SETTINGS_MODULE: escalaconnect.settings
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+
+  redis:
+    image: redis:7-alpine
+    container_name: escalaconnect-redis
+    restart: always
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

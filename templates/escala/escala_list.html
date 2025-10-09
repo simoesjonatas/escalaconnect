@@ -24,6 +24,18 @@ Escalas do Evento {{ evento.nome }}
         {% if request.user.is_staff or request.user.is_superuser %}
         <!-- <a class="btn btn-success float-right" href="{% url 'escala_create' evento.pk %}">Adicionar Escala</a> -->
         <a class="btn btn-success" href="{% url 'multi_escala_create' evento.pk %}">Adicionar Escala</a>
+        
+
+        <form method="post"
+                action="{% url 'evento_notificar_confirmacao_2' evento.pk %}"
+                class="d-inline"
+                onsubmit="return confirm('Enviar e-mails de confirmação para todos que ainda não confirmaram?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-warning">
+                <i class="fa fa-paper-plane"></i> Notificar pendentes
+            </button>
+        </form>
+
         {% endif %}
     </div>
 
