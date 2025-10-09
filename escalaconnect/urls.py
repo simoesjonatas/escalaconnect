@@ -43,7 +43,6 @@ urlpatterns = [
 
     path('teste/<int:evento_id>/notificar/', view_enviar_confirmacao, name='evento_notificar_confirmacao_2'),
 
-    # urls.py
     path(
         "api/escala/minhas-escalas/<int:evento_id>/<int:escala_id>/confirmar/",
         confirmar_presenca,

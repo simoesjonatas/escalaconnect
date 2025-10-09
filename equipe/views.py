@@ -202,6 +202,8 @@ def disponibilidades_equipe(request, equipe_pk):
         ("data_fim", "Data de Fim"),
     ]
 
+    now = timezone.localdate()
+
     context = {
         "equipe": equipe,
         "page_obj": page_obj,
@@ -211,6 +213,10 @@ def disponibilidades_equipe(request, equipe_pk):
         "disponibilidade_fields": disponibilidade_fields,
         "membros": membros,
         "selected_user": user_param,
+        "months": list(range(1, 13)),
+        "years": [now.year - 1, now.year, now.year + 1],
+        "current_month": now.month,
+        "current_year": now.year,
     }
     return render(request, "escala/disponibilidades_equipe.html", context)
 

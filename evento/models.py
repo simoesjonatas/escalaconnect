@@ -49,12 +49,15 @@ class Notification(models.Model):
 
     PURPOSE_CONFIRM = "confirmacao_escala"
     PURPOSE_REMINDER = "lembrete_escala"
+    PURPOSE_AVAILABILITY = "availability_reminder"
+
     PURPOSE_CHOICES = [
         (PURPOSE_CONFIRM, "Confirmação de Escala"),
+        (PURPOSE_AVAILABILITY, "Lembrar disponibilidades"),
         (PURPOSE_REMINDER, "Lembrete de Escala"),
     ]
 
-    escala = models.ForeignKey("escala.Escala", on_delete=models.CASCADE, related_name="notifications")
+    escala = models.ForeignKey("escala.Escala", on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     channel = models.CharField(max_length=20, choices=CHANNEL_CHOICES, default=CHANNEL_EMAIL)
     purpose = models.CharField(max_length=40, choices=PURPOSE_CHOICES, default=PURPOSE_CONFIRM)

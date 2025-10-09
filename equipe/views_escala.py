@@ -7,6 +7,11 @@ from django.utils import timezone
 from ocupado.models import Ocupado
 from disponivel.models import Disponivel
 from equipe.decorators import require_lideranca
+from django.contrib import messages
+from django.shortcuts import redirect
+from django.utils.datastructures import MultiValueDictKeyError
+
+from escalaconnect.tasks_availability import disparar_pedido_disponibilidades
 
 def get_unapproved_desistencias(equipe_id):
     equipe = get_object_or_404(Equipe, pk=equipe_id)
@@ -122,3 +127,31 @@ def escala_detail_equipe(request, equipe_pk, pk):
         'usuarios_escalados': usuarios_ja_escalados,
         'is_leader': is_leader,
     })
+
+@require_lideranca
+def lider_pedir_disponibilidades(request, equipe_id: int):
+    if request.method != "POST":
+        return redirect("disponibilidades_equipe", equipe_pk=equipe_id)
+
+    try:
+        ano = int(request.POST["ano"])
+        mes = int(request.POST["mes"])
+    except (MultiValueDictKeyError, ValueError):
+        messages.error(request, "Informe um mês e ano válidos.")
+        return redirect("disponibilidades_equipe", equipe_pk=equipe_id)
+
+    lider_nome = request.user.get_full_name() or request.user.get_username()
+
+    # publica no worker: só enviará para quem AINDA NÃO cadastrou no mês
+    disparar_pedido_disponibilidades.delay(
+        ano=ano,
+        mes=mes,
+        equipe_id=equipe_id,
+        lider_nome=lider_nome,
+    )
+
+    messages.success(
+        request,
+        f"Lembretes publicados para {mes:02d}/{ano}. Verifique o admin em Notification/Attempts."
+    )
+    return redirect("disponibilidades_equipe", equipe_pk=equipe_id)

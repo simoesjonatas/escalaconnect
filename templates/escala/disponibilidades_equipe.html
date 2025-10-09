@@ -18,6 +18,34 @@ Disponibilidades da Equipe {{ equipe.nome }}
 
 {% block content %}
 <div class="container">
+  
+  <div class="clearfix mb-3">
+  <form method="POST" action="{% url 'lider_pedir_disponibilidades' equipe_id=equipe.pk %}" class="form-inline">
+    {% csrf_token %}
+
+    <label class="mr-2"><strong>Mês:</strong></label>
+    <select name="mes" class="form-control mr-2">
+      {% for m in months %}
+        <option value="{{ m }}" {% if m == current_month %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+
+    <label class="mr-2"><strong>Ano:</strong></label>
+    <select name="ano" class="form-control mr-2">
+      {% for y in years %}
+        <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+    
+    
+    <button type="submit" class="btn btn-warning mb-2">
+      Enviar lembrete de disponibilidades
+    </button>
+    
+  </form>
+</div>
+
+
 
   <div class="clearfix mb-3">
     <form method="GET" class="form-inline">

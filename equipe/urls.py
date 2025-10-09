@@ -52,5 +52,11 @@ urlpatterns = [
         name="disponibilidades_equipe",
     ),
 
+    path(
+        "equipe/<int:equipe_id>/disponibilidades/lembrar/",
+        lider_pedir_disponibilidades,
+        name="lider_pedir_disponibilidades",
+    ),
+
 
 ]
