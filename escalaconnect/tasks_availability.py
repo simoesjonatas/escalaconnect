@@ -68,7 +68,8 @@ def disparar_pedido_disponibilidades(ano: int, mes: int, equipe_id: int | None =
     # --- janela do mês ---
     dt_first, dt_last, d_first, d_last = _month_bounds(ano, mes)
     mes_legivel = formats.date_format(d_first, "F \\d\\e Y", use_l10n=True)
-    disponibilidades_url = _build_disponibilidade_url(ano, mes)
+    # disponibilidades_url = _build_disponibilidade_url(ano, mes)
+    disponibilidades_url = "https://connect.pibvp.org.br/login/?next=/api/free/registrar-disponibilidade/por-evento/"
 
     # --- eventos do mês (qualquer sobreposição com o mês) ---
     eventos_mes = Evento.objects.filter(
