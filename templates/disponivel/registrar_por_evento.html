@@ -15,11 +15,53 @@
 
 <div class="dashboard-container">
     <h2>Registrar Disponibilidade por Evento</h2>
+    <!-- Aviso e filtro -->
+    <div class="alert alert-info" role="alert">
+    <i class="fa fa-info-circle"></i>
+    Após marcar suas disponibilidades, clique no botão <strong>Registrar Disponibilidades</strong> no final da página.
+    </div>
+
+    {% comment %} <div class="form-inline mb-3"> {% endcomment %}
+    <div class="filters mb-3">
+
+        <div class="filter-label mr-3">
+        <label for="filtroMes" class="mr-2"><strong>Filtrar por mês:</strong></label>
+        <select id="filtroMes" class="form-control">
+            <option value="all">Todos</option>
+        </select>
+        </div>
+        {% comment %} <button type="button" id="limparFiltros" class="btn btn-outline-secondary btn-sm ml-2">
+            Limpar filtros
+        </button> {% endcomment %}
+
+        <div id="filtroDias">
+        {% comment %} <div id="filtroDias" class="ml-3"> {% endcomment %}
+            <div class="dias-heading"><strong>Dias da semana:</strong></div>
+
+            {% comment %} <label><strong>Dias da semana:</strong></label><br> {% endcomment %}
+            <label class="mr-2"><input type="checkbox" value="0"> Dom</label>
+            <label class="mr-2"><input type="checkbox" value="1"> Seg</label>
+            <label class="mr-2"><input type="checkbox" value="2"> Ter</label>
+            <label class="mr-2"><input type="checkbox" value="3"> Qua</label>
+            <label class="mr-2"><input type="checkbox" value="4"> Qui</label>
+            <label class="mr-2"><input type="checkbox" value="5"> Sex</label>
+            <label class="mr-2"><input type="checkbox" value="6"> Sáb</label>
+            <label class="ml-2 text-muted">
+                <input type="checkbox" id="todosDias" checked> Todos
+            </label>
+        </div>
+
+
+    </div>
+
+    
+
     <form method="post" action="{% url 'processar_disponibilidade_evento' %}">
         {% csrf_token %}
         <div class="event-grid">
             {% for evento in eventos %}
-            <div class="event-card">
+            {% comment %} <div class="event-card"> {% endcomment %}
+                <div class="event-card" data-ym="{{ evento.data_inicio|date:'Y-m' }}" data-dow="{{ evento.data_inicio|date:'w' }}">
                 <h3>{{ evento.nome }}</h3>
                 <p>{{ evento.data_inicio|date:"D, d M Y H:i" }} - {{ evento.data_fim|date:"D, d M Y H:i" }}</p>
                 <button type="button" class="btn btn-success toggle-select" data-evento-id="{{ evento.id }}">
@@ -35,24 +77,76 @@
 </div>
 
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+    // ---- Seleção de eventos ----
     document.querySelectorAll('.toggle-select').forEach(button => {
-        button.addEventListener('click', function() {
-            const card = this.closest('.event-card');
-            const input = card.querySelector('input[type="hidden"]');
-            card.classList.toggle('selected');
-            if (card.classList.contains('selected')) {
-                this.textContent = 'Desmarcar';
-                this.classList.remove('btn-success');
-                this.classList.add('btn-danger');
-                input.disabled = false;
-            } else {
-                this.textContent = 'Marcar Disponibilidade';
-                this.classList.remove('btn-danger');
-                this.classList.add('btn-success');
-                input.disabled = true;
-            }
+        button.addEventListener('click', function () {
+        const card = this.closest('.event-card');
+        const input = card.querySelector('input[type="hidden"]');
+        card.classList.toggle('selected');
+        if (card.classList.contains('selected')) {
+            this.textContent = 'Desmarcar';
+            this.classList.replace('btn-success', 'btn-danger');
+            input.disabled = false;
+        } else {
+            this.textContent = 'Marcar Disponibilidade';
+            this.classList.replace('btn-danger', 'btn-success');
+            input.disabled = true;
+        }
         });
     });
+
+    // ---- Filtros (mês + múltiplos dias da semana) ----
+    const cards = document.querySelectorAll('.event-card');
+    const filtroMes = document.getElementById('filtroMes');
+    const checkDias = document.querySelectorAll('#filtroDias input[type="checkbox"]:not(#todosDias)');
+    const todosDias = document.getElementById('todosDias');
+
+    // Popular meses
+    const mesesSet = new Set([...cards].map(c => c.dataset.ym).filter(Boolean));
+    const meses = [...mesesSet].sort();
+    meses.forEach(ym => {
+        const [y, m] = ym.split('-').map(Number);
+        const d = new Date(y, m - 1, 1);
+        const nomeMes = d.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+        filtroMes.innerHTML += `<option value="${ym}">${nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1)}</option>`;
+    });
+
+    function aplicarFiltros() {
+        const mes = filtroMes.value;
+        const diasSelecionados = [...checkDias].filter(c => c.checked).map(c => c.value);
+        const mostrarTodosDias = todosDias.checked || diasSelecionados.length === 0;
+
+        cards.forEach(c => {
+        const okMes = (mes === 'all' || c.dataset.ym === mes);
+        const okDia = (mostrarTodosDias || diasSelecionados.includes(c.dataset.dow));
+        c.style.display = (okMes && okDia) ? '' : 'none';
+        });
+    }
+
+    // Eventos dos filtros
+    filtroMes.addEventListener('change', aplicarFiltros);
+    checkDias.forEach(cb => cb.addEventListener('change', () => {
+        todosDias.checked = false; // desmarca “Todos” quando escolher manualmente
+        aplicarFiltros();
+    }));
+    todosDias.addEventListener('change', e => {
+        if (e.target.checked) checkDias.forEach(cb => cb.checked = false);
+        aplicarFiltros();
+    });
+
+    // Mês atual automático
+    (function selecionarMesAtual() {
+        const now = new Date();
+        const ymAtual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        if ([...filtroMes.options].some(o => o.value === ymAtual)) {
+        filtroMes.value = ymAtual;
+        }
+        aplicarFiltros();
+    })();
+    });
 </script>
+
+
 
 {% endblock %}

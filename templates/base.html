@@ -119,7 +119,54 @@
         tr.table-success:hover { background-color:#d1e7dd !important; }
         tr.table-warning:hover { background-color:#fff3cd !important; }
         tr.table-danger:hover  { background-color:#f8d7da !important; }
+        
+        /* CARD dos filtros */
+        .filters{
+            display:grid;
+            grid-template-columns: 1fr;          /* padrão: 1 coluna (mobile) */
+            gap:16px;
+            align-items:start;
+            background:#f8fafc;
+            border:1px solid #e5e7eb;
+            padding:16px;
+            border-radius:12px;
+            max-width:1100px;
+            margin:0 auto;
+        }
 
+        .filters label[for="filtroMes"]{font-weight:600;width:100%;}
+        #filtroMes{min-width:260px;width:100%;}
+
+        #filtroDias{
+            display:grid;
+            grid-template-columns: repeat(2, minmax(0,1fr));
+            gap:8px;
+            width:100%;
+        }
+
+        #filtroDias label{
+            display:flex;align-items:center;gap:8px;
+            border:1px solid #e5e7eb;border-radius:10px;
+            padding:8px 10px;background:#fff;margin:0;
+        }
+
+        #filtroDias input[type="checkbox"]{transform:scale(1.1)}
+
+        .dias-heading{
+            grid-column: 1 / -1;
+            padding:8px 10px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;margin-bottom:4px;
+        }
+
+        /* Quando tiver espaço, mostra o seletor de mês e os dias lado a lado */
+        @media (min-width: 1150px){
+            .filters{
+            grid-template-columns: 1fr 1fr;  /* duas colunas lado a lado */
+            }
+            #filtroDias{
+            grid-template-columns: repeat(4, minmax(110px,1fr));
+            align-self:start;
+            }
+        }
         /* lista de nomes compacta em mobile */
         .disp-names { font-size:.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; margin:0 auto; }
 
