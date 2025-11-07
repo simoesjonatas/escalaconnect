@@ -65,7 +65,14 @@
 
             <div class="tab-content table-responsive" id="escalaTabsContent">
                 <div class="tab-pane fade show active table-responsive" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
-                    <h3>Usuários Disponíveis:</h3>
+                    <h3 class="d-flex align-items-center justify-content-between">
+                    <span>Usuários Disponíveis:</span>
+                    {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#forcarEscalaModal">
+                        <i class="fa fa-user-plus"></i> Escalar alguém da equipe
+                        </button>
+                    {% endif %}
+                    </h3>
                     <table class="table table-hover">
                         <thead>
                             <tr>
@@ -138,15 +145,82 @@
             </div>
         {% endif %}
     {% endif %}
+
+    {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+    <div class="modal fade" id="forcarEscalaModal" tabindex="-1" aria-labelledby="forcarEscalaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="forcarEscalaLabel">Escalar alguém da equipe (sem disponibilidade)</h5>
+            {% comment %} <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button> {% endcomment %}
+        </div>
+        <div class="modal-body">
+            {% if usuarios_equipe %}
+            <div class="mb-3">
+                <label for="usuarioEquipeSelect" class="form-label">Selecione o usuário da equipe</label>
+                <select id="usuarioEquipeSelect" class="form-select">
+                <option value="" selected disabled>— escolha um usuário —</option>
+                {% for u in usuarios_equipe %}
+                    <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }}</option>
+                {% endfor %}
+                </select>
+                <small class="text-muted">Este fluxo ignora a verificação de disponibilidade.</small>
+            </div>
+            {% else %}
+            <div class="alert alert-warning mb-0">
+                Nenhum membro da equipe foi carregado no contexto (<code>usuarios_equipe</code>).
+            </div>
+            {% endif %}
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            {% comment %}
+            Vamos gerar uma URL “modelo” com usuário=0 e depois trocar “/0/” por “/<id>/” no JS.
+            {% endcomment %}
+            <button
+            type="button"
+            class="btn btn-success"
+            id="confirmForcarEscalaBtn"
+            data-url-template="{% url 'escalar_usuario_equipe' escala.pk 0 %}">
+            <i class="fa fa-check"></i> Escalar
+            </button>
+        </div>
+        </div>
+    </div>
+    </div>
+    {% endif %}
+
 </div>
 <script>
     function confirmarEscala(event, url, username) {
-        event.stopPropagation(); // Impede a propagação do evento
+        event.stopPropagation();
         const mensagem = "O usuário " + username + " já possui uma escala neste evento. Deseja escalá-lo para outra função também?";
         if (confirm(mensagem)) {
             window.location.href = url;
         }
     }
+
+    // Forçar escala sem disponibilidade
+    (function(){
+    const btn = document.getElementById('confirmForcarEscalaBtn');
+    const select = document.getElementById('usuarioEquipeSelect');
+    if (!btn || !select) return;
+
+    btn.addEventListener('click', function() {
+      const userId = select.value;
+      if (!userId) {
+        alert('Selecione um usuário da equipe.');
+        return;
+      }
+      const template = btn.getAttribute('data-url-template'); // .../escalar/<escala_id>/0/equipe
+      // Substitui o "0" entre /escalar/ e /equipe
+      const url = template.replace(/(\/escalar\/)(\d+)(\/equipe)/, `$1${userId}$3`);
+      // alternativa equivalente:
+      // const url = template.replace(/\/escalar\/\d+\//, `/escalar/${userId}/`);
+      window.location.href = url;
+    });
+  })();
 </script>
+
 
 {% endblock %}

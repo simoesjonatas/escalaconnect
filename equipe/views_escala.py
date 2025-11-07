@@ -83,11 +83,20 @@ def escala_detail_equipe(request, equipe_pk, pk):
     evento = escala.evento
     is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
 
-    membros = escala.funcao.equipe.membros.filter(aprovado=True)
+    # membros aprovados da equipe (assumindo que há FK 'usuario' no modelo de membro)
+    membros_qs = (
+        escala.funcao.equipe.membros
+        .filter(aprovado=True)
+        .select_related('usuario')
+    )
+
+    # >>> ADIÇÃO: lista dos usuários da equipe para o modal <<<
+    usuarios_equipe = [m.usuario for m in membros_qs if m.usuario is not None]
+    usuarios_equipe.sort(key=lambda u: (u.get_full_name() or u.username).lower())
 
     # Usuários sem indisponibilidade
     usuarios_sem_indisponibilidade = [
-        membro.usuario for membro in membros
+        membro.usuario for membro in membros_qs
         if not Ocupado.objects.filter(
             usuario=membro.usuario,
             data_inicio__lt=evento_fim,
@@ -106,18 +115,17 @@ def escala_detail_equipe(request, equipe_pk, pk):
     ]
 
     # Usuários já escalados para o evento
-    usuarios_ja_escalados = Escala.objects.filter(
-        usuario__in=usuarios_sem_indisponibilidade,
-        evento=evento
-    ).exclude(pk=escala.pk).select_related('funcao', 'funcao__equipe')
+    usuarios_ja_escalados = (
+        Escala.objects
+        .filter(usuario__in=usuarios_sem_indisponibilidade, evento=evento)
+        .exclude(pk=escala.pk)
+        .select_related('funcao', 'funcao__equipe')
+    )
 
     # Usuários disponíveis e não escalados
     usuarios_disponiveis = [
         usuario for usuario in usuarios_com_disponibilidade
-        if not Escala.objects.filter(
-            usuario=usuario,
-            evento=evento
-        ).exclude(pk=escala.pk).exists()
+        if not Escala.objects.filter(usuario=usuario, evento=evento).exclude(pk=escala.pk).exists()
     ]
 
     return render(request, 'equipe/equipe_escala_detail.html', {
@@ -125,6 +133,7 @@ def escala_detail_equipe(request, equipe_pk, pk):
         'equipe': equipe,
         'usuarios_disponiveis': usuarios_disponiveis,
         'usuarios_escalados': usuarios_ja_escalados,
+        'usuarios_equipe': usuarios_equipe,  # <<< AQUI
         'is_leader': is_leader,
     })
 
