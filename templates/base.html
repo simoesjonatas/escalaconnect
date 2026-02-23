@@ -46,7 +46,7 @@
             position: fixed;
             inset: 0;                   /* top/right/bottom/left:0 */
             z-index: 2000;              /* acima do header */
-            background: rgba(0,0,0,.45);
+            background: rgba(0,0,0,.65);
             padding: 16px;              /* respiro nas bordas do mobile */
             box-sizing: border-box;
             /* centraliza com flex para evitar "quebra" */
@@ -59,21 +59,30 @@
             position: relative;
             width: 520px;               /* desktop confortável */
             max-width: 100%;
-            border-radius: 10px;
-            background: #fff;
-            padding: 16px 18px 14px;
-            box-shadow: 0 10px 30px rgba(0,0,0,.2);
+            border-radius: 14px;
+            background: #14181f;
+            padding: 18px 20px 16px;
+            box-shadow: 0 12px 30px rgba(0,0,0,.45);
             box-sizing: border-box;
             max-height: 85vh;           /* evita estourar a tela */
             overflow: auto;             /* cria scroll interno quando necessário */
+            color: #e6f0ea;
+            border: 1px solid #232a35;
         }
 
         .close {
             position: absolute;
-            top: 8px; right: 12px;
+            top: 10px; right: 12px;
             font-size: 20px;
             cursor: pointer;
+            color: #9aa4ad;
+            width: 28px;
+            height: 28px;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
         }
+        .close:hover { color: #39ff14; background: rgba(57,255,20,.12); }
 
         /* Inputs ocupam toda a largura e têm espaçamento */
         #eventForm label { margin-top: .5rem; }
@@ -102,7 +111,8 @@
         th.disp-col, td.disp-col { text-align:center; width: 80px; }
 
         /* melhora o hover da linha sem sobrescrever o Bootstrap */
-        tr.table-danger:hover { background-color: #f8d7da !important; }
+        tr.table-danger:hover { background-color: rgba(255,59,59,.22) !important; color: #fff; }
+        tr.table-warning { background-color: rgba(255,212,0,.12) !important; color: #fff5c2; }
 
         /* coluna de disponibilidade centralizada */
         th.disp-col, td.disp-col { text-align: center; width: 80px; }
@@ -118,9 +128,9 @@
         .badge-disp.red    { background:#f8d7da; border:1px solid #f5c2c7; color:#842029; }
 
         /* manter a cor ao passar o mouse (desktop) */
-        tr.table-success:hover { background-color:#d1e7dd !important; }
-        tr.table-warning:hover { background-color:#fff3cd !important; }
-        tr.table-danger:hover  { background-color:#f8d7da !important; }
+        tr.table-success:hover { background-color: rgba(57,255,20,.14) !important; color: #eaffea; }
+        tr.table-warning:hover { background-color: rgba(255,212,0,.18) !important; color: #fff5c2; }
+        tr.table-danger:hover  { background-color: rgba(255,59,59,.22) !important; color: #ffd2d2; }
         
         /* CARD dos filtros */
         .filters{
@@ -128,15 +138,16 @@
             grid-template-columns: 1fr;          /* padrão: 1 coluna (mobile) */
             gap:16px;
             align-items:start;
-            background:#f8fafc;
-            border:1px solid #e5e7eb;
+            background: var(--connect-surface);
+            border:1px solid var(--connect-border);
             padding:16px;
-            border-radius:12px;
+            border-radius:14px;
             max-width:1100px;
             margin:0 auto;
+            box-shadow: 0 10px 20px rgba(0,0,0,.35);
         }
 
-        .filters label[for="filtroMes"]{font-weight:600;width:100%;}
+        .filters label[for="filtroMes"]{font-weight:700;width:100%;color:var(--connect-muted);}
         #filtroMes{min-width:260px;width:100%;}
 
         #filtroDias{
@@ -148,15 +159,24 @@
 
         #filtroDias label{
             display:flex;align-items:center;gap:8px;
-            border:1px solid #e5e7eb;border-radius:10px;
-            padding:8px 10px;background:#fff;margin:0;
+            border:1px solid var(--connect-border);
+            border-radius:10px;
+            padding:8px 10px;
+            background: var(--connect-surface-2);
+            margin:0;
+            color: var(--connect-text);
         }
 
         #filtroDias input[type="checkbox"]{transform:scale(1.1)}
 
         .dias-heading{
             grid-column: 1 / -1;
-            padding:8px 10px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;margin-bottom:4px;
+            padding:8px 10px;
+            border:1px solid var(--connect-border);
+            background: var(--connect-surface-2);
+            border-radius:10px;
+            margin-bottom:4px;
+            color: var(--connect-muted);
         }
 
         /* Quando tiver espaço, mostra o seletor de mês e os dias lado a lado */
@@ -177,6 +197,40 @@
         
         /* Evita scroll do fundo quando o modal abre */
         body.no-scroll { overflow: hidden; }
+
+        /* Alertas (mensagens) com bom contraste no tema escuro */
+        .alert-container {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        .alert {
+            border-radius: 10px;
+            border: 1px solid transparent;
+            padding: 10px 12px;
+            color: #e6f0ea;
+            background: #1b2230;
+        }
+        .alert-info {
+            border-color: rgba(57,255,20,.35);
+            background: rgba(57,255,20,.08);
+            color: #dfffe0;
+        }
+        .alert-success {
+            border-color: rgba(57,255,20,.45);
+            background: rgba(57,255,20,.12);
+            color: #eaffea;
+        }
+        .alert-warning {
+            border-color: rgba(255,212,0,.45);
+            background: rgba(255,212,0,.12);
+            color: #fff5c2;
+        }
+        .alert-danger {
+            border-color: rgba(255,59,59,.55);
+            background: rgba(255,59,59,.12);
+            color: #ffd2d2;
+        }
         </style>
 
 
@@ -203,7 +257,7 @@
                     {% block breadcrumb %}{% endblock breadcrumb %}
                 </div>
                 {% if messages %}
-                    <div class="alert-container mb-4 p-3 border border-danger rounded" style="background-color: #f8d7da;">
+                    <div class="alert-container mb-4 p-3 border border-danger rounded">
                         {% for message in messages %}
                             <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
                                 <strong>Atenção:</strong> {{ message }}

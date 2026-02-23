@@ -1,28 +1,41 @@
+/* Identidade visual Connect */
+:root {
+    --connect-green: #39ff14;
+    --connect-black: #0b0b0b;
+    --connect-bg: #0f1115;
+    --connect-surface: #14181f;
+    --connect-surface-2: #1b2230;
+    --connect-text: #e6f0ea;
+    --connect-muted: #9aa4ad;
+    --connect-border: #232a35;
+}
+
 /* Estilos para o breadcrumb */
 .app-breadcrumb {
     display: flex;
     flex-wrap: wrap;
     list-style: none;
     padding: 10px 15px;
-    background: #f8f9fa;
-    border-radius: 5px;
+    background: var(--connect-surface);
+    border-radius: 8px;
     font-size: 14px;
     overflow: hidden;
     max-width: 100%;
     word-break: break-word;
+    border: 1px solid var(--connect-border);
 }
 
 .app-breadcrumb .breadcrumb-item {
     display: flex;
     align-items: center;
-    color: #6c757d;
+    color: var(--connect-muted);
     white-space: nowrap;
 }
 
 .app-breadcrumb .breadcrumb-item a {
-    color: #007bff;
+    color: var(--connect-green);
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 700;
 }
 
 .app-breadcrumb .breadcrumb-item a:hover {
@@ -32,13 +45,13 @@
 .app-breadcrumb .breadcrumb-item i {
     margin-right: 5px;
     font-size: 16px;
-    color: #007bff;
+    color: var(--connect-green);
 }
 
 .app-breadcrumb .breadcrumb-item:not(:last-child)::after {
     content: "/";
     margin: 0 8px;
-    color: #6c757d;
+    color: var(--connect-muted);
 }
 
 @media (max-width: 768px) {

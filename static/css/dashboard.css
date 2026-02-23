@@ -1,17 +1,33 @@
+/* Identidade visual Connect */
+:root {
+    --connect-green: #39ff14;
+    --connect-green-600: #1fd10a;
+    --connect-black: #0b0b0b;
+    --connect-bg: #0f1115;
+    --connect-surface: #14181f;
+    --connect-surface-2: #1b2230;
+    --connect-text: #e6f0ea;
+    --connect-muted: #9aa4ad;
+    --connect-border: #232a35;
+    --connect-shadow: rgba(0, 0, 0, 0.35);
+}
+
 .dashboard-container {
     text-align: center;
     padding: 20px;
+    color: var(--connect-text);
 }
 
 .dashboard-container h2 {
     margin-bottom: 10px;
     font-size: 24px;
-    color: #333;
+    color: var(--connect-text);
+    font-weight: 800;
 }
 
 .dashboard-container p {
     font-size: 16px;
-    color: #666;
+    color: var(--connect-muted);
 }
 
 .dashboard-grid {
@@ -23,19 +39,20 @@
 }
 
 .dashboard-card {
-    background: #ffffff;
-    border-radius: 8px;
+    background: var(--connect-surface);
+    border-radius: 12px;
     padding: 20px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0px 8px 16px var(--connect-shadow);
     text-align: center;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
     text-decoration: none;
-    color: #333;
+    color: var(--connect-text);
+    border: 1px solid transparent;
 }
 
 .dashboard-card i {
     font-size: 40px;
-    color: #007bff;
+    color: var(--connect-green);
     margin-bottom: 10px;
 }
 
@@ -46,20 +63,22 @@
 
 .dashboard-card p {
     font-size: 14px;
-    color: #666;
+    color: var(--connect-muted);
 }
 
 .dashboard-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0px 10px 20px var(--connect-shadow);
+    border-color: rgba(57, 255, 20, 0.4);
 }
 
 /* Cor personalizada para o botão de logout */
 .logout-card {
-    background: #dc3545;
-    color: white;
+    background: #2a0d12;
+    color: #ffd2d2;
+    border-color: rgba(255, 59, 59, 0.4);
 }
 
 .logout-card:hover {
-    background: #c82333;
+    background: #3b1017;
 }

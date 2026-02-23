@@ -1,3 +1,16 @@
+/* Identidade visual Connect */
+:root {
+    --connect-green: #39ff14;
+    --connect-black: #0b0b0b;
+    --connect-bg: #0f1115;
+    --connect-surface: #14181f;
+    --connect-surface-2: #1b2230;
+    --connect-text: #e6f0ea;
+    --connect-muted: #9aa4ad;
+    --connect-border: #232a35;
+    --connect-shadow: rgba(0, 0, 0, 0.35);
+}
+
 /* Estilos para a paginação */
 .pagination-container {
     display: flex;
@@ -9,9 +22,10 @@
     list-style: none;
     display: flex;
     padding: 0;
-    border-radius: 5px;
-    background: #fff;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    background: var(--connect-surface);
+    box-shadow: 0px 6px 12px var(--connect-shadow);
+    border: 1px solid var(--connect-border);
 }
 
 .pagination .page-item {
@@ -22,27 +36,28 @@
     display: block;
     padding: 8px 12px;
     text-decoration: none;
-    color: #007bff;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-    transition: background 0.3s ease-in-out;
+    color: var(--connect-text);
+    border-radius: 6px;
+    border: 1px solid var(--connect-border);
+    transition: background 0.3s ease-in-out, color 0.2s ease-in-out;
 }
 
 .pagination .page-link:hover {
-    background: #007bff;
-    color: white;
+    background: rgba(57, 255, 20, 0.15);
+    color: var(--connect-green);
 }
 
 .pagination .disabled .page-link {
-    color: #6c757d;
+    color: var(--connect-muted);
     pointer-events: none;
-    background: #f8f9fa;
+    background: var(--connect-surface-2);
 }
 
 .pagination .active .page-link {
-    background: #007bff;
-    color: white;
-    border: 1px solid #007bff;
+    background: var(--connect-green);
+    color: var(--connect-black);
+    border: 1px solid var(--connect-green);
+    font-weight: 700;
 }
 
 /* Responsividade */

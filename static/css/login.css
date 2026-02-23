@@ -1,12 +1,27 @@
+/* Identidade visual Connect */
+:root {
+    --connect-green: #39ff14;
+    --connect-green-600: #1fd10a;
+    --connect-black: #0b0b0b;
+    --connect-bg: #0f1115;
+    --connect-surface: #14181f;
+    --connect-surface-2: #1b2230;
+    --connect-text: #e6f0ea;
+    --connect-muted: #9aa4ad;
+    --connect-border: #232a35;
+    --connect-shadow: rgba(0, 0, 0, 0.35);
+}
+
 /* Estilo geral para todas as páginas */
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: "Inter", "Segoe UI", Arial, sans-serif;
     display: flex;
     justify-content: center;
     align-items: flex-start; /* Mudança de center para flex-start */
     min-height: 100vh; /* Usar min-height ao invés de height para cobrir conteúdos maiores que a tela */
-    background-color: #f4f4f4;
+    background-color: var(--connect-bg);
+    color: var(--connect-text);
     padding: 10px;
     overflow: auto; /* Permite a rolagem quando o conteúdo excede a altura da viewport */
 }
@@ -14,13 +29,14 @@ body {
 /* Container principal */
 .login-container {
     width: 100%;
-    max-width: 400px;
-    padding: 20px;
+    max-width: 420px;
+    padding: 24px;
     margin-top: 40px; /* Adiciona um espaçamento no topo para evitar sobreposição */
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    background-color: #fff;
-    border-radius: 8px;
+    box-shadow: 0 10px 20px var(--connect-shadow);
+    background-color: var(--connect-surface);
+    border-radius: 14px;
     text-align: center;
+    border: 1px solid var(--connect-border);
 }
 
 /* Título */
@@ -28,7 +44,8 @@ body {
     text-align: center;
     margin-bottom: 20px;
     font-size: 24px;
-    color: #2c3e50;
+    color: var(--connect-text);
+    font-weight: 800;
 }
 
 /* Grupos de formulário */
@@ -39,24 +56,27 @@ body {
 
 .form-group label {
     display: block;
-    font-weight: bold;
+    font-weight: 700;
     margin-bottom: 5px;
+    color: var(--connect-muted);
 }
 
 .form-group input {
     width: 100%;
     padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid var(--connect-border);
+    border-radius: 8px;
     font-size: 16px;
     box-sizing: border-box;
     transition: all 0.3s ease;
+    background-color: var(--connect-surface-2);
+    color: var(--connect-text);
 }
 
 .form-group input:focus {
-    border-color: #1abc9c;
+    border-color: var(--connect-green);
     outline: none;
-    box-shadow: 0 0 5px rgba(26, 188, 156, 0.5);
+    box-shadow: 0 0 0 3px rgba(57, 255, 20, 0.2);
 }
 
 /* Botões */
@@ -64,17 +84,18 @@ button {
     width: 100%;
     padding: 12px;
     border: none;
-    border-radius: 4px;
-    background-color: #2c3e50;
-    color: #fff;
+    border-radius: 8px;
+    background-color: var(--connect-green);
+    color: var(--connect-black);
     font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.1s ease-in-out;
 }
 
 button:hover {
-    background-color: #1abc9c;
-    transform: scale(1.05);
+    background-color: var(--connect-green-600);
+    transform: translateY(-1px);
 }
 
 button:active {
@@ -89,9 +110,9 @@ button:active {
 }
 
 .signup a {
-    color: #3498db;
+    color: var(--connect-green);
     text-decoration: none;
-    font-weight: bold;
+    font-weight: 700;
 }
 
 .signup a:hover {
@@ -104,11 +125,11 @@ button:active {
     font-size: 14px;
     line-height: 1.5;
     margin-bottom: 15px;
-    color: #333;
+    color: var(--connect-text);
 }
 
 .termos-content h3 {
-    color: #2c3e50;
+    color: var(--connect-green);
     margin-top: 20px;
     font-size: 18px;
 }
@@ -126,17 +147,17 @@ button:active {
     display: inline-block;
     margin-top: 10px;
     padding: 10px 15px;
-    background-color: #1abc9c;
-    color: white;
+    background-color: var(--connect-green);
+    color: var(--connect-black);
     text-decoration: none;
-    border-radius: 5px;
-    font-weight: bold;
+    border-radius: 6px;
+    font-weight: 800;
     transition: all 0.3s ease-in-out;
 }
 
 .btn-termos:hover {
-    background-color: #16a085;
-    transform: scale(1.05);
+    background-color: var(--connect-green-600);
+    transform: translateY(-1px);
 }
 
 /* Ajuste para dispositivos menores */

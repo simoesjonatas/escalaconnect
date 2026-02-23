@@ -1,18 +1,32 @@
+/* Identidade visual Connect */
+:root {
+    --connect-green: #39ff14;
+    --connect-black: #0b0b0b;
+    --connect-bg: #0f1115;
+    --connect-surface: #14181f;
+    --connect-surface-2: #1b2230;
+    --connect-text: #e6f0ea;
+    --connect-muted: #9aa4ad;
+    --connect-border: #232a35;
+    --connect-shadow: rgba(0, 0, 0, 0.35);
+}
+
 /* Estilos gerais para a página de eventos */
 .container {
     max-width: 1200px;
     margin: auto;
     padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    background: var(--connect-surface-2);
+    border-radius: 12px;
+    box-shadow: 0px 8px 16px var(--connect-shadow);
+    border: 1px solid var(--connect-border);
 }
 
 h1 {
     font-size: 24px;
-    font-weight: bold;
+    font-weight: 800;
     margin-bottom: 10px;
-    color: #2c3e50;
+    color: var(--connect-text);
 }
 
 /* Breadcrumb */
@@ -20,6 +34,7 @@ h1 {
     background: none;
     padding: 10px 0;
     font-size: 14px;
+    color: var(--connect-muted);
 }
 
 /* Formulário de busca */
@@ -29,18 +44,21 @@ h1 {
     justify-content: space-between;
     align-items: center;
     gap: 10px;
-    background: white;
+    background: var(--connect-surface);
     padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    box-shadow: 0px 6px 12px var(--connect-shadow);
+    border: 1px solid var(--connect-border);
 }
 
 .form-inline input {
     flex-grow: 1;
     min-width: 250px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+    border: 1px solid var(--connect-border);
+    border-radius: 8px;
     padding: 8px;
+    background-color: var(--connect-surface-2);
+    color: var(--connect-text);
 }
 
 /* Botões */
@@ -52,15 +70,16 @@ h1 {
 }
 
 .btn-primary {
-    background-color: #007bff;
+    background-color: var(--connect-green);
     border: none;
-    color: white;
+    color: var(--connect-black);
+    font-weight: 700;
 }
 
 .btn-secondary {
-    background-color: #6c757d;
-    border: none;
-    color: white;
+    background-color: var(--connect-surface-2);
+    border: 1px solid var(--connect-border);
+    color: var(--connect-text);
 }
 
 .btn-primary:hover,
@@ -73,21 +92,23 @@ h1 {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    background: white;
-    border-radius: 8px;
+    background: var(--connect-surface);
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0px 8px 16px var(--connect-shadow);
+    border: 1px solid var(--connect-border);
 }
 
 .table th,
 .table td {
     padding: 12px;
     text-align: left;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--connect-border);
+    color: var(--connect-text);
 }
 
 .table th {
-    background-color: #f1f1f1;
+    background-color: var(--connect-surface-2);
     cursor: pointer;
 }
 

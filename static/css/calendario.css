@@ -1,3 +1,16 @@
+/* Identidade visual Connect */
+:root {
+    --connect-green: #39ff14;
+    --connect-black: #0b0b0b;
+    --connect-bg: #0f1115;
+    --connect-surface: #14181f;
+    --connect-surface-2: #1b2230;
+    --connect-text: #e6f0ea;
+    --connect-muted: #9aa4ad;
+    --connect-border: #232a35;
+    --connect-shadow: rgba(0, 0, 0, 0.35);
+}
+
 /* Estilos do modal */
 .modal {
     display: none;
@@ -8,21 +21,24 @@
     width: 100%;
     height: 100%;
     overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.6);
 }
 
 .modal-content {
-    background-color: #fff;
+    background-color: var(--connect-surface);
     margin: 10% auto;
     padding: 20px;
-    border: 1px solid #888;
+    border: 1px solid var(--connect-border);
     width: 50%;
     position: relative;
     z-index: 1001;
+    color: var(--connect-text);
+    border-radius: 12px;
+    box-shadow: 0px 10px 20px var(--connect-shadow);
 }
 
 .close {
-    color: #aaa;
+    color: var(--connect-muted);
     float: right;
     font-size: 28px;
     font-weight: bold;
@@ -38,11 +54,12 @@
     position: fixed;
     z-index: 1100;
     width: 250px;
-    background-color: #2c3e50;
+    background-color: var(--connect-black);
     height: 100%;
     left: 0;
     top: 0;
     transition: transform 0.3s ease-in-out;
+    border-right: 1px solid var(--connect-border);
 }
 
 /* Ajuste do conteúdo para não ficar sob o menu */
@@ -51,6 +68,8 @@
     padding: 20px;
     transition: margin-left 0.3s ease-in-out;
     padding-bottom: 50px; 
+    background-color: var(--connect-bg);
+    color: var(--connect-text);
 }
 
 /* Quando o menu está fechado */
@@ -70,5 +89,78 @@
     .content {
         margin-left: 0;
     }
+}
+
+/* FullCalendar - identidade Connect */
+.fc .fc-toolbar {
+    padding: 10px 12px;
+    background: var(--connect-surface);
+    border: 1px solid var(--connect-border);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0px 8px 16px var(--connect-shadow);
+}
+
+.fc .fc-toolbar-title {
+    color: var(--connect-text);
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: 0.3px;
+}
+
+.fc .fc-button {
+    background: var(--connect-surface-2);
+    border: 1px solid var(--connect-border);
+    color: var(--connect-text);
+    border-radius: 8px;
+    padding: 6px 10px;
+    text-transform: lowercase;
+}
+
+.fc .fc-button:hover {
+    background: rgba(57, 255, 20, 0.12);
+    color: var(--connect-green);
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+    background: var(--connect-green);
+    color: var(--connect-black);
+    border-color: var(--connect-green);
+    box-shadow: 0 0 0 2px rgba(57, 255, 20, 0.2);
+}
+
+.fc .fc-button:disabled {
+    background: var(--connect-surface-2);
+    color: var(--connect-muted);
+    border-color: var(--connect-border);
+    opacity: 0.7;
+}
+
+.fc-theme-standard .fc-scrollgrid,
+.fc-theme-standard th,
+.fc-theme-standard td {
+    border-color: var(--connect-border);
+}
+
+.fc .fc-col-header-cell-cushion {
+    color: var(--connect-muted);
+    font-weight: 700;
+    text-transform: lowercase;
+}
+
+.fc .fc-daygrid-day-number {
+    color: var(--connect-text);
+    font-weight: 600;
+}
+
+.fc .fc-day-today {
+    background: rgba(57, 255, 20, 0.08) !important;
+}
+
+.fc .fc-list,
+.fc .fc-list-table {
+    background: var(--connect-surface);
+    color: var(--connect-text);
 }
 

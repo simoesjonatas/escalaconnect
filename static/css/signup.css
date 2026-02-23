@@ -1,12 +1,27 @@
+/* Identidade visual Connect */
+:root {
+    --connect-green: #39ff14;
+    --connect-green-600: #1fd10a;
+    --connect-black: #0b0b0b;
+    --connect-bg: #0f1115;
+    --connect-surface: #14181f;
+    --connect-surface-2: #1b2230;
+    --connect-text: #e6f0ea;
+    --connect-muted: #9aa4ad;
+    --connect-border: #232a35;
+    --connect-shadow: rgba(0, 0, 0, 0.35);
+}
+
 /* Estilos para a página de cadastro */
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    font-family: "Inter", "Segoe UI", Arial, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh; /* Use min-height instead of height */
-    background-color: #f4f4f4;
+    background-color: var(--connect-bg);
+    color: var(--connect-text);
     padding: 10px;
     overflow: auto; /* Add overflow auto to allow scrolling */
 }
@@ -14,18 +29,20 @@ body {
 
 .signup-container {
     width: 100%;
-    max-width: 400px;
-    padding: 20px;
-    background-color: #fff;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+    max-width: 420px;
+    padding: 24px;
+    background-color: var(--connect-surface);
+    box-shadow: 0 10px 20px var(--connect-shadow);
+    border-radius: 14px;
     text-align: center;
+    border: 1px solid var(--connect-border);
 }
 
 .signup-card h1 {
     margin-bottom: 20px;
     font-size: 24px;
-    color: #2c3e50;
+    color: var(--connect-text);
+    font-weight: 800;
 }
 
 .form-group {
@@ -35,17 +52,20 @@ body {
 
 .form-group label {
     display: block;
-    font-weight: bold;
+    font-weight: 700;
     margin-bottom: 5px;
+    color: var(--connect-muted);
 }
 
 .form-group input {
     width: 100%;
     padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    border: 1px solid var(--connect-border);
+    border-radius: 8px;
     font-size: 16px;
     box-sizing: border-box;
+    background-color: var(--connect-surface-2);
+    color: var(--connect-text);
 }
 
 .form-check {
@@ -57,16 +77,18 @@ button {
     width: 100%;
     padding: 10px;
     border: none;
-    border-radius: 4px;
-    background-color: #2c3e50;
-    color: #fff;
+    border-radius: 8px;
+    background-color: var(--connect-green);
+    color: var(--connect-black);
     font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: background-color 0.3s ease, transform 0.1s ease-in-out;
 }
 
 button:hover {
-    background-color: #1abc9c;
+    background-color: var(--connect-green-600);
+    transform: translateY(-1px);
 }
 
 .login-link {
@@ -75,8 +97,9 @@ button:hover {
 }
 
 .login-link a {
-    color: #3498db;
+    color: var(--connect-green);
     text-decoration: none;
+    font-weight: 700;
 }
 
 .login-link a:hover {
@@ -84,12 +107,12 @@ button:hover {
 }
 
 .error-messages {
-    background-color: #ffdddd;
+    background-color: #2a0d12;
     border: 1px solid #ff5c5c;
-    color: #d8000c;
+    color: #ffd2d2;
     padding: 10px;
     margin-bottom: 15px;
-    border-radius: 5px;
+    border-radius: 8px;
     text-align: left;
 }
 
@@ -100,7 +123,7 @@ button:hover {
 }
 
 .error {
-    color: #d8000c;
+    color: #ffd2d2;
     font-size: 14px;
 }
 
