@@ -32,8 +32,16 @@
 <br>
 {% if membros_pendentes %}
     <div class="container">
-        <div class="alert alert-warning" role="alert">
-            <strong>Atenção:</strong> Há membros aguardando aprovação nesta equipe. Por favor, verifique e aprove conforme necessário.
+        <div class="alert alert-warning" role="alert" style="display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <i class="fa fa-exclamation-circle" style="font-size: 20px;"></i>
+                <div>
+                    <strong>Atenção:</strong> Há membros aguardando aprovação nesta equipe. Por favor, verifique e aprove conforme necessário.
+                </div>
+            </div>
+            <a href="{% url 'listar_membros_pendentes' equipe.pk %}" class="btn btn-warning" style="white-space: nowrap; margin: 0;">
+                <i class="fa fa-check"></i> Aprovar Membros
+            </a>
         </div>
     </div>
 {% endif %}
