@@ -1,4 +1,6 @@
 {% load static %}
+<link rel="stylesheet" href="{% static 'css/menu.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <nav class="sidebar">
     <div class="logo">
@@ -7,21 +9,20 @@
         </a>
     </div>
     <ul class="menu">
-        <li><a href="{% url 'base_page' %}">Início</a></li>
-        <li><a href="{% url 'calendario' %}">Calendário</a></li>
-        <li><a href="{% url 'equipe_list' %}">Equipes</a></li>
-        <li><a href="{% url 'evento_list' %}">Eventos</a></li>
-        <li><a href="{% url 'minhas_escalas' %}">Minhas Escalas</a></li>
-
-        <li><a href="{% url 'lista_disponivel' %}">Disponibilidades</a></li>
-        {% comment %} <li><a href="{% url 'lista_ocupado' %}">Indisponibilidades</a></li>  <!-- Link para indisponibilidades --> {% endcomment %}
-
-        <!-- <li><a href="{% url 'usuario_list' %}">Usuários</a></li> -->
-        <li><a href="{% url 'perfil_usuario' %}">Meu Perfil</a></li>
+        <li><a href="{% url 'base_page' %}"><i class="fa fa-home"></i> Início</a></li>
+        <li><a href="{% url 'calendario' %}"><i class="fa fa-calendar"></i> Calendário</a></li>
+        <li><a href="{% url 'equipe_list' %}"><i class="fa fa-users"></i> Equipes</a></li>
+        <li><a href="{% url 'evento_list' %}"><i class="fa fa-calendar-check"></i> Eventos</a></li>
+        <li><a href="{% url 'minhas_escalas' %}"><i class="fa fa-clock"></i> Minhas Escalas</a></li>
+        <li><a href="{% url 'lista_disponivel' %}"><i class="fa fa-check"></i> Disponibilidades</a></li>
+        {% comment %} <li><a href="{% url 'lista_ocupado' %}"><i class="fa fa-times"></i> Indisponibilidades</a></li> {% endcomment %}
+        <li><a href="{% url 'perfil_usuario' %}"><i class="fa fa-user"></i> Meu Perfil</a></li>
         {% if request.user.is_leader or request.user.is_staff or request.user.is_superuser %}
-        <li><a href="{% url 'usuario_list' %}">Usuários</a></li>
+        <li><a href="{% url 'usuario_list' %}"><i class="fa fa-users-cog"></i> Usuários</a></li>
         {% endif %}
-        
+        {% if user.is_superuser or user.is_staff %}
+        <li><a href="{% url 'planejamento_list' %}"><i class="fa fa-tasks"></i> Planejamentos</a></li>
+        {% endif %}
         {% if request.user.is_superuser %}
         <li>
             <a class="dropdown-item" href="{% url 'admin:index' %}">
@@ -30,8 +31,6 @@
         </li>
         {% endif %}
     </ul>
-
-    <!-- Logout na parte inferior do menu -->
     <div class="menu-bottom">
         <div class="user-info">
             {{ user.username }}

@@ -14,6 +14,9 @@ class PlanejamentoFuncaoForm(forms.ModelForm):
     class Meta:
         model = PlanejamentoFuncao
         fields = ['funcao']
+        widgets = {
+            'funcao': forms.Select(attrs={'class': 'form-control'}),
+        }
 
     def __init__(self, *args, **kwargs):
         planejamento = kwargs.pop('planejamento', None)

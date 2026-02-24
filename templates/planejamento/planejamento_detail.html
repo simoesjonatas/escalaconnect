@@ -20,8 +20,13 @@
     
     <h4>Funções Associadas:</h4>
     <ul>
-        {% for funcao in planejamento.funcoes.all %}
-            <li>{{ funcao.nome }}</li>
+        {% for item in planejamento.funcoes.all %}
+            <li>
+                <strong>{{ item.funcao.nome }}</strong>
+                {% if item.funcao.equipe %}
+                    <span class="text-muted"> — {{ item.funcao.equipe.nome }}</span>
+                {% endif %}
+            </li>
         {% empty %}
             <li>Não há funções associadas.</li>
         {% endfor %}
@@ -31,6 +36,7 @@
         <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Voltar</a>
         <a class="btn btn-warning" href="{% url 'planejamento_update' planejamento.pk %}">Editar</a>
         <a class="btn btn-danger" href="{% url 'planejamento_delete' planejamento.pk %}">Excluir</a>
+        <a class="btn btn-success" href="{% url 'planejamento_aplicar_eventos_com_id' planejamento.pk %}">Aplicar em Eventos</a>
     </div>
 </div>
 {% endblock %}

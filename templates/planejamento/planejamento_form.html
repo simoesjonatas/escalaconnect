@@ -23,12 +23,27 @@
         </div>
 
         <h4>Funções Associadas</h4>
+        {% if formset.non_form_errors %}
+            <div class="alert alert-danger">{{ formset.non_form_errors }}</div>
+        {% endif %}
+        {{ formset.management_form }}
         <div id="funcoes-container">
             {% for form_funcao in formset %}
-                <div class="funcao-item">
-                    {{ form_funcao.funcao }}
-                    <button type="button" class="btn btn-danger remove-funcao">Remover</button>
+                <div class="funcao-item" data-form-index="{{ forloop.counter0 }}">
+                    {{ form_funcao.id }}
+                    <div class="form-group">
+                        {{ form_funcao.funcao }}
+                        {% if form_funcao.funcao.errors %}
+                            <div class="text-danger">{{ form_funcao.funcao.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <span style="display:none;">{{ form_funcao.DELETE }}</span>
+                        <button type="button" class="btn btn-danger remove-funcao">Remover</button>
+                    </div>
                 </div>
+            {% empty %}
+                <div class="text-muted">Nenhuma função adicionada.</div>
             {% endfor %}
         </div>
 
@@ -41,29 +56,51 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("add-funcao").addEventListener("click", function () {
-            let container = document.getElementById("funcoes-container");
-            let newElement = document.createElement("div");
-            newElement.classList.add("funcao-item");
-            newElement.innerHTML = `
-                <select name="funcoes" class="form-control">
-                    {% for funcao in funcoes_disponiveis %}
-                        <option value="{{ funcao.id }}">{{ funcao.nome }}</option>
-                    {% endfor %}
-                </select>
-                <button type="button" class="btn btn-danger remove-funcao">Remover</button>
-            `;
-            container.appendChild(newElement);
+        const formsetPrefix = "{{ formset.prefix }}";
+        const totalFormsInput = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
+        const container = document.getElementById("funcoes-container");
+        const addButton = document.getElementById("add-funcao");
 
-            newElement.querySelector(".remove-funcao").addEventListener("click", function () {
-                newElement.remove();
-            });
-        });
+        const emptyFormTemplate = `
+            <div class="funcao-item" data-form-index="__prefix__">
+                <input type="hidden" name="${formsetPrefix}-__prefix__-id" id="id_${formsetPrefix}-__prefix__-id" />
+                <div class="form-group">
+                    {{ formset.empty_form.funcao|escapejs }}
+                </div>
+                <div class="form-group">
+                    <input type="checkbox" name="${formsetPrefix}-__prefix__-DELETE" id="id_${formsetPrefix}-__prefix__-DELETE" style="display:none;" />
+                    <button type="button" class="btn btn-danger remove-funcao">Remover</button>
+                </div>
+            </div>
+        `;
 
-        document.querySelectorAll(".remove-funcao").forEach(function (button) {
-            button.addEventListener("click", function () {
-                this.parentElement.remove();
+        function bindRemoveButtons(scope) {
+            scope.querySelectorAll(".remove-funcao").forEach(function (button) {
+                button.addEventListener("click", function () {
+                    const item = this.closest(".funcao-item");
+                    const deleteInput = item.querySelector(`input[name$='-DELETE']`);
+                    if (deleteInput) {
+                        deleteInput.checked = true;
+                        item.style.display = "none";
+                    } else {
+                        item.remove();
+                        totalFormsInput.value = container.querySelectorAll(".funcao-item").length;
+                    }
+                });
             });
+        }
+
+        bindRemoveButtons(container);
+
+        addButton.addEventListener("click", function () {
+            const formIndex = parseInt(totalFormsInput.value, 10);
+            const newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formIndex);
+            const tempDiv = document.createElement("div");
+            tempDiv.innerHTML = newFormHtml.trim();
+            const newForm = tempDiv.firstChild;
+            container.appendChild(newForm);
+            totalFormsInput.value = formIndex + 1;
+            bindRemoveButtons(newForm);
         });
     });
 </script>

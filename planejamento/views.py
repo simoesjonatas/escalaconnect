@@ -3,8 +3,7 @@ from django.urls import reverse
 from django.core.paginator import Paginator
 from .models import Planejamento, PlanejamentoFuncao
 from .forms import PlanejamentoForm, PlanejamentoFuncaoForm
-from django.forms import modelformset_factory
-from escala.models import Funcao
+from django.forms import inlineformset_factory
 
 def planejamento_list(request):
     query = request.GET.get('q', '')
@@ -18,29 +17,38 @@ def planejamento_list(request):
 
 
 def planejamento_create(request):
-    planejamento = None
+    PlanejamentoFuncaoFormSet = inlineformset_factory(
+        Planejamento,
+        PlanejamentoFuncao,
+        form=PlanejamentoFuncaoForm,
+        extra=1,
+        can_delete=True,
+    )
+
     if request.method == "POST":
         form = PlanejamentoForm(request.POST)
-        funcao_formset = modelformset_factory(PlanejamentoFuncao, form=PlanejamentoFuncaoForm, extra=1)(request.POST)
+        planejamento = Planejamento()
+        formset = PlanejamentoFuncaoFormSet(
+            request.POST,
+            instance=planejamento,
+            prefix="funcoes",
+        )
 
-        if form.is_valid() and funcao_formset.is_valid():
+        if form.is_valid() and formset.is_valid():
             planejamento = form.save()
-
-            for funcao_form in funcao_formset:
-                if funcao_form.cleaned_data:
-                    funcao = funcao_form.save(commit=False)
-                    funcao.planejamento = planejamento
-                    funcao.save()
-
+            formset.instance = planejamento
+            formset.save()
             return redirect('planejamento_list')
     else:
         form = PlanejamentoForm()
-        funcao_formset = modelformset_factory(PlanejamentoFuncao, form=PlanejamentoFuncaoForm, extra=1)()
+        formset = PlanejamentoFuncaoFormSet(
+            instance=Planejamento(),
+            prefix="funcoes",
+        )
 
     context = {
         'form': form,
-        'formset': funcao_formset,
-        'funcoes_disponiveis': Funcao.objects.all(),
+        'formset': formset,
     }
     return render(request, 'planejamento/planejamento_form.html', context)
 
@@ -59,15 +67,33 @@ def planejamento_create(request):
 def planejamento_update(request, pk):
     planejamento = get_object_or_404(Planejamento, pk=pk)
 
+    PlanejamentoFuncaoFormSet = inlineformset_factory(
+        Planejamento,
+        PlanejamentoFuncao,
+        form=PlanejamentoFuncaoForm,
+        extra=0,
+        can_delete=True,
+    )
+
     if request.method == 'POST':
         form = PlanejamentoForm(request.POST, instance=planejamento)
-        if form.is_valid():
+        formset = PlanejamentoFuncaoFormSet(
+            request.POST,
+            instance=planejamento,
+            prefix="funcoes",
+        )
+        if form.is_valid() and formset.is_valid():
             form.save()
+            formset.save()
             return redirect('planejamento_list')
     else:
         form = PlanejamentoForm(instance=planejamento)
+        formset = PlanejamentoFuncaoFormSet(
+            instance=planejamento,
+            prefix="funcoes",
+        )
 
-    return render(request, 'planejamento/planejamento_form.html', {'form': form})
+    return render(request, 'planejamento/planejamento_form.html', {'form': form, 'formset': formset})
 
 def planejamento_delete(request, pk):
     planejamento = get_object_or_404(Planejamento, pk=pk)

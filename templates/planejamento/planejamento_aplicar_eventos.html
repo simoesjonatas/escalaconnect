@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Aplicar Planejamento em Eventos{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Lista de Planejamentos</a></li>
+    {% if planejamento %}
+        <li class="breadcrumb-item"><a href="{% url 'planejamento_detail' planejamento.pk %}">{{ planejamento.nome }}</a></li>
+    {% endif %}
+    <li class="breadcrumb-item">Aplicar Planejamento em Eventos</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>Aplicar Planejamento em Eventos</h3>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label for="id_planejamento">Planejamento</label>
+            {{ form.planejamento }}
+        </div>
+
+        <div class="form-group">
+            <div class="d-flex align-items-center justify-content-between">
+                <label class="mb-0" for="id_eventos">Eventos</label>
+                <button type="button" id="toggle-all" class="btn btn-sm btn-outline-secondary">Marcar todos</button>
+            </div>
+            <div class="mt-2" id="eventos-container">
+                {{ form.eventos }}
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success">Aplicar Planejamento</button>
+        <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Cancelar</a>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleButton = document.getElementById('toggle-all');
+        const checkboxes = Array.from(document.querySelectorAll('#eventos-container input[type="checkbox"]'));
+
+        function allChecked() {
+            return checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
+        }
+
+        function updateButtonLabel() {
+            toggleButton.textContent = allChecked() ? 'Desmarcar todos' : 'Marcar todos';
+        }
+
+        toggleButton.addEventListener('click', function () {
+            const shouldCheck = !allChecked();
+            checkboxes.forEach(cb => cb.checked = shouldCheck);
+            updateButtonLabel();
+        });
+
+        checkboxes.forEach(cb => cb.addEventListener('change', updateButtonLabel));
+        updateButtonLabel();
+    });
+</script>
+{% endblock %}

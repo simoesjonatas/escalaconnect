@@ -26,6 +26,19 @@ body {
     overflow: auto; /* Permite a rolagem quando o conteúdo excede a altura da viewport */
 }
 
+body::before {
+    content: "";
+    position: fixed;
+    inset: -20% 0 0 0;
+    background:
+        radial-gradient(600px 300px at 10% 10%, rgba(57, 255, 20, 0.12), transparent 60%),
+        radial-gradient(500px 240px at 90% 20%, rgba(57, 255, 20, 0.08), transparent 60%),
+        radial-gradient(600px 300px at 50% 100%, rgba(57, 255, 20, 0.06), transparent 60%);
+    pointer-events: none;
+    animation: glowMove 12s ease-in-out infinite;
+    z-index: 0;
+}
+
 /* Container principal */
 .login-container {
     width: 100%;
@@ -37,6 +50,31 @@ body {
     border-radius: 14px;
     text-align: center;
     border: 1px solid var(--connect-border);
+    position: relative;
+    z-index: 1;
+    animation: cardIn 0.6s ease-out;
+}
+
+.login-card {
+    position: relative;
+}
+
+
+.login-logo {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 12px 0;
+}
+
+.login-logo img {
+    width: 64px;
+    height: 64px;
+    max-width: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--connect-border);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    animation: floatLogo 4s ease-in-out infinite;
 }
 
 /* Título */
@@ -100,6 +138,21 @@ button:hover {
 
 button:active {
     transform: scale(0.98);
+}
+
+@keyframes floatLogo {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+@keyframes cardIn {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes glowMove {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(20px); }
 }
 
 /* Links */

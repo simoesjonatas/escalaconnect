@@ -11,6 +11,9 @@
 <body>
     <div class="login-container">
         <div class="login-card">
+            <div class="login-logo" aria-hidden="true">
+                <img src="{% static 'images/logo_connect.JPG' %}" alt="Connect" />
+            </div>
             <h1>Login</h1>
             {% if form.errors %}
                 <div class="error-messages">
@@ -40,5 +43,19 @@
             </form>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('form');
+            const password = document.getElementById('password');
+            if (form && password) {
+                password.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        form.requestSubmit();
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
