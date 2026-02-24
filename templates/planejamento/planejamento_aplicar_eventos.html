@@ -15,29 +15,38 @@
 
 {% block content %}
 <div class="container">
-    <h3>Aplicar Planejamento em Eventos</h3>
-
-    <form method="POST">
-        {% csrf_token %}
-
-        <div class="form-group">
-            <label for="id_planejamento">Planejamento</label>
-            {{ form.planejamento }}
+    <div class="page-header">
+        <div>
+            <h3>Aplicar Planejamento em Eventos</h3>
+            <p class="muted">Selecione o planejamento e os eventos da agenda para gerar as escalas automaticamente.</p>
         </div>
+    </div>
 
-        <div class="form-group">
-            <div class="d-flex align-items-center justify-content-between">
-                <label class="mb-0" for="id_eventos">Eventos</label>
-                <button type="button" id="toggle-all" class="btn btn-sm btn-outline-secondary">Marcar todos</button>
-            </div>
-            <div class="mt-2" id="eventos-container">
-                {{ form.eventos }}
-            </div>
-        </div>
+    <div class="panel-card">
+        <form method="POST">
+            {% csrf_token %}
 
-        <button type="submit" class="btn btn-success">Aplicar Planejamento</button>
-        <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Cancelar</a>
-    </form>
+            <div class="form-group">
+                <label for="id_planejamento">Planejamento</label>
+                {{ form.planejamento }}
+            </div>
+
+            <div class="form-group">
+                <div class="form-group-header">
+                    <label class="mb-0" for="id_eventos">Eventos</label>
+                    <button type="button" id="toggle-all" class="btn btn-sm btn-outline-secondary">Marcar todos</button>
+                </div>
+                <div class="checkbox-list" id="eventos-container">
+                    {{ form.eventos }}
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">Aplicar Planejamento</button>
+                <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Cancelar</a>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>

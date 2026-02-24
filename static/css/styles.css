@@ -116,6 +116,9 @@ body {
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--connect-border);
+    border-radius: 14px;
+    margin: 12px 20px 0;
+    box-shadow: 0 10px 20px var(--connect-shadow);
 }
 
 .menu-toggle {
@@ -262,6 +265,22 @@ h1 {
     transform: scale(1.02);
 }
 
+.table-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+@media (max-width: 600px) {
+    .table-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .table-actions .btn {
+        width: 100%;
+    }
+}
+
 th a {
     text-decoration: none;
     color: var(--connect-text);
@@ -316,6 +335,56 @@ th a:hover {
     background: var(--connect-surface);
     border: 1px solid var(--connect-border);
     border-radius: 12px;
+}
+
+.muted {
+    color: var(--connect-muted);
+    margin: 4px 0 0;
+    font-size: 0.95rem;
+}
+
+.panel-card {
+    background: var(--connect-surface);
+    border: 1px solid var(--connect-border);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 10px 20px var(--connect-shadow);
+}
+
+.form-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.checkbox-list {
+    padding: 12px;
+    border: 1px solid var(--connect-border);
+    border-radius: 10px;
+    background: var(--connect-surface-2);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.checkbox-list label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    cursor: pointer;
+}
+
+.checkbox-list input[type="checkbox"] {
+    transform: scale(1.1);
+}
+
+.form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 16px;
 }
 
 .info-list li {

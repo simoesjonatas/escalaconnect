@@ -2,36 +2,45 @@
 
 {% block page_title %}Planejamentos{% endblock %}
 
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item">Planejamentos</li>
+</ul>
+{% endblock breadcrumb %}
+
 {% block content %}
 <div class="container">
     <h3>Planejamentos</h3>
     <a class="btn btn-success mb-3" href="{% url 'planejamento_create' %}">Novo Planejamento</a>
     
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Data de Cadastro</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for planejamento in page_obj %}
-            <tr>
-                <td>{{ planejamento.nome }}</td>
-                <td>{{ planejamento.data_cadastro }}</td>
-                <td>
-                    <a class="btn btn-info" href="{% url 'planejamento_detail' planejamento.pk %}">Detalhes</a>
-                    <a class="btn btn-warning" href="{% url 'planejamento_update' planejamento.pk %}">Editar</a>
-                    <a class="btn btn-danger" href="{% url 'planejamento_delete' planejamento.pk %}">Excluir</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3" class="text-center">Nenhum planejamento encontrado.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Data de Cadastro</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for planejamento in page_obj %}
+                <tr>
+                    <td>{{ planejamento.nome }}</td>
+                    <td>{{ planejamento.data_cadastro }}</td>
+                    <td class="table-actions">
+                        <a class="btn btn-info" href="{% url 'planejamento_detail' planejamento.pk %}">Detalhes</a>
+                        <a class="btn btn-warning" href="{% url 'planejamento_update' planejamento.pk %}">Editar</a>
+                        <a class="btn btn-danger" href="{% url 'planejamento_delete' planejamento.pk %}">Excluir</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" class="text-center">Nenhum planejamento encontrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endblock %}
