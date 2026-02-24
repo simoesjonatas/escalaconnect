@@ -37,7 +37,6 @@
 
             <div class="modal-buttons">
                 <button type="submit" id="saveEventBtn" class="btn btn-success">Salvar</button>
-                <button type="button" id="deleteEventBtn" class="btn btn-danger" style="display: none;">Excluir</button>
                 <a id="viewEventBtn" class="btn btn-primary" style="display: none;">Ir para Evento</a>
             </div>
         </form>
@@ -94,7 +93,6 @@
         document.getElementById('eventTitle').value = "";
         document.getElementById('eventStart').value = info.dateStr + "T00:00";
         document.getElementById('eventEnd').value = info.dateStr + "T23:59";
-        document.getElementById('deleteEventBtn').style.display = "none";
         document.getElementById('viewEventBtn').style.display = "none";
         },
 
@@ -105,7 +103,6 @@
         document.getElementById('eventTitle').value = info.event.title;
         document.getElementById('eventStart').value = info.event.start.toISOString().slice(0, 16);
         document.getElementById('eventEnd').value = info.event.end ? info.event.end.toISOString().slice(0, 16) : "";
-        document.getElementById('deleteEventBtn').style.display = "inline-block";
 
         var viewEventBtn = document.getElementById('viewEventBtn');
         viewEventBtn.href = `/api/events/${info.event.id}`;
@@ -120,7 +117,7 @@
     window.onclick = function(event) { if (event.target == modal) modal.style.display = "none"; };
 
     document.getElementById('eventForm').addEventListener('submit', function(e) { /* ... seu código atual ... */ });
-    document.getElementById('deleteEventBtn').addEventListener('click', function() { /* ... seu código atual ... */ });
+    // botão excluir removido
     });
 </script>
 

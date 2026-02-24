@@ -1,5 +1,11 @@
+{% load static %}
+
 <nav class="sidebar">
-    <div class="logo">Escala Connect</div>
+    <div class="logo">
+        <a href="{% url 'base_page' %}" class="logo-link" aria-label="Ir para Início">
+            <img src="{% static 'images/logo_connect.JPG' %}" alt="Connect" class="logo-img">
+        </a>
+    </div>
     <ul class="menu">
         <li><a href="{% url 'base_page' %}">Início</a></li>
         <li><a href="{% url 'calendario' %}">Calendário</a></li>

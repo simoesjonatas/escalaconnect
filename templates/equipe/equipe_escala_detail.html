@@ -13,9 +13,14 @@
 
 {% block content %}
 <div class="container">
-    <h3>Escala para o Evento: {{ escala.evento.nome }}</h3>
-    <h4>Dia do Evento: {{ escala.evento.data_inicio }}</h4>
-    <ul>
+    <div class="page-header">
+        <div>
+            <h3>Escala para o Evento: {{ escala.evento.nome }}</h3>
+            <h4>Dia do Evento: {{ escala.evento.data_inicio }}</h4>
+        </div>
+    </div>
+
+    <ul class="info-list">
         <li><strong>Usuário:</strong> {{ escala.usuario }}</li>
         <li><strong>Equipe:</strong> {{ escala.funcao.equipe.nome }}</li>
         <li><strong>Função:</strong> {{ escala.funcao.nome }}</li>
@@ -23,12 +28,17 @@
         <li><strong>Data de Confirmação:</strong> {{ escala.data_confirmacao|default:"-" }}</li>
     </ul>
 
-    <div class="clearfix">
+    <div class="action-bar">
         <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe.pk %}">Voltar</a>
         {% if escala.confirmada %}
             {% if request.user.is_staff or request.user.is_superuser or is_leader %}
             <a class="btn btn-info" href="{% url 'cancelar_escala' escala.pk %}">Cancelar Escala</a>
             {% endif %}
+        {% endif %}
+        {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#forcarEscalaModal">
+                <i class="fa fa-user-plus"></i> Escalar alguém da equipe
+            </button>
         {% endif %}
     </div>
 
@@ -54,6 +64,7 @@
     {% else %}
         {% if not escala.confirmada %}
             <!-- Abas com Bootstrap -->
+            <div class="section-card">
             <ul class="nav nav-tabs" id="escalaTabs" role="tablist">
                 <li class="nav-item">
                     <a class="nav-link active" id="disponiveis-tab" data-bs-toggle="tab" href="#disponiveis" role="tab" aria-controls="disponiveis" aria-selected="true">Usuários Disponíveis</a>
@@ -67,11 +78,6 @@
                 <div class="tab-pane fade show active table-responsive" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
                     <h3 class="d-flex align-items-center justify-content-between">
                     <span>Usuários Disponíveis:</span>
-                    {% if request.user.is_staff or request.user.is_superuser or is_leader %}
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#forcarEscalaModal">
-                        <i class="fa fa-user-plus"></i> Escalar alguém da equipe
-                        </button>
-                    {% endif %}
                     </h3>
                     <table class="table table-hover">
                         <thead>
@@ -103,7 +109,9 @@
                     </table>
                 </div>
                 <div class="tab-pane fade table-responsive" id="escalados" role="tabpanel" aria-labelledby="escalados-tab">
-                    <h3>Usuários Escalados:</h3>
+                    <h3 class="d-flex align-items-center justify-content-between">
+                        <span>Usuários Escalados:</span>
+                    </h3>
                     <table class="table table-hover">
                         <thead>
                             <tr>
@@ -142,6 +150,7 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
             </div>
         {% endif %}
     {% endif %}
@@ -192,6 +201,34 @@
 
 </div>
 <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabLinks = document.querySelectorAll('#escalaTabs .nav-link');
+        const tabPanes = document.querySelectorAll('#escalaTabsContent .tab-pane');
+
+        if (tabLinks.length && tabPanes.length) {
+            tabLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+
+                    tabLinks.forEach(l => {
+                        l.classList.remove('active');
+                        l.setAttribute('aria-selected', 'false');
+                    });
+                    tabPanes.forEach(p => {
+                        p.classList.remove('show', 'active');
+                    });
+
+                    link.classList.add('active');
+                    link.setAttribute('aria-selected', 'true');
+                    const target = document.querySelector(link.getAttribute('href'));
+                    if (target) {
+                        target.classList.add('show', 'active');
+                    }
+                });
+            });
+        }
+    });
+
     function confirmarEscala(event, url, username) {
         event.stopPropagation();
         const mensagem = "O usuário " + username + " já possui uma escala neste evento. Deseja escalá-lo para outra função também?";

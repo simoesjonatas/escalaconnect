@@ -61,6 +61,20 @@ body {
     letter-spacing: 1px;
 }
 
+.sidebar .logo .logo-img {
+    display: inline-block;
+    max-width: 160px;
+    height: auto;
+    object-fit: contain;
+}
+
+.sidebar .logo .logo-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
 .sidebar .menu {
     list-style: none;
     padding: 0;
@@ -275,4 +289,84 @@ th a:hover {
 .issue-row:hover {
     background-color: rgba(255, 59, 59, 0.24);
     color: #ffd2d2;
+}
+
+/* Detalhes de escala */
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.page-header h3,
+.page-header h4 {
+    margin: 0 0 6px 0;
+    color: var(--connect-text);
+}
+
+.info-list {
+    list-style: none;
+    padding: 16px;
+    margin: 0 0 16px 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    background: var(--connect-surface);
+    border: 1px solid var(--connect-border);
+    border-radius: 12px;
+}
+
+.info-list li {
+    background: var(--connect-surface-2);
+    border: 1px solid var(--connect-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--connect-text);
+}
+
+.action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 12px 0 16px;
+}
+
+.section-card {
+    background: var(--connect-surface);
+    border: 1px solid var(--connect-border);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+/* Tabs: mostrar apenas a aba ativa */
+.tab-content > .tab-pane {
+    display: none;
+}
+
+.tab-content > .tab-pane.active {
+    display: block;
+}
+
+/* Ajustes mobile para abas na tela de escala */
+@media (max-width: 640px) {
+    .nav-tabs {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .nav-tabs .nav-link {
+        padding: 6px 10px;
+        font-size: 13px;
+        white-space: normal;
+        text-align: center;
+        line-height: 1.1;
+    }
+
+    .tab-content h3 {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
 }
