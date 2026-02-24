@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escalaconnect</title>
+    <title>Escala Connect</title>
     <link rel="icon" href="{% static 'images/logo_pibvp_2022.png' %}" type="image/png">
     <!-- <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="stylesheet" href="/static/css/calendario.css">
@@ -110,10 +110,6 @@
         /* centraliza a coluna de disponibilidade */
         th.disp-col, td.disp-col { text-align:center; width: 80px; }
 
-        /* melhora o hover da linha sem sobrescrever o Bootstrap */
-        tr.table-danger:hover { background-color: rgba(255,59,59,.22) !important; color: #fff; }
-        tr.table-warning { background-color: rgba(255,212,0,.12) !important; color: #fff5c2; }
-
         /* coluna de disponibilidade centralizada */
         th.disp-col, td.disp-col { text-align: center; width: 80px; }
 
@@ -126,6 +122,11 @@
         .badge-disp.green  { background:#d1e7dd; border:1px solid #badbcc; color:#0f5132; }
         .badge-disp.yellow { background:#fff3cd; border:1px solid #ffecb5; color:#664d03; }
         .badge-disp.red    { background:#f8d7da; border:1px solid #f5c2c7; color:#842029; }
+
+        /* cores base das linhas (sem cor, apenas hover) */
+        tr.table-success { background-color: transparent; color: var(--connect-text); }
+        tr.table-warning { background-color: transparent; color: var(--connect-text); }
+        tr.table-danger { background-color: transparent; color: var(--connect-text); }
 
         /* manter a cor ao passar o mouse (desktop) */
         tr.table-success:hover { background-color: rgba(57,255,20,.14) !important; color: #eaffea; }
