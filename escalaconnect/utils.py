@@ -4,7 +4,7 @@ from django.shortcuts import render
 from functools import wraps
 
 def is_admin(user):
-    return user.is_staff  # ou `user.is_superuser`, conforme a permissão desejada
+    return user.is_staff or user.is_superuser
 
 def admin_required(view_func):
     @wraps(view_func)

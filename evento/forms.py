@@ -65,6 +65,35 @@ class EventoRecorrenteForm(forms.Form):
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
 
+class GerarCultosMensaisForm(forms.Form):
+    mes = forms.IntegerField(
+        label="Mês inicial",
+        min_value=1,
+        max_value=12,
+        initial=datetime.date.today().month,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
+    ano = forms.IntegerField(
+        label="Ano inicial",
+        min_value=2000,
+        max_value=2100,
+        initial=datetime.date.today().year,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
+    quantidade_meses = forms.IntegerField(
+        label="Quantidade de meses",
+        min_value=1,
+        max_value=24,
+        initial=1,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
+    ignorar_existentes = forms.BooleanField(
+        label="Não criar eventos que já existem",
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+
 class EventoComPlanejamentoForm(forms.ModelForm):
     planejamento = forms.ModelChoiceField(
         queryset=Planejamento.objects.all(),

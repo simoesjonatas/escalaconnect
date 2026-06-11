@@ -9,92 +9,255 @@ Disponibilidades da Equipe {{ equipe.nome }}
   <li class="breadcrumb-item">
     <a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a>
   </li>
-  <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Lista de Equipes</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'equipe_list' %}">Equipes</a></li>
   <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
-  <li class="breadcrumb-item"><a href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">Lista de Escalas</a></li>
+  <li class="breadcrumb-item"><a href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">Escalas</a></li>
   <li class="breadcrumb-item active">Disponibilidades</li>
 </ul>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-  
-  <div class="clearfix mb-3">
-  <form method="POST" action="{% url 'lider_pedir_disponibilidades' equipe_id=equipe.pk %}" class="form-inline">
-    {% csrf_token %}
+<div class="container team-availability-page">
+  <div class="team-availability-header">
+    <div>
+      <span class="team-availability-eyebrow">Disponibilidades da equipe</span>
+      <h3>{{ equipe.nome }}</h3>
+      <p>Consulte quem está disponível para os próximos eventos e envie lembretes por mês.</p>
+    </div>
+    <a class="btn btn-success" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">
+      <i class="fa fa-arrow-left mr-1"></i> Voltar para escalas
+    </a>
+  </div>
 
-    <label class="mr-2"><strong>Mês:</strong></label>
-    <select name="mes" class="form-control mr-2">
-      {% for m in months %}
-        <option value="{{ m }}" {% if m == current_month %}selected{% endif %}>{{ m }}</option>
-      {% endfor %}
-    </select>
+  <div class="team-availability-summary">
+    <div class="summary-item">
+      <strong>{{ total_disponibilidades }}</strong>
+      <span>Disponibilidades</span>
+    </div>
+    <div class="summary-item">
+      <strong>{{ total_voluntarios }}</strong>
+      <span>Voluntários com disponibilidade</span>
+    </div>
+    <div class="summary-item">
+      <strong>{{ total_membros }}</strong>
+      <span>Membros aprovados</span>
+    </div>
+  </div>
 
-    <label class="mr-2"><strong>Ano:</strong></label>
-    <select name="ano" class="form-control mr-2">
-      {% for y in years %}
-        <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
-      {% endfor %}
-    </select>
-    
-    
-    <button type="submit" class="btn btn-warning mb-2">
-      Enviar lembrete de disponibilidades
-    </button>
-    
-  </form>
-</div>
+  <section class="team-availability-panel">
+    <div class="panel-heading">
+      <div>
+        <h4>Lembrete de disponibilidades</h4>
+        <p>Peça que a equipe informe disponibilidade para um mês específico.</p>
+      </div>
+    </div>
+    <form method="POST" action="{% url 'lider_pedir_disponibilidades' equipe_id=equipe.pk %}" class="reminder-form">
+      {% csrf_token %}
+      <label>
+        Mês
+        <select name="mes" class="form-control">
+          {% for m in months %}
+            <option value="{{ m }}" {% if m == current_month %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Ano
+        <select name="ano" class="form-control">
+          {% for y in years %}
+            <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="btn btn-warning">
+        <i class="fa fa-paper-plane mr-1"></i> Enviar lembrete
+      </button>
+    </form>
+  </section>
 
+  <section class="team-availability-panel">
+    <div class="panel-heading">
+      <div>
+        <h4>Lista de disponibilidades</h4>
+        <p>Filtre por evento, data ou voluntário.</p>
+      </div>
+    </div>
 
-
-  <div class="clearfix mb-3">
-    <form method="GET" class="form-inline">
-      <input type="text" name="q" class="form-control mr-2" placeholder="Buscar por DATA ou Evento..." value="{{ query }}">
-      <select name="user" class="form-control mr-2">
-        <option value="">-- Todos os usuários --</option>
+    <form method="GET" class="availability-filter-form">
+      <input type="text" name="q" class="form-control" placeholder="Buscar por data ou evento..." value="{{ query }}">
+      <select name="user" class="form-control">
+        <option value="">Todos os usuários</option>
         {% for u in membros %}
-          <option value="{{ u.id }}" {% if selected_user == u.id|stringformat:"s" %}selected{% endif %}>{{ u.username }}</option>
+          <option value="{{ u.id }}" {% if selected_user == u.id|stringformat:"s" %}selected{% endif %}>
+            {{ u.get_full_name|default:u.username }}
+          </option>
         {% endfor %}
       </select>
-      <button type="submit" class="btn btn-primary mr-2">Buscar</button>
-      <a class="btn btn-secondary" href="{% url 'disponibilidades_equipe' equipe_pk=equipe.pk %}">Limpar Filtro</a>
-      <a class="btn btn-success ml-2" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">Voltar p/ Escalas</a>
+      <button type="submit" class="btn btn-primary">Buscar</button>
+      <a class="btn btn-secondary" href="{% url 'disponibilidades_equipe' equipe_pk=equipe.pk %}">Limpar</a>
     </form>
-  </div>
 
-  <div class="table-responsive">
-    <table class="table table-bordered mt-3">
-      <thead>
-        <tr>
-          {% for field_display in disponibilidade_fields %}
-          <th>
-            <a href="?q={{ query }}{% if selected_user %}&user={{ selected_user }}{% endif %}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
-              {{ field_display.1 }}
-              {% if order_by == field_display.0 %}
-                <i class="fa {% if direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
-              {% endif %}
-            </a>
-          </th>
-          {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-      {% for d in page_obj %}
-        {% comment %} <tr onclick="window.location.href='{% url 'listar_escalas' equipe_pk=equipe.pk %}?evento={{ d.evento.pk }}'"> {% endcomment %}
-           {% comment %} <tr onclick="window.location.href='{% url 'escala_detail_equipe' equipe.pk escala.pk %}'"> {% endcomment %}
-            <tr>
-            <td>{{ d.usuario.username }}</td>
-            <td>{{ d.evento.nome }}</td>
-            <td>{{ d.data_inicio|date:"d/m/Y H:i" }}</td>
-            <td>{{ d.data_fim|date:"d/m/Y H:i" }}</td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="4" class="text-center">Nenhuma disponibilidade encontrada.</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
+    <div class="table-responsive">
+      <table class="table table-bordered team-availability-table">
+        <thead>
+          <tr>
+            {% for field_display in disponibilidade_fields %}
+            <th>
+              <a href="?q={{ query }}{% if selected_user %}&user={{ selected_user }}{% endif %}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
+                {{ field_display.1 }}
+                {% if order_by == field_display.0 %}
+                  <i class="fa {% if direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
+                {% endif %}
+              </a>
+            </th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+        {% for d in page_obj %}
+          <tr>
+            <td>
+              <strong>{{ d.usuario.get_full_name|default:d.usuario.username }}</strong>
+              <span class="muted-cell">{{ d.usuario.username }}</span>
+            </td>
+            <td>{{ d.evento.nome|default:"Evento removido" }}</td>
+            <td>{{ d.data_inicio|date:"D, d/m/Y H:i" }}</td>
+            <td>{{ d.data_fim|date:"D, d/m/Y H:i" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="team-availability-empty">
+              <i class="fa fa-calendar-check"></i>
+              <strong>Nenhuma disponibilidade encontrada.</strong>
+              <span>Altere os filtros ou envie um lembrete para a equipe.</span>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
-  {% include 'includes/pagination.html' %}
+    {% include 'includes/pagination.html' %}
+  </section>
 </div>
+
+<style>
+  .team-availability-page { max-width: 1180px; }
+  .team-availability-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+  .team-availability-header .btn { margin: 0; }
+  .team-availability-eyebrow {
+    color: var(--connect-green, #39ff14);
+    font-size: .78rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+  .team-availability-header h3 { margin: 4px 0 6px; }
+  .team-availability-header p,
+  .panel-heading p {
+    color: var(--connect-muted, #9aa4ad);
+    margin: 0;
+  }
+  .team-availability-summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .summary-item {
+    background: var(--connect-surface, #14181f);
+    border: 1px solid var(--connect-border, #232a35);
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .summary-item strong {
+    display: block;
+    color: var(--connect-green, #39ff14);
+    font-size: 1.6rem;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .summary-item span {
+    color: var(--connect-muted, #9aa4ad);
+    font-size: .9rem;
+  }
+  .team-availability-panel {
+    background: var(--connect-surface, #14181f);
+    border: 1px solid var(--connect-border, #232a35);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .panel-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .panel-heading h4 { margin: 0 0 4px; }
+  .reminder-form,
+  .availability-filter-form {
+    display: grid;
+    gap: 10px;
+    align-items: end;
+  }
+  .reminder-form {
+    grid-template-columns: minmax(120px, 160px) minmax(120px, 160px) auto;
+  }
+  .availability-filter-form {
+    grid-template-columns: minmax(220px, 1fr) minmax(180px, 260px) auto auto;
+    margin-bottom: 14px;
+  }
+  .reminder-form label {
+    color: var(--connect-muted, #9aa4ad);
+    font-size: .88rem;
+    font-weight: 700;
+  }
+  .reminder-form .form-control,
+  .availability-filter-form .form-control {
+    margin: 6px 0 0;
+  }
+  .reminder-form .btn,
+  .availability-filter-form .btn {
+    margin: 0;
+  }
+  .team-availability-table { margin-top: 0; }
+  .muted-cell {
+    color: var(--connect-muted, #9aa4ad);
+    display: block;
+    font-size: .85rem;
+    margin-top: 3px;
+  }
+  .team-availability-empty {
+    color: var(--connect-muted, #9aa4ad);
+    padding: 34px 16px !important;
+    text-align: center;
+  }
+  .team-availability-empty i {
+    color: var(--connect-green, #39ff14);
+    display: block;
+    font-size: 30px;
+    margin-bottom: 10px;
+  }
+  .team-availability-empty strong,
+  .team-availability-empty span {
+    display: block;
+  }
+  @media (max-width: 820px) {
+    .team-availability-header,
+    .panel-heading { flex-direction: column; }
+    .team-availability-header .btn { width: 100%; text-align: center; }
+    .team-availability-summary { grid-template-columns: 1fr; }
+    .reminder-form,
+    .availability-filter-form { grid-template-columns: 1fr; }
+    .reminder-form .btn,
+    .availability-filter-form .btn { width: 100%; }
+  }
+</style>
 {% endblock %}

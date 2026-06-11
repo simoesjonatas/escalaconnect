@@ -10,35 +10,49 @@
 {% endblock breadcrumb %}
 
 {% block content %}
-<div class="container">
-    <div class="clearfix mb-3">
-        <form method="GET" class="form-inline">
-            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar por DATA..." value="{{ query }}">
-            <button type="submit" class="btn btn-primary mr-2">Buscar</button>
-            <a class="btn btn-secondary" href="{% url 'lista_disponivel' %}">Limpar Filtro</a>
-        </form>
-        <a class="btn btn-success float-right" href="{% url 'registrar_disponibilidade' %}">Registrar Disponibilidade</a>
+<div class="container availability-page">
+    <div class="availability-header">
+        <div>
+            <span class="availability-eyebrow">Próximas disponibilidades</span>
+            <h3>{{ page_obj.paginator.count }} registro(s) futuro(s)</h3>
+            <p>Veja os eventos em que você já sinalizou que pode servir.</p>
+        </div>
+        <a class="btn btn-success availability-primary-action" href="{% url 'registrar_disponibilidade_evento' %}">
+            <i class="fa fa-calendar-plus mr-1"></i> Registrar disponibilidade
+        </a>
     </div>
 
+    <form method="GET" class="availability-toolbar">
+        <input type="text" name="q" class="form-control" placeholder="Buscar por data..." value="{{ query }}">
+        <button type="submit" class="btn btn-primary">Buscar</button>
+        <a class="btn btn-secondary" href="{% url 'lista_disponivel' %}">Limpar</a>
+    </form>
+
     <div class="table-responsive">
-        <table class="table table-bordered mt-3">
+        <table class="table table-bordered availability-table">
             <thead>
                 <tr>
                     <th><a href="?q={{ query }}&order_by=evento__nome&direction={{ direction }}">Evento</a></th>
-                    <th><a href="?q={{ query }}&order_by=data_inicio&direction={{ direction }}">Data de Início</a></th>
-                    <th><a href="?q={{ query }}&order_by=data_fim&direction={{ direction }}">Data de Fim</a></th>
+                    <th><a href="?q={{ query }}&order_by=data_inicio&direction={{ direction }}">Início</a></th>
+                    <th><a href="?q={{ query }}&order_by=data_fim&direction={{ direction }}">Fim</a></th>
                 </tr>
             </thead>
             <tbody>
                 {% for disponivel in page_obj %}
                 <tr onclick="window.location.href='{% url 'detalhes_disponivel' disponivel.pk %}'">
-                    <td>{{ disponivel.evento.nome | default:'' }}</td>
-                    <td>{{ disponivel.data_inicio }}</td>
-                    <td>{{ disponivel.data_fim }}</td>
+                    <td>
+                        <strong>{{ disponivel.evento.nome|default:'Disponibilidade avulsa' }}</strong>
+                    </td>
+                    <td>{{ disponivel.data_inicio|date:"D, d/m/Y H:i" }}</td>
+                    <td>{{ disponivel.data_fim|date:"D, d/m/Y H:i" }}</td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="3" class="text-center">Nenhuma disponibilidade encontrada.</td>
+                    <td colspan="3" class="text-center availability-empty">
+                        <i class="fa fa-calendar-plus"></i>
+                        <strong>Nenhuma disponibilidade futura encontrada.</strong>
+                        <span>Registre sua disponibilidade para os próximos eventos.</span>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -47,4 +61,56 @@
 
     {% include 'includes/pagination.html' %}
 </div>
+
+<style>
+    .availability-page { max-width: 1120px; }
+    .availability-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+    .availability-eyebrow {
+        color: var(--connect-green, #39ff14);
+        font-size: .78rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+    .availability-header h3 { margin: 4px 0 6px; }
+    .availability-header p { color: var(--connect-muted, #9aa4ad); margin: 0; }
+    .availability-primary-action { margin: 0; }
+    .availability-toolbar {
+        display: grid;
+        grid-template-columns: minmax(180px, 1fr) auto auto;
+        gap: 10px;
+        align-items: end;
+        margin-bottom: 16px;
+    }
+    .availability-toolbar .form-control { margin: 0; }
+    .availability-table { margin-top: 0; }
+    .availability-table tbody tr { cursor: pointer; }
+    .availability-table tbody tr:hover { background: rgba(57, 255, 20, .08); }
+    .availability-empty {
+        padding: 34px 16px !important;
+        color: var(--connect-muted, #9aa4ad);
+    }
+    .availability-empty i {
+        display: block;
+        color: var(--connect-green, #39ff14);
+        font-size: 28px;
+        margin-bottom: 10px;
+    }
+    .availability-empty strong,
+    .availability-empty span {
+        display: block;
+    }
+    @media (max-width: 720px) {
+        .availability-header { flex-direction: column; }
+        .availability-primary-action { width: 100%; text-align: center; }
+        .availability-toolbar { grid-template-columns: 1fr; }
+        .availability-toolbar .btn { width: 100%; margin: 0; }
+    }
+</style>
 {% endblock %}

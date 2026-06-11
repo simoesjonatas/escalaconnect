@@ -13,72 +13,86 @@
 
 {% block content %}
 
-<div class="dashboard-container">
-    <h2>Registrar Disponibilidade por Evento</h2>
-    <!-- Aviso e filtro -->
-    <div class="alert alert-info" role="alert">
-    <i class="fa fa-info-circle"></i>
-    Após marcar suas disponibilidades, clique no botão <strong>Registrar Disponibilidades</strong> no final da página.
+<div class="availability-select-page">
+    <div class="availability-select-header">
+        <div>
+            <span class="availability-eyebrow">Eventos disponíveis</span>
+            <h2>Registrar disponibilidade por evento</h2>
+            <p>Marque todos os eventos em que você pode servir e confirme no final da página.</p>
+        </div>
+        <a href="{% url 'lista_disponivel' %}" class="btn btn-secondary">Ver já cadastradas</a>
     </div>
 
-    {% comment %} <div class="form-inline mb-3"> {% endcomment %}
-    <div class="filters mb-3">
-
-        <div class="filter-label mr-3">
-        <label for="filtroMes" class="mr-2"><strong>Filtrar por mês:</strong></label>
-        <select id="filtroMes" class="form-control">
-            <option value="all">Todos</option>
-        </select>
+    <div class="availability-filters">
+        <div>
+            <label for="filtroMes">Mês</label>
+            <select id="filtroMes" class="form-control">
+                <option value="all">Todos</option>
+            </select>
         </div>
-        {% comment %} <button type="button" id="limparFiltros" class="btn btn-outline-secondary btn-sm ml-2">
-            Limpar filtros
-        </button> {% endcomment %}
-
-        <div id="filtroDias">
-        {% comment %} <div id="filtroDias" class="ml-3"> {% endcomment %}
-            <div class="dias-heading"><strong>Dias da semana:</strong></div>
-
-            {% comment %} <label><strong>Dias da semana:</strong></label><br> {% endcomment %}
-            <label class="mr-2"><input type="checkbox" value="0"> Dom</label>
-            <label class="mr-2"><input type="checkbox" value="1"> Seg</label>
-            <label class="mr-2"><input type="checkbox" value="2"> Ter</label>
-            <label class="mr-2"><input type="checkbox" value="3"> Qua</label>
-            <label class="mr-2"><input type="checkbox" value="4"> Qui</label>
-            <label class="mr-2"><input type="checkbox" value="5"> Sex</label>
-            <label class="mr-2"><input type="checkbox" value="6"> Sáb</label>
-            <label class="ml-2 text-muted">
+        <div id="filtroDias" class="availability-day-filter">
+            <span>Dias da semana</span>
+            <label><input type="checkbox" value="0"> Dom</label>
+            <label><input type="checkbox" value="1"> Seg</label>
+            <label><input type="checkbox" value="2"> Ter</label>
+            <label><input type="checkbox" value="3"> Qua</label>
+            <label><input type="checkbox" value="4"> Qui</label>
+            <label><input type="checkbox" value="5"> Sex</label>
+            <label><input type="checkbox" value="6"> Sáb</label>
+            <label>
                 <input type="checkbox" id="todosDias" checked> Todos
             </label>
         </div>
-
-
     </div>
-
-    
 
     <form method="post" action="{% url 'processar_disponibilidade_evento' %}">
         {% csrf_token %}
-        <div class="event-grid">
+        <div class="event-grid availability-event-grid">
             {% for evento in eventos %}
-            {% comment %} <div class="event-card"> {% endcomment %}
-                <div class="event-card" data-ym="{{ evento.data_inicio|date:'Y-m' }}" data-dow="{{ evento.data_inicio|date:'w' }}">
-                <h3>{{ evento.nome }}</h3>
-                <p>{{ evento.data_inicio|date:"D, d M Y H:i" }} - {{ evento.data_fim|date:"D, d M Y H:i" }}</p>
+            <div class="event-card availability-event-card" data-ym="{{ evento.data_inicio|date:'Y-m' }}" data-dow="{{ evento.data_inicio|date:'w' }}">
+                <div class="event-date-badge">
+                    <strong>{{ evento.data_inicio|date:"d" }}</strong>
+                    <span>{{ evento.data_inicio|date:"M" }}</span>
+                </div>
+                <div class="event-card-body">
+                    <h3>{{ evento.nome }}</h3>
+                    <p>
+                        <i class="fa fa-clock"></i>
+                        {{ evento.data_inicio|date:"D, H:i" }} - {{ evento.data_fim|date:"H:i" }}
+                    </p>
+                </div>
                 <button type="button" class="btn btn-success toggle-select" data-evento-id="{{ evento.id }}">
-                    Marcar Disponibilidade
+                    Marcar
                 </button>
                 <input type="hidden" name="event_ids" value="{{ evento.id }}" disabled>
             </div>
+            {% empty %}
+            <div class="availability-no-events">
+                <i class="fa fa-calendar-check"></i>
+                <strong>Nenhum evento disponível para marcar.</strong>
+                <span>Você já registrou disponibilidade nos próximos eventos ou ainda não há eventos futuros cadastrados.</span>
+            </div>
             {% endfor %}
         </div>
-        <br>
-        <input type="submit" value="Registrar Disponibilidades" class="btn btn-primary submit-btn">
+        <div class="availability-submit-bar">
+            <span><strong id="selectedCount">0</strong> evento(s) selecionado(s)</span>
+            <button type="submit" class="btn btn-primary submit-btn" disabled>Registrar disponibilidades</button>
+        </div>
     </form>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
     // ---- Seleção de eventos ----
+    const selectedCount = document.getElementById('selectedCount');
+    const submitBtn = document.querySelector('.submit-btn');
+
+    function atualizarContador() {
+        const total = document.querySelectorAll('.event-card.selected').length;
+        selectedCount.textContent = total;
+        if (submitBtn) submitBtn.disabled = total === 0;
+    }
+
     document.querySelectorAll('.toggle-select').forEach(button => {
         button.addEventListener('click', function () {
         const card = this.closest('.event-card');
@@ -89,10 +103,11 @@
             this.classList.replace('btn-success', 'btn-danger');
             input.disabled = false;
         } else {
-            this.textContent = 'Marcar Disponibilidade';
+            this.textContent = 'Marcar';
             this.classList.replace('btn-danger', 'btn-success');
             input.disabled = true;
         }
+        atualizarContador();
         });
     });
 
@@ -144,9 +159,146 @@
         }
         aplicarFiltros();
     })();
+    atualizarContador();
     });
 </script>
 
+<style>
+    .availability-select-page { max-width: 1120px; margin: 0 auto; }
+    .availability-select-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 16px;
+    }
+    .availability-eyebrow {
+        color: var(--connect-green, #39ff14);
+        font-size: .78rem;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+    .availability-select-header h2 { margin: 4px 0 6px; }
+    .availability-select-header p { color: var(--connect-muted, #9aa4ad); margin: 0; }
+    .availability-filters {
+        display: grid;
+        grid-template-columns: minmax(220px, 280px) 1fr;
+        gap: 18px;
+        align-items: start;
+        background: var(--connect-surface, #14181f);
+        border: 1px solid var(--connect-border, #232a35);
+        border-radius: 8px;
+        padding: 14px;
+        margin-bottom: 16px;
+    }
+    .availability-filters > div:first-child {
+        align-self: end;
+    }
+    .availability-filters label,
+    .availability-day-filter span {
+        color: var(--connect-muted, #9aa4ad);
+        font-size: .88rem;
+        font-weight: 700;
+    }
+    .availability-filters .form-control { margin: 6px 0 0; }
+    .availability-day-filter {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(120px, 1fr));
+        gap: 8px;
+    }
+    .availability-day-filter span {
+        grid-column: 1 / -1;
+    }
+    .availability-day-filter label {
+        background: var(--connect-surface-2, #1b2230);
+        border: 1px solid var(--connect-border, #232a35);
+        border-radius: 999px;
+        color: var(--connect-text, #e6f0ea);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        padding: 6px 10px;
+    }
+    .availability-day-filter input {
+        margin: 0;
+    }
+    .availability-event-grid {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 14px;
+    }
+    .availability-event-card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 12px;
+        align-items: start;
+        border-radius: 8px;
+        position: relative;
+    }
+    .availability-event-card.selected {
+        box-shadow: 0 0 0 1px rgba(57, 255, 20, .3);
+    }
+    .event-date-badge {
+        width: 56px;
+        min-height: 56px;
+        border-radius: 8px;
+        background: var(--connect-black, #0b0b0b);
+        border: 1px solid var(--connect-border, #232a35);
+        display: grid;
+        place-items: center;
+        padding: 6px 0;
+    }
+    .event-date-badge strong { font-size: 1.35rem; line-height: 1; }
+    .event-date-badge span { color: var(--connect-muted, #9aa4ad); font-size: .78rem; text-transform: uppercase; }
+    .event-card-body h3 { font-size: 1rem; margin: 0 0 8px; }
+    .event-card-body p { color: var(--connect-muted, #9aa4ad); margin: 0; font-size: .9rem; }
+    .availability-event-card .toggle-select {
+        grid-column: 1 / -1;
+        margin: 2px 0 0;
+        width: 100%;
+    }
+    .availability-submit-bar {
+        position: sticky;
+        bottom: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 18px;
+        padding: 12px 14px;
+        background: var(--connect-surface, #14181f);
+        border: 1px solid var(--connect-border, #232a35);
+        border-radius: 8px;
+        box-shadow: 0 -8px 18px rgba(0, 0, 0, .2);
+    }
+    .availability-submit-bar .btn { margin: 0; }
+    .availability-no-events {
+        grid-column: 1 / -1;
+        text-align: center;
+        color: var(--connect-muted, #9aa4ad);
+        padding: 34px 16px;
+    }
+    .availability-no-events i {
+        display: block;
+        color: var(--connect-green, #39ff14);
+        font-size: 32px;
+        margin-bottom: 10px;
+    }
+    .availability-no-events strong,
+    .availability-no-events span { display: block; }
+    @media (max-width: 900px) {
+        .availability-select-header,
+        .availability-submit-bar { flex-direction: column; align-items: stretch; }
+        .availability-filters { grid-template-columns: 1fr; }
+        .availability-filters > div:first-child { align-self: stretch; }
+        .availability-day-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .availability-submit-bar .btn { width: 100%; }
+    }
+    @media (max-width: 520px) {
+        .availability-day-filter { grid-template-columns: 1fr; }
+    }
+</style>
 
 
 {% endblock %}

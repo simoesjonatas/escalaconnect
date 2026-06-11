@@ -1,10 +1,79 @@
 from django.utils import timezone
 from django.shortcuts import render, redirect
-from datetime import timedelta, datetime
+from django.contrib import messages
+from datetime import timedelta, datetime, date, time
+import calendar
 from .models import Evento
-from .forms import EventoRecorrenteForm
+from .forms import EventoRecorrenteForm, GerarCultosMensaisForm
 from planejamento.models import Planejamento, PlanejamentoFuncao
 from escala.models import Escala
+from escalaconnect.utils import admin_required
+
+
+def _proximo_mes(ano, mes):
+    if mes == 12:
+        return ano + 1, 1
+    return ano, mes + 1
+
+
+def _datas_do_mes_por_dia_semana(ano, mes, dia_semana):
+    ultimo_dia = calendar.monthrange(ano, mes)[1]
+    for dia in range(1, ultimo_dia + 1):
+        data = date(ano, mes, dia)
+        if data.weekday() == dia_semana:
+            yield data
+
+
+def _criar_evento_culto(nome, data_evento, horario_inicio, horario_fim, ignorar_existentes=True):
+    data_inicio = timezone.make_aware(datetime.combine(data_evento, horario_inicio))
+    data_fim = timezone.make_aware(datetime.combine(data_evento, horario_fim))
+
+    if ignorar_existentes and Evento.objects.filter(
+        nome=nome,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+    ).exists():
+        return None
+
+    return Evento.objects.create(
+        nome=nome,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+    )
+
+
+def gerar_cultos_mensais(ano, mes, quantidade_meses, ignorar_existentes=True):
+    eventos_criados = []
+    eventos_pulados = 0
+
+    for _ in range(quantidade_meses):
+        for data_domingo in _datas_do_mes_por_dia_semana(ano, mes, 6):
+            for nome, inicio, fim in (
+                ("Culto de Domingo - Manhã", time(9, 45), time(12, 0)),
+                ("Culto de Domingo - Noite", time(18, 0), time(21, 0)),
+            ):
+                evento = _criar_evento_culto(nome, data_domingo, inicio, fim, ignorar_existentes)
+                if evento:
+                    eventos_criados.append(evento)
+                else:
+                    eventos_pulados += 1
+
+        for data_quarta in _datas_do_mes_por_dia_semana(ano, mes, 2):
+            evento = _criar_evento_culto(
+                "Culto de Quarta-feira",
+                data_quarta,
+                time(19, 30),
+                time(21, 0),
+                ignorar_existentes,
+            )
+            if evento:
+                eventos_criados.append(evento)
+            else:
+                eventos_pulados += 1
+
+        ano, mes = _proximo_mes(ano, mes)
+
+    return eventos_criados, eventos_pulados
 
 
 
@@ -61,3 +130,25 @@ def evento_create_recorrente(request):
         form = EventoRecorrenteForm()
 
     return render(request, 'evento/evento_create_recorrente.html', {'form': form})
+
+
+@admin_required
+def gerar_cultos_mensais_view(request):
+    if request.method == 'POST':
+        form = GerarCultosMensaisForm(request.POST)
+        if form.is_valid():
+            eventos_criados, eventos_pulados = gerar_cultos_mensais(
+                ano=form.cleaned_data['ano'],
+                mes=form.cleaned_data['mes'],
+                quantidade_meses=form.cleaned_data['quantidade_meses'],
+                ignorar_existentes=form.cleaned_data['ignorar_existentes'],
+            )
+            messages.success(
+                request,
+                f"{len(eventos_criados)} eventos criados. {eventos_pulados} eventos já existentes ignorados."
+            )
+            return redirect('evento_list')
+    else:
+        form = GerarCultosMensaisForm()
+
+    return render(request, 'evento/gerar_cultos_mensais.html', {'form': form})

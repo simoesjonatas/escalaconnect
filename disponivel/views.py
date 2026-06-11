@@ -127,6 +127,7 @@ def registrar_por_evento(request):
 def processar_disponibilidade_evento(request):
     if request.method == 'POST':
         selected_event_ids = request.POST.getlist('event_ids')
+        criadas = 0
         # print(selected_event_ids)
         for event_id in selected_event_ids:
             # Crie aqui os registros de disponibilidade
@@ -142,6 +143,9 @@ def processar_disponibilidade_evento(request):
                     data_inicio=evento.data_inicio,
                     data_fim=evento.data_fim
                 )
+                criadas += 1
+        if criadas:
+            messages.success(request, f"{criadas} disponibilidade(s) registrada(s) com sucesso.")
         return redirect('lista_disponivel') #certo
     return redirect('lista_disponivel') #errado
 # HttpResponseRedirect('/caminho-de-erro/')

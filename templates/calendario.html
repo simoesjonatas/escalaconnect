@@ -14,6 +14,7 @@
 {% if request.user.is_staff or request.user.is_superuser %}
 <div class="cal-actions">
     <a class="btn btn-success" href="{% url 'create_evento_planejamento' %}"><i class="fa fa-plus mr-1"></i> Adicionar Evento</a>
+    <a class="btn btn-info" href="{% url 'gerar_cultos_mensais' %}"><i class="fa fa-calendar-plus mr-1"></i> Gerar Cultos Mensais</a>
     <a class="btn btn-primary" href="{% url 'evento_create_recorrente' %}"><i class="fa fa-redo mr-1"></i> Eventos Recorrentes</a>
 </div>
 {% endif %}
@@ -27,7 +28,7 @@
 <div id="calendar"></div>
 
 <!-- Modal de detalhes do evento -->
-<div id="eventModal" class="modal">
+<div id="eventModal" class="modal calendar-event-modal">
     <div class="modal-content">
         <span class="close">&times;</span>
         <h2 id="modalTitle">Evento</h2>
@@ -48,6 +49,30 @@
     #modalEscala .status-ok { color:#39ff14; font-weight:600; }
     #modalEscala .status-pend { color:#ffb74d; font-weight:600; }
     .fc .fc-event { cursor:pointer; }
+    .calendar-event-modal .modal-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: stretch;
+        gap: 10px;
+        margin-top: 16px;
+    }
+    .calendar-event-modal .modal-buttons .btn {
+        display: inline-flex;
+        flex: 1 1 180px;
+        justify-content: center;
+        align-items: center;
+        min-width: 0;
+        margin: 0;
+        text-align: center;
+        white-space: normal;
+        line-height: 1.25;
+    }
+    @media (max-width: 520px) {
+        .calendar-event-modal .modal-buttons .btn {
+            flex-basis: 100%;
+        }
+    }
 </style>
 
 <script>
@@ -99,14 +124,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 var cls = (p.status === 'Confirmada') ? 'status-ok' : 'status-pend';
                 esc.innerHTML = 'Você está escalado' + (p.funcoes ? ' (' + p.funcoes + ')' : '') +
                     ' — <span class="' + cls + '">' + p.status + '</span>';
-                myBtn.style.display = 'inline-block';
+                myBtn.style.display = 'inline-flex';
             } else {
                 esc.textContent = 'Você não está escalado neste evento.';
                 myBtn.style.display = 'none';
             }
 
             document.getElementById('viewEventBtn').href = '/api/events/' + ev.id + '/';
-            modal.style.display = 'block';
+            modal.style.display = 'flex';
         }
     });
 

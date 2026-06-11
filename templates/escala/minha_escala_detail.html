@@ -27,8 +27,11 @@
         <li><strong>Data de Confirmação:</strong> {{ escala.data_confirmacao|default:"-" }}</li>
     </ul>
     
-    <div class="clearfix">
-        <a class="btn btn-secondary" href="{% url 'minhas_escalas' %}">Voltar</a>
+    <div class="schedule-actions">
+        <a class="btn btn-secondary back-action" href="{% url 'minhas_escalas' %}">
+            <i class="fa fa-arrow-left"></i>
+            <span>Voltar para minhas escalas</span>
+        </a>
         
         {% if not escala.confirmada %}
         
@@ -68,4 +71,39 @@
 
     </div>
 </div>
+
+<style>
+    .schedule-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+    }
+    .schedule-actions form {
+        margin: 0;
+    }
+    .schedule-actions .btn {
+        margin: 0;
+    }
+    .back-action {
+        align-items: center;
+        display: inline-flex;
+        gap: 8px;
+        text-transform: none;
+    }
+    .back-action i {
+        font-size: .9rem;
+    }
+    @media (max-width: 640px) {
+        .schedule-actions {
+            align-items: stretch;
+            flex-direction: column;
+        }
+        .schedule-actions .btn {
+            justify-content: center;
+            width: 100%;
+        }
+    }
+</style>
 {% endblock %}

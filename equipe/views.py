@@ -127,7 +127,7 @@ def candidatura_equipe(request):
             MembrosEquipe.objects.filter(usuario=request.user, equipe=equipe).delete()
 
         messages.success(request, 'Suas candidaturas foram atualizadas com sucesso!')
-        return redirect('equipe_list')
+        return redirect('base_page')
 
     return render(request, 'equipe/candidatura_equipe.html', context)
 
@@ -149,11 +149,16 @@ def disponibilidades_equipe(request, equipe_pk):
     direction  = request.GET.get("direction") or "asc"
     # (qualquer outro parâmetro — inclusive 'evento' — será ignorado)
 
-    # Base queryset (filtra pela equipe via FK do Evento, por ID)
+    membro_ids = MembrosEquipe.objects.filter(
+        equipe=equipe,
+        aprovado=True,
+    ).values_list("usuario_id", flat=True)
+
+    # Base queryset: disponibilidades futuras de membros aprovados da equipe.
     qs = (
         Disponivel.objects
         .select_related("usuario", "evento")
-        # .filter(evento__equipe_id=equipe_pk)   # << chave da correção
+        .filter(usuario_id__in=membro_ids)
     )
     start_today = timezone.localdate()
     qs = qs.filter(
@@ -188,12 +193,11 @@ def disponibilidades_equipe(request, equipe_pk):
     paginator = Paginator(qs, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
 
-    # Combo de usuários a partir do próprio resultado
-    membros = (
-        User.objects.filter(id__in=qs.values("usuario_id"))
-        .distinct()
-        .order_by("username")
-    )
+    total_disponibilidades = qs.count()
+    total_voluntarios = qs.values("usuario_id").distinct().count()
+
+    # Combo de usuários da equipe, mesmo quando ainda não têm disponibilidade.
+    membros = User.objects.filter(id__in=membro_ids).distinct().order_by("username")
 
     disponibilidade_fields = [
         ("usuario__username", "Usuário"),
@@ -213,10 +217,12 @@ def disponibilidades_equipe(request, equipe_pk):
         "disponibilidade_fields": disponibilidade_fields,
         "membros": membros,
         "selected_user": user_param,
+        "total_disponibilidades": total_disponibilidades,
+        "total_voluntarios": total_voluntarios,
+        "total_membros": membros.count(),
         "months": list(range(1, 13)),
         "years": [now.year - 1, now.year, now.year + 1],
         "current_month": now.month,
         "current_year": now.year,
     }
     return render(request, "escala/disponibilidades_equipe.html", context)
-

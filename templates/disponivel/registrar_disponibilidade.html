@@ -12,21 +12,31 @@
 
 {% block content %}
 
-<div class="dashboard-container">
-    <h2>Escolha o tipo de disponibilidade que deseja registrar:</h2>
+<div class="dashboard-container availability-choice">
+    <h2>Registrar disponibilidade</h2>
+    <p>Escolha os eventos em que você pode servir. Essa é a forma mais rápida de ajudar os líderes a montarem as escalas.</p>
 
     <div class="dashboard-grid">
-        <div class="dashboard-card" style="opacity:.5; cursor:not-allowed; pointer-events:none;" aria-disabled="true" title="Cadastro por horário desativado">
-            <i class="fa fa-clock"></i>
-            <h3>Por Horário</h3>
-            <p>Indisponível no momento. Registre sua disponibilidade <strong>por evento</strong>.</p>
-        </div>
         <a href="{% url 'registrar_disponibilidade_evento' %}" class="dashboard-card">
             <i class="fa fa-calendar-check"></i>
-            <h3>Por Evento</h3>
-            <p>Informe a disponibilidade para eventos marcados.</p>
+            <h3>Selecionar eventos</h3>
+            <p>Marque vários eventos de uma vez usando filtros por mês e dia da semana.</p>
+        </a>
+        <a href="{% url 'lista_disponivel' %}" class="dashboard-card">
+            <i class="fa fa-list-check"></i>
+            <h3>Ver minhas disponibilidades</h3>
+            <p>Confira os eventos em que você já informou disponibilidade.</p>
         </a>
     </div>
 </div>
+
+<style>
+    .availability-choice { max-width: 900px; margin: 0 auto; }
+    .availability-choice > p {
+        color: var(--connect-muted, #9aa4ad);
+        margin: 0 auto 18px;
+        max-width: 680px;
+    }
+</style>
 
 {% endblock %}

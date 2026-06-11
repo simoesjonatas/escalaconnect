@@ -28,6 +28,7 @@ urlpatterns = [
 
     # eventos recorrentes
     path('eventos/adicionar-recorrente/', evento_create_recorrente, name='evento_create_recorrente'),
+    path('eventos/gerar-cultos-mensais/', gerar_cultos_mensais_view, name='gerar_cultos_mensais'),
 
     # planejamento 
     path('planejamento-equipes/', planejamento_equipes, name='planejamento_equipes'),

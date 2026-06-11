@@ -61,7 +61,17 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+*.sqlite3
+*.sqlite3-journal
 media/
+staticfiles/
+.staticfiles/
+
+# Static build artifacts / downloaded archives
+static/**/*.map
+static/**/*.gz
+static/**/*.br
+static/**/*.zip
 
 # Flask stuff:
 instance/
@@ -98,12 +108,15 @@ __pypackages__/
 # Celery stuff
 celerybeat-schedule
 celerybeat.pid
+celerybeat-schedule.*
 
 # SageMath parsed files
 *.sage.py
 
 # Environments
 .env
+.env.*
+!.env.example
 .venv
 env/
 venv/
@@ -111,3 +124,14 @@ ENV/
 env.bak/
 venv.bak/
 
+# IDE / OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Docker local overrides
+docker-compose.override.yml
+
+# Local task notes
+task.md

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Gerar Cultos Mensais{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_list' %}">Eventos</a></li>
+    <li class="breadcrumb-item">Gerar Cultos Mensais</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container">
+    <h3>Gerar cultos mensais</h3>
+
+    <div class="mb-3">
+        <p>Domingos: manhã das 09:45 às 12:00 e noite das 18:00 às 21:00.</p>
+        <p>Quartas-feiras: das 19:30 às 21:00.</p>
+    </div>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="{{ form.mes.id_for_label }}">{{ form.mes.label }}</label>
+            {{ form.mes }}
+            {{ form.mes.errors }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.ano.id_for_label }}">{{ form.ano.label }}</label>
+            {{ form.ano }}
+            {{ form.ano.errors }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.quantidade_meses.id_for_label }}">{{ form.quantidade_meses.label }}</label>
+            {{ form.quantidade_meses }}
+            {{ form.quantidade_meses.errors }}
+        </div>
+
+        <div class="form-group form-check">
+            {{ form.ignorar_existentes }}
+            <label class="form-check-label" for="{{ form.ignorar_existentes.id_for_label }}">
+                {{ form.ignorar_existentes.label }}
+            </label>
+            {{ form.ignorar_existentes.errors }}
+        </div>
+
+        <button type="submit" class="btn btn-success">Gerar cultos</button>
+        <a class="btn btn-secondary" href="{% url 'evento_list' %}">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

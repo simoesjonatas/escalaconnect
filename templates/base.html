@@ -284,9 +284,10 @@
         // Script para toggle do menu lateral
         const menuToggle = document.getElementById('menuToggle');
         const sidebar = document.querySelector('.sidebar');
+        const menuBreakpoint = 1100;
 
         function handleResize() {
-            if (window.innerWidth <= 768) {
+            if (window.innerWidth <= menuBreakpoint) {
                 menuToggle.style.display = 'block';
             } else {
                 menuToggle.style.display = 'none';
