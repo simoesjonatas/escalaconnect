@@ -12,114 +12,109 @@
 {% block content %}
 
 {% if request.user.is_staff or request.user.is_superuser %}
-<a class="btn btn-success float-right" href="{% url 'create_evento_planejamento' %}">Adicionar Evento</a>
-<a class="btn btn-primary float-right" href="{% url 'evento_create_recorrente' %}">Adicionar Eventos Recorrentes</a>
+<div class="cal-actions">
+    <a class="btn btn-success" href="{% url 'create_evento_planejamento' %}"><i class="fa fa-plus mr-1"></i> Adicionar Evento</a>
+    <a class="btn btn-primary" href="{% url 'evento_create_recorrente' %}"><i class="fa fa-redo mr-1"></i> Eventos Recorrentes</a>
+</div>
 {% endif %}
+
+<div class="cal-legend">
+    <span><i class="cal-dot" style="background:#2e7d32"></i> Minha escala confirmada</span>
+    <span><i class="cal-dot" style="background:#ef6c00"></i> Minha escala — a confirmar</span>
+    <span><i class="cal-dot" style="background:#3b5bdb"></i> Evento</span>
+</div>
 
 <div id="calendar"></div>
 
-<!-- Modal para adicionar/editar evento -->
+<!-- Modal de detalhes do evento -->
 <div id="eventModal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
-        <h2 id="modalTitle">Criar Evento</h2>
-        <form id="eventForm">
-            <input type="hidden" id="eventId">
-
-            <label for="eventTitle">Título:</label>
-            <input type="text" id="eventTitle" class="form-control" required>
-
-            <label for="eventStart">Data de Início:</label>
-            <input type="datetime-local" id="eventStart" class="form-control" required>
-
-            <label for="eventEnd">Data de Fim:</label>
-            <input type="datetime-local" id="eventEnd" class="form-control" required>
-
-            <div class="modal-buttons">
-                <button type="submit" id="saveEventBtn" class="btn btn-success">Salvar</button>
-                <a id="viewEventBtn" class="btn btn-primary" style="display: none;">Ir para Evento</a>
-            </div>
-        </form>
+        <h2 id="modalTitle">Evento</h2>
+        <p id="modalDate"></p>
+        <p id="modalEscala"></p>
+        <div class="modal-buttons">
+            <a id="myEscalasBtn" class="btn btn-success" href="{% url 'minhas_escalas' %}" style="display:none;">Minhas escalas</a>
+            <a id="viewEventBtn" class="btn btn-primary" href="#">Ir para o evento</a>
+        </div>
     </div>
 </div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-    var calendarEl = document.getElementById('calendar');
-    var modal = document.getElementById("eventModal");
-    var closeModal = document.getElementsByClassName("close")[0];
+<style>
+    .cal-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; margin-bottom:10px; }
+    .cal-legend { display:flex; gap:18px; flex-wrap:wrap; margin:4px 0 14px; color:var(--connect-muted,#9aa4ad); font-size:.9rem; }
+    .cal-legend .cal-dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+    #modalDate { color:var(--connect-muted,#9aa4ad); margin-bottom:8px; }
+    #modalEscala .status-ok { color:#39ff14; font-weight:600; }
+    #modalEscala .status-pend { color:#ffb74d; font-weight:600; }
+    .fc .fc-event { cursor:pointer; }
+</style>
 
-    // Config responsiva
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var calendarEl = document.getElementById('calendar');
+    var modal = document.getElementById('eventModal');
+    var closeModal = document.getElementsByClassName('close')[0];
+
     function isMobile() { return window.matchMedia('(max-width: 640px)').matches; }
     function toolbarForDevice() {
         return isMobile()
-        ? { left: 'prev,next today', center: 'title', right: '' }                     // mobile: sem troca de view
-        : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' };
+            ? { left: 'prev,next today', center: 'title', right: '' }
+            : { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,listWeek' };
     }
-    function initialViewForDevice() {
-        // Em mobile, listWeek facilita leitura; altere para 'dayGridMonth' se preferir manter o mês
-        return isMobile() ? 'listWeek' : 'dayGridMonth';
-    }
+    function initialViewForDevice() { return isMobile() ? 'listWeek' : 'dayGridMonth'; }
 
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: initialViewForDevice(),
         headerToolbar: toolbarForDevice(),
         locale: 'pt-br',
         buttonText: { today: 'hoje', month: 'mês', week: 'semana', day: 'dia', list: 'lista' },
-
-        // Ajustes de altura/responsividade
         expandRows: true,
         contentHeight: 'auto',
         height: 'auto',
         handleWindowResize: true,
-
+        nowIndicator: true,
+        dayMaxEvents: true,
         events: '/api/events/',
-
-        // Reconfigura quando a tela mudar de tamanho (rotate/troca de largura)
         windowResize: function () {
-        calendar.setOption('headerToolbar', toolbarForDevice());
-        var desiredView = initialViewForDevice();
-        if (calendar.view.type !== desiredView) {
-            calendar.changeView(desiredView);
-        }
-        calendar.updateSize();
+            calendar.setOption('headerToolbar', toolbarForDevice());
+            var desiredView = initialViewForDevice();
+            if (calendar.view.type !== desiredView) calendar.changeView(desiredView);
+            calendar.updateSize();
         },
-
-        // --- seus callbacks originais ---
-        dateClick: function(info) {
-        modal.style.display = "block";
-        document.getElementById("modalTitle").textContent = "Criar Evento";
-        document.getElementById('eventId').value = "";
-        document.getElementById('eventTitle').value = "";
-        document.getElementById('eventStart').value = info.dateStr + "T00:00";
-        document.getElementById('eventEnd').value = info.dateStr + "T23:59";
-        document.getElementById('viewEventBtn').style.display = "none";
-        },
-
         eventClick: function(info) {
-        modal.style.display = "block";
-        document.getElementById("modalTitle").textContent = "Editar Evento";
-        document.getElementById('eventId').value = info.event.id;
-        document.getElementById('eventTitle').value = info.event.title;
-        document.getElementById('eventStart').value = info.event.start.toISOString().slice(0, 16);
-        document.getElementById('eventEnd').value = info.event.end ? info.event.end.toISOString().slice(0, 16) : "";
+            info.jsEvent.preventDefault();
+            var ev = info.event;
+            var p = ev.extendedProps || {};
 
-        var viewEventBtn = document.getElementById('viewEventBtn');
-        viewEventBtn.href = `/api/events/${info.event.id}`;
-        viewEventBtn.style.display = "inline-block";
+            document.getElementById('modalTitle').textContent = ev.title;
+
+            var ini = ev.start ? ev.start.toLocaleString('pt-BR', { dateStyle: 'full', timeStyle: 'short' }) : '';
+            var fim = ev.end ? ev.end.toLocaleString('pt-BR', { timeStyle: 'short' }) : '';
+            document.getElementById('modalDate').textContent = ini + (fim ? ' — ' + fim : '');
+
+            var esc = document.getElementById('modalEscala');
+            var myBtn = document.getElementById('myEscalasBtn');
+            if (p.escalado) {
+                var cls = (p.status === 'Confirmada') ? 'status-ok' : 'status-pend';
+                esc.innerHTML = 'Você está escalado' + (p.funcoes ? ' (' + p.funcoes + ')' : '') +
+                    ' — <span class="' + cls + '">' + p.status + '</span>';
+                myBtn.style.display = 'inline-block';
+            } else {
+                esc.textContent = 'Você não está escalado neste evento.';
+                myBtn.style.display = 'none';
+            }
+
+            document.getElementById('viewEventBtn').href = '/api/events/' + ev.id + '/';
+            modal.style.display = 'block';
         }
     });
 
     calendar.render();
 
-    // --- resto do seu código do modal e fetch (inalterado) ---
-    closeModal.onclick = function() { modal.style.display = "none"; };
-    window.onclick = function(event) { if (event.target == modal) modal.style.display = "none"; };
-
-    document.getElementById('eventForm').addEventListener('submit', function(e) { /* ... seu código atual ... */ });
-    // botão excluir removido
-    });
+    closeModal.onclick = function() { modal.style.display = 'none'; };
+    window.onclick = function(e) { if (e.target == modal) modal.style.display = 'none'; };
+});
 </script>
-
 
 {% endblock %}

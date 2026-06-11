@@ -4,6 +4,7 @@ from .forms_signup import SignupForm
 from .models import Usuario
 from equipe.models import Equipe, MembrosEquipe
 from django.contrib.auth.decorators import login_required
+from django.utils.timezone import now
 
 def signup(request):
     if request.method == 'POST':
@@ -13,6 +14,7 @@ def signup(request):
             user.backend = 'django.contrib.auth.backends.ModelBackend'
             login(request, user)
             user.is_first_login = False
+            user.termo_aceito_em = now()  # aceitou o termo ao marcar a caixa no cadastro
             user.save()
             return redirect('inscricao')
     else:
@@ -22,6 +24,20 @@ def signup(request):
 
 def termos_de_uso(request):
     return render(request, 'usuario/termos_de_uso.html')
+
+
+@login_required
+def aceitar_termo(request):
+    """Exibe o termo de compromisso do voluntário e registra o aceite."""
+    if request.user.termo_aceito_em:
+        return redirect('base_page')
+
+    if request.method == 'POST':
+        request.user.termo_aceito_em = now()
+        request.user.save(update_fields=['termo_aceito_em'])
+        return redirect('base_page')
+
+    return render(request, 'usuario/aceitar_termo.html')
 
 @login_required
 def inscricao(request):

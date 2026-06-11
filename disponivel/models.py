@@ -10,5 +10,10 @@ class Disponivel(models.Model):
     data_cadastro = models.DateTimeField(auto_now_add=True)
     data_atualizacao = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['usuario', 'data_inicio', 'data_fim']),
+        ]
+
     def __str__(self):
         return f"{self.usuario.username} disponível de {self.data_inicio} até {self.data_fim}"

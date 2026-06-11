@@ -37,6 +37,15 @@ Escalas do Evento {{ evento.nome }}
         </form>
 
         {% endif %}
+        {% if request.user.is_staff or request.user.is_superuser or request.user.is_leader %}
+        <form method="post" action="{% url 'auto_escalar_evento' evento.pk %}" class="d-inline"
+              onsubmit="return confirm('Preencher automaticamente as vagas vazias deste evento com voluntários disponíveis?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-info" title="Preenche as vagas em aberto com voluntários disponíveis, priorizando quem serviu menos">
+                <i class="fa fa-magic"></i> Auto-escalar
+            </button>
+        </form>
+        {% endif %}
     </div>
 
     <div class="table-responsive">

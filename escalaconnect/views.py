@@ -5,6 +5,9 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 from evento.models import Evento
 from escala.models import Escala
+from disponivel.models import Disponivel
+from equipe.models import Equipe, MembrosEquipe
+from django.db.models import Count
 from escalaconnect.tasks import enviar_email_confirmacao_task
 from django.utils import timezone
 from django.urls import reverse
@@ -12,8 +15,36 @@ from django.urls import reverse
 # View para renderizar a página base
 @login_required(login_url='/login/')
 def base_view(request):
-    # return render(request, 'base.html')
-    return render(request, 'home/home.html')
+    tem_disponibilidade = Disponivel.objects.filter(usuario=request.user).exists()
+    escalas_pendentes = Escala.objects.filter(
+        usuario=request.user,
+        confirmada=False,
+        evento__data_inicio__gte=timezone.now(),
+    ).count()
+
+    # Pedidos de entrada pendentes nas equipes que o usuário lidera (todas, se admin).
+    if request.user.is_superuser or request.user.is_staff:
+        equipes_lideradas = Equipe.objects.all()
+    else:
+        equipes_lideradas = Equipe.objects.filter(lideranca__usuario=request.user)
+
+    pendentes = (
+        MembrosEquipe.objects
+        .filter(equipe__in=equipes_lideradas, aprovado=False)
+        .values('equipe_id', 'equipe__nome')
+        .annotate(total=Count('id'))
+        .order_by('equipe__nome')
+    )
+    equipes_com_pendentes = [
+        {'id': p['equipe_id'], 'nome': p['equipe__nome'], 'total': p['total']}
+        for p in pendentes
+    ]
+
+    return render(request, 'home/home.html', {
+        'tem_disponibilidade': tem_disponibilidade,
+        'escalas_pendentes': escalas_pendentes,
+        'equipes_com_pendentes': equipes_com_pendentes,
+    })
 
 # View para renderizar o calendário
 @login_required(login_url='/login/')

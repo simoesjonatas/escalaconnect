@@ -12,6 +12,7 @@ from django.shortcuts import redirect
 from django.utils.datastructures import MultiValueDictKeyError
 
 from escalaconnect.tasks_availability import disparar_pedido_disponibilidades
+from escala.utils import preencher_vagas
 
 def get_unapproved_desistencias(equipe_id):
     equipe = get_object_or_404(Equipe, pk=equipe_id)
@@ -164,3 +165,40 @@ def lider_pedir_disponibilidades(request, equipe_id: int):
         f"Lembretes publicados para {mes:02d}/{ano}. Verifique o admin em Notification/Attempts."
     )
     return redirect("disponibilidades_equipe", equipe_pk=equipe_id)
+
+
+@require_lideranca
+def auto_escalar_equipe(request, equipe_pk):
+    """Preenche automaticamente as vagas futuras em aberto desta equipe.
+
+    Mesmo critério da auto-escala por evento (rodízio justo), mas para todos os
+    eventos futuros da equipe de uma vez.
+    """
+    equipe = get_object_or_404(Equipe, pk=equipe_pk)
+
+    if request.method != 'POST':
+        return redirect('listar_escalas', equipe_pk=equipe_pk)
+
+    hoje = timezone.now().date()
+    vagas = list(
+        Escala.objects
+        .filter(
+            funcao__equipe=equipe,
+            usuario__isnull=True,
+            evento__data_inicio__date__gte=hoje,
+        )
+        .select_related('funcao', 'funcao__equipe', 'evento')
+        .order_by('evento__data_inicio')
+    )
+    preenchidas = preencher_vagas(vagas)
+
+    if not vagas:
+        messages.info(request, "Não há vagas em aberto nesta equipe.")
+    else:
+        if preenchidas:
+            messages.success(request, f"{preenchidas} vaga(s) preenchida(s) automaticamente.")
+        restantes = len(vagas) - preenchidas
+        if restantes:
+            messages.warning(request, f"{restantes} vaga(s) sem voluntário disponível no momento.")
+
+    return redirect('listar_escalas', equipe_pk=equipe_pk)

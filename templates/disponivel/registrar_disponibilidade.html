@@ -16,11 +16,11 @@
     <h2>Escolha o tipo de disponibilidade que deseja registrar:</h2>
 
     <div class="dashboard-grid">
-        <a href="{% url 'registrar_disponibilidade_horario' %}" class="dashboard-card">
+        <div class="dashboard-card" style="opacity:.5; cursor:not-allowed; pointer-events:none;" aria-disabled="true" title="Cadastro por horário desativado">
             <i class="fa fa-clock"></i>
             <h3>Por Horário</h3>
-            <p>Informe a disponibilidade por horário específico.</p>
-        </a>
+            <p>Indisponível no momento. Registre sua disponibilidade <strong>por evento</strong>.</p>
+        </div>
         <a href="{% url 'registrar_disponibilidade_evento' %}" class="dashboard-card">
             <i class="fa fa-calendar-check"></i>
             <h3>Por Evento</h3>

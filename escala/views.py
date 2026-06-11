@@ -1,8 +1,10 @@
+from datetime import timezone as datetime_timezone
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.urls import reverse
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from escala.models import Escala, Funcao
 from evento.models import Evento
 from escala.forms import EscalaForm, MultiEscalaForm
@@ -11,11 +13,10 @@ from equipe.decorators import require_lideranca
 from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
 from django.contrib import messages
-from ocupado.models import Ocupado
 from django.conf import settings
 from usuario.models import Usuario
 from equipe.models import Lideranca, Equipe
-from disponivel.models import Disponivel
+from escala.utils import usuarios_disponiveis_para_evento, preencher_vagas
 
 
 def escalas_por_evento(request, pk):
@@ -96,9 +97,6 @@ def escala_delete(request, pk):
 # @require_lideranca
 def escala_detail(request, pk):
     escala = get_object_or_404(Escala, pk=pk)
-    # pega os horários do evento associado a escala
-    evento_inicio = escala.evento.data_inicio
-    evento_fim = escala.evento.data_fim
     evento = escala.evento
     is_leader = Lideranca.objects.filter(usuario=request.user, equipe=escala.funcao.equipe).exists()
 
@@ -110,36 +108,15 @@ def escala_detail(request, pk):
     if direction == 'desc':
         order_by = f'-{order_by}'
 
-    membros = escala.funcao.equipe.membros.filter(aprovado=True)
-
-    # Filtra usuários sem indisponibilidade
-    usuarios_sem_indisponibilidade = [
-        membro.usuario for membro in membros
-        if not Ocupado.objects.filter(
-            usuario=membro.usuario,
-            data_inicio__lt=evento_fim,
-            data_fim__gt=evento_inicio
-        ).exists()
-    ]
-
-    # Filtra usuários que têm disponibilidade para o evento
-    usuarios_com_disponibilidade = [
-        usuario for usuario in usuarios_sem_indisponibilidade
-        if Disponivel.objects.filter(
-            usuario=usuario,
-            data_inicio__lte=evento_inicio,
-            data_fim__gte=evento_fim
-        ).exists()
-    ]
-
-    # Filtra usuários que já estão escalados para o mesmo evento
-    usuarios_disponiveis = [
-        usuario for usuario in usuarios_com_disponibilidade
-        if not Escala.objects.filter(
-            usuario=usuario,
-            evento=evento
-        ).exclude(pk=escala.pk).exists()
-    ]
+    # Usuários disponíveis para o evento: membros aprovados, sem conflito de horário,
+    # disponíveis no intervalo e ainda não escalados. Lógica única em escala/utils
+    # (elimina o N+1 que existia aqui ao consultar Ocupado/Disponível por membro).
+    ids_disponiveis = usuarios_disponiveis_para_evento(
+        equipe=escala.funcao.equipe,
+        evento=evento,
+        excluir_escala_id=escala.pk,
+    )
+    usuarios_disponiveis = list(Usuario.objects.filter(id__in=ids_disponiveis))
 
     # Aplica o filtro de busca
     if query:
@@ -371,3 +348,106 @@ def carregar_funcoes(request):
         funcoes = Funcao.objects.filter(equipe_id=equipe_id).values('id', 'nome')
         return JsonResponse(list(funcoes), safe=False)
     return JsonResponse([], safe=False)
+
+
+def _ics_escape(text):
+    """Escapa caracteres especiais de texto para o formato iCalendar."""
+    return (
+        (text or '')
+        .replace('\\', '\\\\')
+        .replace(';', '\\;')
+        .replace(',', '\\,')
+        .replace('\n', '\\n')
+    )
+
+
+def _ics_datetime(dt):
+    """Formata um datetime aware em UTC no padrão iCalendar (ex.: 20260611T130000Z)."""
+    return dt.astimezone(datetime_timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+
+
+@login_required
+def minha_agenda_ics(request):
+    """Exporta as escalas do usuário como arquivo .ics (Google/Apple Calendar)."""
+    escalas = (
+        Escala.objects
+        .filter(usuario=request.user)
+        .select_related('evento', 'funcao', 'funcao__equipe')
+        .order_by('evento__data_inicio')
+    )
+
+    linhas = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//Escala Connect//PT-BR//',
+        'CALSCALE:GREGORIAN',
+        'METHOD:PUBLISH',
+        'X-WR-CALNAME:Minhas Escalas',
+    ]
+    carimbo = _ics_datetime(now())
+
+    for escala in escalas:
+        evento = escala.evento
+        if not (evento and evento.data_inicio and evento.data_fim):
+            continue
+        equipe = escala.funcao.equipe.nome if escala.funcao and escala.funcao.equipe else ''
+        funcao = escala.funcao.nome if escala.funcao else ''
+        titulo = ' - '.join(p for p in (funcao, equipe) if p) or evento.nome
+        situacao = 'Confirmada' if escala.confirmada else 'A confirmar'
+        linhas += [
+            'BEGIN:VEVENT',
+            f'UID:escala-{escala.pk}@connect.simoesti.com.br',
+            f'DTSTAMP:{carimbo}',
+            f'DTSTART:{_ics_datetime(evento.data_inicio)}',
+            f'DTEND:{_ics_datetime(evento.data_fim)}',
+            f'SUMMARY:{_ics_escape(titulo)}',
+            f'DESCRIPTION:{_ics_escape(f"{evento.nome} ({situacao})")}',
+            'END:VEVENT',
+        ]
+
+    linhas.append('END:VCALENDAR')
+    conteudo = '\r\n'.join(linhas) + '\r\n'
+
+    response = HttpResponse(conteudo, content_type='text/calendar; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="minhas-escalas.ics"'
+    return response
+
+
+@login_required
+def auto_escalar_evento(request, pk):
+    """Preenche automaticamente as vagas vazias do evento com voluntários disponíveis.
+
+    Distribui de forma justa, priorizando quem serviu menos nos últimos 60 dias.
+    Não mexe em escalas já preenchidas nem confirma presença (isso é do voluntário).
+    """
+    evento = get_object_or_404(Evento, pk=pk)
+
+    if request.method != 'POST':
+        return redirect('evento_escalas', pk=pk)
+
+    # Permissão: staff/superuser ou líder de alguma equipe envolvida no evento.
+    is_admin = request.user.is_staff or request.user.is_superuser
+    lidera = Lideranca.objects.filter(
+        usuario=request.user, equipe__funcao__escala__evento=evento
+    ).exists()
+    if not (is_admin or lidera):
+        return render(request, '403_forbidden.html', status=403)
+
+    vagas = list(
+        Escala.objects
+        .filter(evento=evento, usuario__isnull=True)
+        .select_related('funcao', 'funcao__equipe')
+    )
+
+    preenchidas = preencher_vagas(vagas)
+
+    if not vagas:
+        messages.info(request, "Não há vagas em aberto neste evento.")
+    else:
+        if preenchidas:
+            messages.success(request, f"{preenchidas} vaga(s) preenchida(s) automaticamente.")
+        restantes = len(vagas) - preenchidas
+        if restantes:
+            messages.warning(request, f"{restantes} vaga(s) sem voluntário disponível no momento.")
+
+    return redirect('evento_escalas', pk=pk)

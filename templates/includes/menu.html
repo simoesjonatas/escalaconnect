@@ -18,6 +18,7 @@
         {% comment %} <li><a href="{% url 'lista_ocupado' %}"><i class="fa fa-times"></i> Indisponibilidades</a></li> {% endcomment %}
         <li><a href="{% url 'perfil_usuario' %}"><i class="fa fa-user"></i> Meu Perfil</a></li>
         {% if request.user.is_leader or request.user.is_staff or request.user.is_superuser %}
+        <li><a href="{% url 'dashboard_lider' %}"><i class="fa fa-chart-line"></i> Painel do Líder</a></li>
         <li><a href="{% url 'usuario_list' %}"><i class="fa fa-users-cog"></i> Usuários</a></li>
         {% endif %}
         {% if user.is_superuser or user.is_staff %}

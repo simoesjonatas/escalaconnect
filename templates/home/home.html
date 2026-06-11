@@ -1,43 +1,72 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Painel Inicial{% endblock %}
+{% block page_title %}Início{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <h2>Olá, {{ user.username }}!</h2>
-    <p>Escolha uma das opções abaixo para navegar no sistema:</p>
+<div class="home-wrap">
+
+    <section class="home-hero">
+        <h2>Olá, {{ user.get_full_name|default:user.username }}! 👋</h2>
+        <p>Bem-vindo ao Escala Connect — acompanhe suas escalas, confirme presença e mantenha sua disponibilidade em dia.</p>
+    </section>
+
+    <!-- Aviso geral — edite ou remova conforme a necessidade da igreja/ministério. -->
+    <div class="alert alert-info home-alert">
+        <i class="fa fa-bullhorn"></i>
+        <span><strong>Aviso:</strong> mantenha sua disponibilidade sempre atualizada e confirme suas escalas assim que possível. 🙏</span>
+    </div>
+
+    {% if not tem_disponibilidade %}
+    <div class="alert alert-warning home-alert">
+        <i class="fa fa-exclamation-triangle"></i>
+        <span>Você ainda <strong>não cadastrou nenhuma disponibilidade</strong>. Sem isso, os líderes não conseguem te escalar.</span>
+        <a href="{% url 'registrar_disponibilidade' %}" class="btn btn-success btn-sm">
+            <i class="fa fa-calendar-plus mr-1"></i> Cadastrar disponibilidade
+        </a>
+    </div>
+    {% endif %}
+
+    {% if escalas_pendentes %}
+    <div class="alert alert-info home-alert">
+        <i class="fa fa-clock"></i>
+        <span>Você tem <strong>{{ escalas_pendentes }}</strong> escala(s) aguardando sua confirmação.</span>
+        <a href="{% url 'minhas_escalas' %}" class="btn btn-primary btn-sm">Ver minhas escalas</a>
+    </div>
+    {% endif %}
+
+    {% if equipes_com_pendentes %}
+    <div class="alert alert-success home-alert">
+        <i class="fa fa-user-plus"></i>
+        <span>Há pessoas querendo entrar nas suas equipes:</span>
+        <span class="home-chips">
+            {% for p in equipes_com_pendentes %}
+            <a href="{% url 'listar_membros_pendentes' equipe_pk=p.id %}" class="home-chip" title="Aprovar membros de {{ p.nome }}">
+                {{ p.nome }} <span class="home-chip-count">{{ p.total }}</span>
+            </a>
+            {% endfor %}
+        </span>
+    </div>
+    {% endif %}
 
     <div class="dashboard-grid">
         <a href="{% url 'minhas_escalas' %}" class="dashboard-card">
             <i class="fa fa-calendar-check"></i>
             <h3>Minhas Escalas</h3>
-            <p>Veja suas escalas e horários.</p>
+            <p>Veja suas escalas e confirme presença.</p>
         </a>
 
         <a href="{% url 'calendario' %}" class="dashboard-card">
             <i class="fa fa-calendar-alt"></i>
             <h3>Calendário</h3>
-            <p>Visualize os eventos no calendário.</p>
+            <p>Seus eventos e escalas no calendário.</p>
         </a>
-        
+
         <a href="{% url 'lista_disponivel' %}" class="dashboard-card">
             <i class="fa fa-calendar-plus"></i>
-            <h3>Cadastrar Disponibilidade</h3>
-            <p>Informe quando estiver disponível para escalas.</p>
+            <h3>Disponibilidades</h3>
+            <p>Informe quando você pode servir.</p>
         </a>
-        {% comment %} <a href="#" class="dashboard-card" style="pointer-events: none; opacity: 0.5;">
-            <i class="fa fa-calendar-plus"></i>
-            <h3>Cadastrar Disponibilidade</h3>
-            <p>Em breve.</p>
-        </a> {% endcomment %}
-        
-{% comment %}         
-        <a href="{% url 'lista_ocupado' %}" class="dashboard-card">
-            <i class="fa fa-user-clock"></i>
-            <h3>Registrar Ocupação</h3>
-            <p>Informe quando estiver indisponível.</p>
-        </a>
-         {% endcomment %}
+
         <a href="{% url 'evento_list' %}" class="dashboard-card">
             <i class="fa fa-calendar"></i>
             <h3>Eventos</h3>
@@ -47,26 +76,51 @@
         <a href="{% url 'equipe_list' %}" class="dashboard-card">
             <i class="fa fa-users"></i>
             <h3>Equipes</h3>
-            <p>Gerencie suas equipes e membros.</p>
+            <p>Suas equipes e membros.</p>
         </a>
 
-        {% if request.user.is_superuser %}
-
-        <a href="{% url 'testar_emails' %}" class="dashboard-card">
-            <i class="fa fa-users"></i>
-            <h3>testar email</h3>
-            <p>Gerencie suas equipes e membros.</p>
+        {% if request.user.is_leader or request.user.is_staff or request.user.is_superuser %}
+        <a href="{% url 'dashboard_lider' %}" class="dashboard-card">
+            <i class="fa fa-chart-line"></i>
+            <h3>Painel do Líder</h3>
+            <p>Buracos na escala, disponíveis e confirmação.</p>
         </a>
         {% endif %}
-
-
-        <!-- <a class="dashboard-card logout-card">
-            <form action="{% url 'logout' %}" method="post" class="dashboard-card logout-card">
-                {% csrf_token %}
-                <i class="fa fa-sign-out-alt"></i>
-                <button type="submit" style="all: unset; color: inherit; cursor: pointer; font-size: inherit; width: 100%; text-align: left; padding: 15px 20px; display: block;">Sair</button>
-            </form>
-        </a> -->
     </div>
 </div>
+
+<style>
+    .home-wrap { max-width: 1100px; margin: 0 auto; }
+    .home-hero {
+        background: var(--connect-surface, #14181f);
+        border: 1px solid var(--connect-border, #232a35);
+        border-radius: 14px;
+        padding: 22px 24px;
+        margin-bottom: 16px;
+    }
+    .home-hero h2 { margin: 0 0 6px; }
+    .home-hero p { margin: 0; color: var(--connect-muted, #9aa4ad); }
+    .home-alert { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .home-alert > span:first-of-type { flex: 1 1 240px; }
+    .home-alert .btn { white-space: nowrap; }
+    /* links genéricos dentro de avisos (legíveis no fundo escuro/verde) */
+    .home-alert a:not(.btn):not(.home-chip) { color: #9fffa6; text-decoration: underline; }
+    /* equipes como chips/pílulas */
+    .home-chips { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+    .home-chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--connect-surface, #14181f);
+        border: 1px solid rgba(57, 255, 20, .5);
+        color: var(--connect-text, #eaffea) !important;
+        padding: 3px 10px; border-radius: 999px;
+        font-size: .85rem; text-decoration: none !important;
+        transition: background .15s ease, border-color .15s ease;
+    }
+    .home-chip:hover { background: var(--connect-surface-2, #1b2230); border-color: rgba(57, 255, 20, .85); }
+    .home-chip-count {
+        background: #1f7a36; color: #eafff0;
+        border-radius: 999px; padding: 0 7px;
+        font-size: .78rem; font-weight: 600;
+    }
+</style>
 {% endblock %}

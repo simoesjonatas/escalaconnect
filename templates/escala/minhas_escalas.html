@@ -18,6 +18,7 @@ Minhas Escalas
             <input type="text" name="q" class="form-control mr-2" placeholder="Buscar Escala..." value="{{ query }}">
             <button type="submit" class="btn btn-primary mr-2">Buscar</button>
             <a class="btn btn-secondary" href="{% url 'minhas_escalas' %}">Limpar Filtro</a>
+            <a class="btn btn-info ml-2" href="{% url 'minha_agenda_ics' %}" title="Exporta suas escalas para o Google/Apple Calendar"><i class="fa fa-calendar mr-1"></i> Baixar agenda (.ics)</a>
         </form>
     </div>
     

@@ -16,6 +16,9 @@ class MembrosEquipe(models.Model):
 
     class Meta:
         unique_together = ('equipe', 'usuario')  # Impede duplicação no banco de dados
+        indexes = [
+            models.Index(fields=['equipe', 'aprovado']),
+        ]
 
     def __str__(self):
         return f"{self.usuario} - {self.equipe}"

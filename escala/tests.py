@@ -2,10 +2,11 @@ import itertools
 from datetime import timedelta
 
 from django.test import TestCase
+from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from equipe.models import Equipe, MembrosEquipe
+from equipe.models import Equipe, MembrosEquipe, Lideranca
 from evento.models import Evento
 from escala.models import Funcao, Escala
 from disponivel.models import Disponivel
@@ -137,3 +138,68 @@ class EscalaModelTests(TestCase):
         self.assertIsNone(escala.usuario)
         self.assertFalse(escala.confirmada)
         self.assertIsNone(escala.data_confirmacao)
+
+
+class AutoEscalarEventoTests(TestCase):
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Louvor AE")
+        self.funcao = Funcao.objects.create(nome="Vocal", equipe=self.equipe)
+        self.base = (timezone.now() + timedelta(days=7)).replace(
+            hour=10, minute=0, second=0, microsecond=0
+        )
+        self.evento = Evento.objects.create(
+            nome="Culto AE", data_inicio=self.base, data_fim=self.base + timedelta(hours=2)
+        )
+        self.ana = self._membro_disponivel("ana_ae")
+        self.bia = self._membro_disponivel("bia_ae")
+
+        # 'ana' já serviu num evento recente -> carga maior, deve ser preterida
+        recente = timezone.now() - timedelta(days=3)
+        ev_recente = Evento.objects.create(
+            nome="Ensaio AE", data_inicio=recente, data_fim=recente + timedelta(hours=1)
+        )
+        Escala.objects.create(usuario=self.ana, funcao=self.funcao, evento=ev_recente)
+
+        # vaga em aberto no evento alvo
+        self.vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+
+        self.lider = criar_usuario("lider_ae")
+        self.lider.is_first_login = False
+        self.lider.termo_aceito_em = timezone.now()
+        self.lider.save()
+        Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+
+    def _membro_disponivel(self, username):
+        user = criar_usuario(username)
+        MembrosEquipe.objects.create(equipe=self.equipe, usuario=user, aprovado=True)
+        Disponivel.objects.create(
+            usuario=user,
+            data_inicio=self.base - timedelta(hours=1),
+            data_fim=self.base + timedelta(hours=3),
+        )
+        return user
+
+    def test_preenche_vaga_priorizando_menos_sobrecarregado(self):
+        self.client.force_login(self.lider)
+        resp = self.client.post(reverse('auto_escalar_evento', args=[self.evento.pk]))
+        self.assertEqual(resp.status_code, 302)
+        self.vaga.refresh_from_db()
+        self.assertEqual(self.vaga.usuario, self.bia)  # carga 0 sobre carga 1
+
+    def test_sem_permissao_retorna_403(self):
+        estranho = criar_usuario("estranho_ae")
+        estranho.is_first_login = False
+        estranho.termo_aceito_em = timezone.now()
+        estranho.save()
+        self.client.force_login(estranho)
+        resp = self.client.post(reverse('auto_escalar_evento', args=[self.evento.pk]))
+        self.assertEqual(resp.status_code, 403)
+        self.vaga.refresh_from_db()
+        self.assertIsNone(self.vaga.usuario)
+
+    def test_auto_escalar_equipe_preenche_vagas_futuras(self):
+        self.client.force_login(self.lider)
+        resp = self.client.post(reverse('auto_escalar_equipe', args=[self.equipe.pk]))
+        self.assertEqual(resp.status_code, 302)
+        self.vaga.refresh_from_db()
+        self.assertEqual(self.vaga.usuario, self.bia)

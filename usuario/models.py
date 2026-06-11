@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.apps import apps
 from .utils import validate_cpf
-from equipe.models import Lideranca, Equipe, MembrosEquipe
 from django.utils import timezone
 
 import uuid
@@ -9,9 +9,10 @@ import uuid
 
 class Usuario(AbstractUser):
     telefone = models.CharField(max_length=255, blank=True, null=True)
-    aniversario = models.DateTimeField(blank=True, null=True)
-    batismo = models.DateTimeField(blank=True, null=True)
+    aniversario = models.DateField(blank=True, null=True)
+    batismo = models.DateField(blank=True, null=True)
     is_first_login = models.BooleanField(default=True)
+    termo_aceito_em = models.DateTimeField(blank=True, null=True)
 
     # cpf = models.CharField(max_length=255, unique=True)
     cpf = models.CharField(
@@ -25,14 +26,16 @@ class Usuario(AbstractUser):
         return f"{self.username} ({self.email})"
 
     def is_leader(self):
+        Lideranca = apps.get_model('equipe', 'Lideranca')
         return Lideranca.objects.filter(usuario=self).exists()
-    
+
     def is_in_team(self):
         # Verifica se o usuário é superuser ou staff, o que automaticamente o qualifica como 'em uma equipe'
         if self.is_staff or self.is_superuser:
             return True
 
         # Verifica se o usuário é membro aprovado de pelo menos uma equipe
+        MembrosEquipe = apps.get_model('equipe', 'MembrosEquipe')
         return MembrosEquipe.objects.filter(usuario=self, aprovado=True).exists()
 
 

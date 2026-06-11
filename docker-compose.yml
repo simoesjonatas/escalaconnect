@@ -17,9 +17,13 @@ services:
       - .env
     environment:
       DJANGO_SETTINGS_MODULE: escalaconnect.settings
+      DATABASE_ENGINE: postgres
+      CSRF_TRUSTED_ORIGINS: http://localhost:8095,http://127.0.0.1:8095
       # Aponta o Celery para o serviço redis deste compose (sobrepõe o .env).
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_TASK_ALWAYS_EAGER: "False"
+      CELERY_TASK_EAGER_PROPAGATES: "True"
     depends_on:
       redis:
         condition: service_healthy
@@ -33,8 +37,12 @@ services:
       - .env
     environment:
       DJANGO_SETTINGS_MODULE: escalaconnect.settings
+      DATABASE_ENGINE: postgres
+      CSRF_TRUSTED_ORIGINS: http://localhost:8095,http://127.0.0.1:8095
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_TASK_ALWAYS_EAGER: "False"
+      CELERY_TASK_EAGER_PROPAGATES: "True"
     depends_on:
       redis:
         condition: service_healthy

@@ -18,6 +18,7 @@ urlpatterns = [
     path('perfil/change-password/', change_password, name='change_password'),
     
     path('termos-de-uso/', termos_de_uso, name='termos_de_uso'),
+    path('aceitar-termo/', aceitar_termo, name='aceitar_termo'),
     path('signup/', signup, name='signup'),
     path('inscricao/', inscricao, name='inscricao'),
     path('equipes/candidatar/<int:pk>/', candidatar_equipe, name='candidatar_equipe'),

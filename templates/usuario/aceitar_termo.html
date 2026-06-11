@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="{% static 'images/logo_pibvp_2022.png' %}" type="image/png">
+    <title>Termo de Compromisso do Voluntário - Escala Connect</title>
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <style>
+        .termo-card { max-width: 760px; text-align: left; }
+        .termo-card h1 { text-align: center; }
+        .termo-texto {
+            max-height: 45vh; overflow-y: auto;
+            background: rgba(0, 0, 0, .18);
+            border: 1px solid rgba(255, 255, 255, .12);
+            border-radius: 10px; padding: 16px 18px; margin: 16px 0;
+            line-height: 1.6; font-size: .95rem;
+        }
+        .termo-texto h3 { margin-top: 0; }
+        .termo-texto ul { padding-left: 1.2rem; }
+        .termo-texto li { margin-bottom: .5rem; }
+        .termo-acoes { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; justify-content: center; }
+        .termo-acoes form { margin: 0; }
+        .termo-sair { color: #9aa4ad; text-decoration: none; }
+        .termo-sair:hover { color: #39ff14; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card termo-card">
+            <div class="login-logo" aria-hidden="true">
+                <img src="{% static 'images/logo_connect.JPG' %}" alt="Connect" />
+            </div>
+            <h1>Termo de Compromisso do Voluntário</h1>
+            <p>Para participar das escalas, leia e aceite o termo abaixo.</p>
+
+            <!-- TODO: ajuste o texto deste termo conforme a sua igreja/ministério. -->
+            <div class="termo-texto">
+                <h3>Compromisso de serviço voluntário</h3>
+                <p>
+                    Ao aceitar este termo, declaro que participo das escalas de forma
+                    <strong>voluntária</strong> e me comprometo a servir com dedicação,
+                    responsabilidade e amor ao próximo, assumindo os seguintes compromissos:
+                </p>
+                <ul>
+                    <li>Manter minha disponibilidade atualizada no sistema, com sinceridade.</li>
+                    <li>Cumprir com pontualidade as escalas para as quais for designado(a).</li>
+                    <li>Comunicar com antecedência qualquer impedimento, buscando substituto/troca quando possível.</li>
+                    <li>Confirmar minha presença nas escalas dentro do prazo solicitado.</li>
+                    <li>Zelar pelo bom relacionamento, pela ordem e pela conduta cristã durante o serviço.</li>
+                    <li>Respeitar as orientações da liderança da equipe.</li>
+                </ul>
+                <p>
+                    Entendo que minha participação contribui para o bom andamento dos cultos e
+                    eventos, e que faltas sem aviso prejudicam toda a equipe.
+                </p>
+            </div>
+
+            <div class="termo-acoes">
+                <form method="post">
+                    {% csrf_token %}
+                    <button type="submit">Li e aceito o termo</button>
+                </form>
+                <a class="termo-sair" href="{% url 'logout' %}">Sair</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

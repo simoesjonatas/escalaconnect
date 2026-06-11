@@ -1,6 +1,10 @@
 # escala/utils.py
-from django.db.models import Q
+import random
+from datetime import timedelta
+
+from django.db.models import Q, Count
 from django.apps import apps
+from django.utils.timezone import now
 
 def usuarios_disponiveis_para_evento(equipe, evento, excluir_escala_id=None):
     """
@@ -69,3 +73,41 @@ def usuarios_disponiveis_para_evento(equipe, evento, excluir_escala_id=None):
 
     finais_ids = set(disponiveis_ids) - set(escalados_ids)
     return list(finais_ids)
+
+
+def preencher_vagas(escalas_vazias):
+    """Atribui voluntários disponíveis às escalas vazias informadas.
+
+    Prioriza quem serviu menos nos últimos 60 dias (rodízio justo) e salva cada
+    atribuição na hora — então a checagem de "já escalado no evento" continua
+    correta mesmo quando há várias vagas do mesmo evento. Não confirma presença
+    (isso continua sendo ação do voluntário). Retorna quantas vagas foram preenchidas.
+    """
+    Escala = apps.get_model('escala', 'Escala')
+
+    desde = now() - timedelta(days=60)
+    carga = dict(
+        Escala.objects
+        .filter(usuario__isnull=False, evento__data_inicio__gte=desde)
+        .values('usuario_id')
+        .annotate(total=Count('id'))
+        .values_list('usuario_id', 'total')
+    )
+
+    preenchidas = 0
+    for escala in escalas_vazias:
+        equipe = escala.funcao.equipe if escala.funcao else None
+        if not (equipe and escala.evento):
+            continue
+        ids = usuarios_disponiveis_para_evento(
+            equipe=equipe, evento=escala.evento, excluir_escala_id=escala.pk
+        )
+        if not ids:
+            continue
+        # Menos sobrecarregado primeiro; desempate aleatório.
+        escolhido = min(ids, key=lambda uid: (carga.get(uid, 0), random.random()))
+        escala.usuario_id = escolhido
+        escala.save(update_fields=['usuario'])
+        carga[escolhido] = carga.get(escolhido, 0) + 1
+        preenchidas += 1
+    return preenchidas

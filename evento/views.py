@@ -15,14 +15,41 @@ from django.contrib import messages
 
 
 def eventos_api(request):
-    eventos = Evento.objects.all()
+    eventos = Evento.objects.all().order_by('data_inicio')
+
+    # Escalas do usuário logado, para colorir o calendário com as próprias escalas.
+    minhas = {}
+    if request.user.is_authenticated:
+        escalas = Escala.objects.filter(usuario=request.user).select_related('funcao')
+        for esc in escalas:
+            info = minhas.setdefault(esc.evento_id, {'confirmada': True, 'funcoes': []})
+            if esc.funcao:
+                info['funcoes'].append(esc.funcao.nome)
+            if not esc.confirmada:
+                info['confirmada'] = False
+
     data = []
     for evento in eventos:
+        mine = minhas.get(evento.id)
+        if mine and mine['confirmada']:
+            cor, status = '#2e7d32', 'Confirmada'   # verde
+        elif mine:
+            cor, status = '#ef6c00', 'A confirmar'   # laranja
+        else:
+            cor, status = '#3b5bdb', None            # azul
+
         data.append({
-            'id': evento.id, 
+            'id': evento.id,
             'title': evento.nome,
             'start': evento.data_inicio.isoformat(),
             'end': evento.data_fim.isoformat(),
+            'backgroundColor': cor,
+            'borderColor': cor,
+            'extendedProps': {
+                'escalado': bool(mine),
+                'status': status,
+                'funcoes': ', '.join(mine['funcoes']) if mine else '',
+            },
         })
     return JsonResponse(data, safe=False)
 

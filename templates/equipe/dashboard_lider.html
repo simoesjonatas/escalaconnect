@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Painel do Líder{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item">Painel do Líder</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<style>
+    .dash-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
+    .dash-card { background:var(--connect-surface,#1b2230); border:1px solid var(--connect-border,#232a35); border-radius:12px; padding:16px; text-align:center; }
+    .dash-num { font-size:2rem; font-weight:700; line-height:1.1; }
+    .dash-num.alerta { color:#ff6b6b; }
+    .dash-num.ok { color:#39ff14; }
+    .dash-label { color:var(--connect-muted,#9aa4ad); font-size:.85rem; margin-top:6px; }
+    .dash-section-title { margin:20px 0 10px; }
+</style>
+
+<div class="container">
+    <div class="dash-equipes mb-3">
+        {% for equipe in equipes %}
+        <a class="btn btn-info btn-sm mr-2 mb-2" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">
+            <i class="fa fa-list-ul mr-1"></i> Escalas — {{ equipe.nome }}
+        </a>
+        {% empty %}
+        <span class="text-muted">Você não lidera nenhuma equipe.</span>
+        {% endfor %}
+    </div>
+
+    <div class="dash-grid">
+        <div class="dash-card"><div class="dash-num">{{ total_futuras }}</div><div class="dash-label">Escalas futuras</div></div>
+        <div class="dash-card"><div class="dash-num alerta">{{ buracos_total }}</div><div class="dash-label">Sem voluntário</div></div>
+        <div class="dash-card"><div class="dash-num">{{ designadas_total }}</div><div class="dash-label">Designadas</div></div>
+        <div class="dash-card"><div class="dash-num ok">{{ confirmadas }}</div><div class="dash-label">Confirmadas</div></div>
+        <div class="dash-card"><div class="dash-num">{{ a_confirmar }}</div><div class="dash-label">A confirmar</div></div>
+        <div class="dash-card"><div class="dash-num">{{ taxa_confirmacao }}%</div><div class="dash-label">Taxa de confirmação</div></div>
+    </div>
+
+    <h4 class="dash-section-title">Buracos na escala <small class="text-muted">(próximos eventos sem voluntário)</small></h4>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr><th>Evento</th><th>Equipe</th><th>Função</th><th class="disp-col">Disponíveis</th><th>Ação</th></tr>
+            </thead>
+            <tbody>
+                {% for b in buracos %}
+                {% with c=b.disponiveis_count names=b.disponiveis_names %}
+                <tr class="{% if c == 0 %}table-danger{% elif c == 1 %}table-warning{% else %}table-success{% endif %}">
+                    <td>{{ b.evento.nome }}<br><small>{{ b.evento.data_inicio_com_dia_da_semana|safe }}</small></td>
+                    <td>{{ b.funcao.equipe.nome }}</td>
+                    <td>{{ b.funcao.nome }}</td>
+                    <td class="disp-col">
+                        <span class="badge-disp {% if c == 0 %}red{% elif c == 1 %}yellow{% else %}green{% endif %}">{{ c }}</span>
+                        <small class="disp-names d-block mt-1">
+                        {% if names %}{% for n in names|slice:":3" %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if names|length > 3 %} +{{ names|length|add:"-3" }}{% endif %}{% endif %}
+                        </small>
+                    </td>
+                    <td><a class="btn btn-sm btn-primary" href="{% url 'escala_detail' b.pk %}">Escalar</a></td>
+                </tr>
+                {% endwith %}
+                {% empty %}
+                <tr><td colspan="5" class="text-center">Nenhum buraco — todas as escalas futuras têm voluntário. 🎉</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <h4 class="dash-section-title">Quem mais serviu</h4>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr><th>#</th><th>Voluntário</th><th>Escalas</th></tr>
+            </thead>
+            <tbody>
+                {% for r in ranking %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ r.usuario__first_name|default:r.usuario__username }} {{ r.usuario__last_name }}</td>
+                    <td>{{ r.total }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="3" class="text-center">Ainda não há escalas designadas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

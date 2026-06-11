@@ -1,8 +1,10 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count
 from equipe.models import Equipe, Lideranca, MembrosEquipe
+from escala.models import Escala
+from django.utils.timezone import now
 from equipe.lideranca_forms import LiderancaForm
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -118,5 +120,49 @@ def lideranca_delete(request, pk):
     if request.method == 'POST':
         lideranca.delete()
         return redirect('listar_liderancas', equipe_pk=lideranca.equipe.pk)
-    
+
     return render(request, 'lideranca/lideranca_confirm_delete.html', {'lideranca': lideranca})
+
+
+@login_required
+def dashboard_lider(request):
+    """Painel do líder: buracos na escala, taxa de confirmação e ranking de participação.
+
+    Considera as equipes que o usuário lidera (todas, se for staff/superuser).
+    """
+    if request.user.is_superuser or request.user.is_staff:
+        equipes = Equipe.objects.all()
+    else:
+        equipes = Equipe.objects.filter(lideranca__usuario=request.user).distinct()
+
+    escalas = Escala.objects.filter(funcao__equipe__in=equipes)
+    futuras = escalas.filter(evento__data_inicio__gte=now())
+
+    designadas_total = futuras.filter(usuario__isnull=False).count()
+    confirmadas = futuras.filter(usuario__isnull=False, confirmada=True).count()
+
+    buracos = (
+        futuras.filter(usuario__isnull=True)
+        .select_related('evento', 'funcao', 'funcao__equipe')
+        .order_by('evento__data_inicio')
+    )
+
+    ranking = (
+        escalas.filter(usuario__isnull=False)
+        .values('usuario__first_name', 'usuario__last_name', 'usuario__username')
+        .annotate(total=Count('id'))
+        .order_by('-total')[:10]
+    )
+
+    contexto = {
+        'equipes': equipes,
+        'total_futuras': futuras.count(),
+        'buracos_total': buracos.count(),
+        'designadas_total': designadas_total,
+        'confirmadas': confirmadas,
+        'a_confirmar': designadas_total - confirmadas,
+        'taxa_confirmacao': round(100 * confirmadas / designadas_total) if designadas_total else 0,
+        'buracos': buracos[:25],
+        'ranking': ranking,
+    }
+    return render(request, 'equipe/dashboard_lider.html', contexto)

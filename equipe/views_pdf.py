@@ -4,13 +4,20 @@ from .models import Equipe
 from escala.models import Escala
 from django.utils.timezone import now
 from django.template.loader import render_to_string
-from weasyprint import HTML
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware
 from equipe.decorators import require_lideranca
 
 @require_lideranca
 def exportar_tabela_para_pdf(request, equipe_pk):
+    try:
+        from weasyprint import HTML
+    except (ImportError, OSError):
+        return HttpResponse(
+            "Geracao de PDF indisponivel. Instale as bibliotecas nativas do WeasyPrint.",
+            status=503,
+        )
+
     if request.method == 'POST':
         equipe = get_object_or_404(Equipe, pk=equipe_pk)
         ano_atual = datetime.now().year
