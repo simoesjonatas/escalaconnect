@@ -1,7 +1,5 @@
 from django.urls import path
 from .views import *
-from escala.views import *
-from escala.views2 import *
 from escala.desistencia_views import *
 from escala.solicitacao_troca_views import *
 

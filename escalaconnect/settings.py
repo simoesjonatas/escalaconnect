@@ -10,7 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
-from decouple import config
+from decouple import config, Csv
 from pathlib import Path
 import os
 
@@ -22,13 +22,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-i$4kv7i(1(wj+i40(u2mg=!@a4sx!60l%2_f_((@10v3)0vi(+'
+# Definido obrigatoriamente via variável de ambiente / .env (ver .env.example).
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-# DEBUG = False
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*']
+# Domínios autorizados, separados por vírgula (ex.: "connect.simoesti.com.br,localhost")
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 DEFAULT_DOMAIN = "https://connect.simoesti.com.br"
 
@@ -43,9 +44,27 @@ ADMIN_ALLOWED_PATHS = [
     '/api/user/signup/'
 ]
 
-# CSRF_TRUSTED_ORIGINS = [
-#     'https://corpoecheiro.simoesti.com.br',
-# ]
+# Origens confiáveis para CSRF (necessário atrás de proxy HTTPS).
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://connect.simoesti.com.br',
+    cast=Csv()
+)
+
+# Segurança HTTPS/cookies — ativada quando DEBUG=False.
+# Confia no cabeçalho do proxy reverso para reconhecer requisições HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    # Opt-in (default desligado): só ative SSL_REDIRECT após confirmar que o proxy
+    # encaminha X-Forwarded-Proto, senão pode causar loop de redirecionamento.
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+    # Opt-in: HSTS é difícil de reverter (o navegador força HTTPS pelo período).
+    SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False, cast=bool)
+    SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=bool)
 
 # Application definition
 
@@ -75,6 +94,7 @@ AUTHENTICATION_BACKENDS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -176,6 +196,17 @@ STATICFILES_DIRS = [
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
+# WhiteNoise: comprime e serve os estáticos pela própria aplicação (gunicorn).
+# Requer `python manage.py collectstatic` no deploy.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+    },
+}
+
 
 # LOGIN_REDIRECT_URL = '/'
 # LOGIN_URL = '/login/'  # URL de login para usuários não autenticados
@@ -203,7 +234,7 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 
 # === Celery ===
 # Broker
-CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://172.16.0.87:6379/0")
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
 
 # Backend de resultados
 # Se USE_DJANGO_CELERY_RESULTS=true no ambiente, usa django-db (requer migrate)
@@ -217,7 +248,7 @@ if USE_DJANGO_CELERY_RESULTS:
 else:
     CELERY_RESULT_BACKEND = os.getenv(
         "CELERY_RESULT_BACKEND",
-        "redis://172.16.0.87:6379/1"
+        "redis://localhost:6379/1"
     )
 
 # QoL
@@ -228,3 +259,34 @@ CELERY_TIMEZONE = "America/Sao_Paulo"
 # Execução síncrona (apenas dev)
 CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true"
 CELERY_TASK_EAGER_PROPAGATES = os.getenv("CELERY_TASK_EAGER_PROPAGATES", "true").lower() == "true"
+
+
+# === Logging ===
+# Saída no console (capturada pelo Docker/journald). Nível configurável por env.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": config("LOG_LEVEL", default="INFO"),
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": config("DJANGO_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+    },
+}

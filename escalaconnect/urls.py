@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 from django.contrib.auth.views import LogoutView, LoginView
 
 from .views import base_view, calendario_view, redirect_to_home, confirmar_presenca, view_enviar_confirmacao
-from escala.views2 import carregar_funcoes
+from escala.views import carregar_funcoes
 
 urlpatterns = [
     path('admin/', admin.site.urls),

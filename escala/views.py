@@ -2,9 +2,10 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.urls import reverse
-from escala.models import Escala
+from django.http import JsonResponse
+from escala.models import Escala, Funcao
 from evento.models import Evento
-from escala.forms import EscalaForm
+from escala.forms import EscalaForm, MultiEscalaForm
 from escala.solicitacao_desistencia_forms import DesistenciaForm
 from equipe.decorators import require_lideranca 
 from django.contrib.auth.decorators import login_required
@@ -13,7 +14,7 @@ from django.contrib import messages
 from ocupado.models import Ocupado
 from django.conf import settings
 from usuario.models import Usuario
-from equipe.models import Lideranca
+from equipe.models import Lideranca, Equipe
 from disponivel.models import Disponivel
 
 
@@ -339,3 +340,34 @@ def confirmar_minha_escala(request, pk):
         messages.success(request, "Escala confirmada com sucesso!")
 
     return redirect('minha_escala_detail', pk=escala.pk)
+
+
+@require_lideranca
+def multi_escala_create(request, evento_pk):
+    evento = get_object_or_404(Evento, pk=evento_pk)
+
+    if request.method == 'POST':
+        escalas = request.POST.getlist('escalas')  # Lista de escalas enviadas pelo formulário
+        for escala in escalas:
+            equipe_id, funcao_id = escala.split(',')
+            equipe = get_object_or_404(Equipe, pk=equipe_id)
+            funcao = get_object_or_404(Funcao, pk=funcao_id)
+
+            Escala.objects.create(
+                evento=evento,
+                funcao=funcao,
+            )
+
+        return redirect(reverse('evento_escalas', args=[evento.pk]))
+
+    form = MultiEscalaForm()
+    return render(request, 'escala/multi_escala_form.html', {'form': form, 'evento': evento})
+
+
+def carregar_funcoes(request):
+    """Retorna funções filtradas por equipe via AJAX."""
+    equipe_id = request.GET.get('equipe_id')
+    if equipe_id:
+        funcoes = Funcao.objects.filter(equipe_id=equipe_id).values('id', 'nome')
+        return JsonResponse(list(funcoes), safe=False)
+    return JsonResponse([], safe=False)

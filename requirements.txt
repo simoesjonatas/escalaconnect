@@ -35,3 +35,5 @@ wcwidth==0.2.13
 weasyprint==64.0
 webencodings==0.5.1
 zopfli==0.2.3.post1
+gunicorn==23.0.0
+whitenoise==6.8.2

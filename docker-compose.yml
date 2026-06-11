@@ -1,25 +1,25 @@
-version: '3.8'
-
 services:
   web:
     container_name: escalaconnect
     hostname: escalaconnect
     restart: always
     build: .
-    # command: python manage.py runserver 0.0.0.0:8000
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
-    volumes:
-      - ./:/code
+    # Produção: aplica migrações, coleta estáticos (servidos pelo WhiteNoise) e sobe o gunicorn.
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn escalaconnect.wsgi:application
+             --bind 0.0.0.0:8000 --workers 3 --timeout 120
+             --access-logfile - --error-logfile -"
     ports:
       - "8095:8000"
+    env_file:
+      - .env
     environment:
-      # Celery/Django
+      DJANGO_SETTINGS_MODULE: escalaconnect.settings
+      # Aponta o Celery para o serviço redis deste compose (sobrepõe o .env).
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
-      DJANGO_SETTINGS_MODULE: escalaconnect.settings
-      # E-mails:
-      EMAIL_HOST_USER: bla
-      EMAIL_HOST_PASSWORD: BLA
     depends_on:
       redis:
         condition: service_healthy
@@ -29,12 +29,12 @@ services:
     build: .
     restart: always
     command: celery -A escalaconnect worker -l INFO
-    volumes:
-      - ./:/code
+    env_file:
+      - .env
     environment:
+      DJANGO_SETTINGS_MODULE: escalaconnect.settings
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
-      DJANGO_SETTINGS_MODULE: escalaconnect.settings
     depends_on:
       redis:
         condition: service_healthy
@@ -47,12 +47,12 @@ services:
   #   build: .
   #   restart: always
   #   command: celery -A escalaconnect beat -l INFO
-  #   volumes:
-  #     - ./:/code
+  #   env_file:
+  #     - .env
   #   environment:
+  #     DJANGO_SETTINGS_MODULE: escalaconnect.settings
   #     CELERY_BROKER_URL: redis://redis:6379/0
   #     CELERY_RESULT_BACKEND: redis://redis:6379/1
-  #     DJANGO_SETTINGS_MODULE: escalaconnect.settings
   #   depends_on:
   #     redis:
   #       condition: service_healthy

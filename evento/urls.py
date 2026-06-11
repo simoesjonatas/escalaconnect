@@ -1,7 +1,6 @@
 from django.urls import path
 from .views import *
 from escala.views import *
-from escala.views2 import *
 from evento.views_recorrente import *
 from evento.views_planejamento import *
 from evento.views_evento_recorrente import *
