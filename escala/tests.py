@@ -9,6 +9,7 @@ from django.utils import timezone
 from equipe.models import Equipe, MembrosEquipe, Lideranca
 from evento.models import Evento
 from escala.models import Funcao, Escala
+from planejamento.models import Planejamento, PlanejamentoFuncao
 from disponivel.models import Disponivel
 from ocupado.models import Ocupado
 from escala.utils import usuarios_disponiveis_para_evento
@@ -203,3 +204,52 @@ class AutoEscalarEventoTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.vaga.refresh_from_db()
         self.assertEqual(self.vaga.usuario, self.bia)
+
+
+class AplicarFuncoesEventosTests(TestCase):
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Recepção")
+        self.funcao_porta = Funcao.objects.create(nome="Porta", equipe=self.equipe)
+        self.funcao_cafe = Funcao.objects.create(nome="Café", equipe=self.equipe)
+        self.lider = criar_usuario("lider_funcoes")
+        self.lider.is_first_login = False
+        self.lider.termo_aceito_em = timezone.now()
+        self.lider.save()
+        Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+
+        inicio = timezone.now() + timedelta(days=5)
+        self.evento_1 = Evento.objects.create(
+            nome="Culto 1", data_inicio=inicio, data_fim=inicio + timedelta(hours=2)
+        )
+        self.evento_2 = Evento.objects.create(
+            nome="Culto 2", data_inicio=inicio + timedelta(days=1), data_fim=inicio + timedelta(days=1, hours=2)
+        )
+
+    def test_lider_aplica_funcoes_em_varios_eventos_sem_duplicar(self):
+        Escala.objects.create(evento=self.evento_1, funcao=self.funcao_porta)
+        self.client.force_login(self.lider)
+
+        resp = self.client.post(reverse('aplicar_funcoes_eventos'), {
+            'equipes': [self.equipe.pk],
+            'eventos': [self.evento_1.pk, self.evento_2.pk],
+            'funcoes': [self.funcao_porta.pk, self.funcao_cafe.pk],
+        })
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(Escala.objects.filter(evento=self.evento_1, funcao=self.funcao_porta).count(), 1)
+        self.assertTrue(Escala.objects.filter(evento=self.evento_1, funcao=self.funcao_cafe).exists())
+        self.assertTrue(Escala.objects.filter(evento=self.evento_2, funcao=self.funcao_porta).exists())
+        self.assertTrue(Escala.objects.filter(evento=self.evento_2, funcao=self.funcao_cafe).exists())
+
+    def test_aplica_funcoes_de_planejamento(self):
+        planejamento = Planejamento.objects.create(nome="Domingo manhã")
+        PlanejamentoFuncao.objects.create(planejamento=planejamento, funcao=self.funcao_porta)
+
+        self.client.force_login(self.lider)
+        resp = self.client.post(reverse('aplicar_funcoes_eventos'), {
+            'planejamento': planejamento.pk,
+            'eventos': [self.evento_1.pk],
+        })
+
+        self.assertEqual(resp.status_code, 302)
+        self.assertTrue(Escala.objects.filter(evento=self.evento_1, funcao=self.funcao_porta).exists())

@@ -54,3 +54,7 @@ class AplicarPlanejamentoEventosForm(forms.Form):
 
         if planejamento_id:
             self.fields['planejamento'].initial = planejamento_id
+
+        self.fields['eventos'].label_from_instance = (
+            lambda evento: f"{evento.nome} - {evento.data_inicio:%d/%m/%Y %H:%M}"
+        )

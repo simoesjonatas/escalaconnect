@@ -20,6 +20,7 @@
         <li><a href="{% url 'dashboard_lider' %}"><i class="fa fa-chart-line"></i> <span>Painel do Líder</span></a></li>
         <li><a href="{% url 'equipe_list' %}"><i class="fa fa-users"></i> <span>Equipes</span></a></li>
         <li><a href="{% url 'evento_list' %}"><i class="fa fa-calendar-check"></i> <span>Eventos</span></a></li>
+        <li><a href="{% url 'aplicar_funcoes_eventos' %}"><i class="fa fa-layer-group"></i> <span>Funções em Eventos</span></a></li>
             {% if user.is_superuser or user.is_staff %}
             <li><a href="{% url 'planejamento_list' %}"><i class="fa fa-tasks"></i> <span>Planejamentos</span></a></li>
             <li><a href="{% url 'usuario_list' %}"><i class="fa fa-users-cog"></i> <span>Usuários</span></a></li>

@@ -9,6 +9,7 @@ urlpatterns = [
     path('minhas-escalas/<int:pk>/', minha_escala_detail, name='minha_escala_detail'),
     path('minhas-escalas/<int:pk>/confirmar/', confirmar_minha_escala, name='confirmar_minha_escala'),
     path('minhas-escalas/agenda.ics', minha_agenda_ics, name='minha_agenda_ics'),
+    path('funcoes-eventos/', aplicar_funcoes_eventos, name='aplicar_funcoes_eventos'),
 
     
     path('<int:pk>/escalas/adicionar/', escala_create, name='escala_create'),

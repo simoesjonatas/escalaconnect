@@ -1,24 +1,71 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Confirmar Exclusão{% endblock %}
+{% block page_title %}Excluir Planejamento{% endblock %}
 
 {% block breadcrumb %}
 <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
-    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Lista de Planejamentos</a></li>
-    <li class="breadcrumb-item">Excluir Planejamento</li>
+    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Planejamentos</a></li>
+    <li class="breadcrumb-item">Excluir</li>
 </ul>
 {% endblock breadcrumb %}
 
 {% block content %}
+<style>
+    .delete-panel {
+        max-width: 720px;
+        padding: 22px;
+        border: 1px solid rgba(255, 77, 79, .45);
+        border-radius: 8px;
+        background: var(--connect-surface);
+        box-shadow: 0 10px 24px var(--connect-shadow);
+    }
+
+    .delete-panel h3 {
+        margin: 0 0 8px;
+    }
+
+    .delete-panel p {
+        margin: 0 0 18px;
+        color: var(--connect-muted);
+    }
+
+    .delete-highlight {
+        padding: 12px 14px;
+        margin-bottom: 18px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface-2);
+        font-weight: 900;
+    }
+
+    .delete-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 520px) {
+        .delete-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+
 <div class="container">
-    <h3>Tem certeza que deseja excluir "{{ planejamento.nome }}"?</h3>
-    <p>Essa ação não pode ser desfeita.</p>
-    
-    <form method="POST">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Confirmar</button>
-        <a class="btn btn-secondary" href="{% url 'planejamento_detail' planejamento.pk %}">Cancelar</a>
-    </form>
+    <div class="delete-panel">
+        <h3>Excluir planejamento?</h3>
+        <p>Essa ação remove o modelo de planejamento, mas não remove escalas que já foram criadas em eventos.</p>
+
+        <div class="delete-highlight">{{ planejamento.nome }}</div>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="delete-actions">
+                <button type="submit" class="btn btn-danger">Excluir planejamento</button>
+                <a class="btn btn-secondary" href="{% url 'planejamento_detail' planejamento.pk %}">Cancelar</a>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

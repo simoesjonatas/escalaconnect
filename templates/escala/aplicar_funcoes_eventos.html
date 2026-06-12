@@ -1,0 +1,398 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Funções por Evento{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_list' %}">Eventos</a></li>
+    <li class="breadcrumb-item">Funções por Evento</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<style>
+    .bulk-functions-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 22px;
+    }
+
+    .bulk-functions-header h3 {
+        margin: 0 0 6px;
+    }
+
+    .bulk-functions-header p {
+        margin: 0;
+        color: var(--connect-muted);
+        max-width: 720px;
+    }
+
+    .bulk-functions-layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    .bulk-panel {
+        background: var(--connect-surface);
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        padding: 18px;
+    }
+
+    .bulk-panel h4 {
+        margin: 0 0 12px;
+        font-size: 18px;
+    }
+
+    .bulk-panel-caption {
+        margin: -4px 0 14px;
+        color: var(--connect-muted);
+        font-size: 14px;
+    }
+
+    .bulk-select-all {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        color: var(--connect-muted);
+        font-weight: 800;
+    }
+
+    .bulk-list {
+        display: grid;
+        gap: 10px;
+        max-height: 420px;
+        overflow: auto;
+        padding-right: 4px;
+    }
+
+    .bulk-check-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        padding: 12px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface-2);
+        cursor: pointer;
+    }
+
+    .bulk-check-card input {
+        margin-top: 3px;
+        accent-color: var(--connect-green);
+    }
+
+    .bulk-check-card strong,
+    .bulk-check-card span {
+        display: block;
+    }
+
+    .bulk-check-card span {
+        color: var(--connect-muted);
+        font-size: 13px;
+        margin-top: 2px;
+    }
+
+    .function-team {
+        margin-bottom: 14px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .function-team-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px;
+        background: var(--connect-surface-2);
+        border-bottom: 1px solid var(--connect-border);
+    }
+
+    .function-team-header label {
+        margin: 0;
+        color: var(--connect-text);
+        font-weight: 900;
+    }
+
+    .function-team-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .function-team-actions button {
+        min-height: 32px;
+        padding: 5px 10px;
+    }
+
+    .function-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .bulk-summary {
+        position: sticky;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-top: 18px;
+        padding: 14px;
+        background: var(--connect-surface);
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        box-shadow: 0 10px 24px var(--connect-shadow);
+    }
+
+    .bulk-summary strong {
+        display: block;
+    }
+
+    .bulk-summary span {
+        color: var(--connect-muted);
+        font-size: 14px;
+    }
+
+    .bulk-errors {
+        margin-bottom: 16px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 77, 79, .45);
+        border-radius: 8px;
+        background: rgba(255, 77, 79, .1);
+        color: var(--connect-text);
+    }
+
+    @media (max-width: 900px) {
+        .bulk-functions-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .bulk-list {
+            max-height: none;
+        }
+    }
+
+    @media (max-width: 620px) {
+        .bulk-functions-header,
+        .bulk-summary {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .function-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="bulk-functions-header">
+        <div>
+            <h3>Adicionar funções aos eventos</h3>
+            <p>Escolha um planejamento pronto ou marque funções manualmente, selecione os eventos e salve. Combinações já existentes são ignoradas automaticamente.</p>
+        </div>
+        <a class="btn btn-secondary" href="{% url 'evento_list' %}">Voltar para eventos</a>
+    </div>
+
+    {% if form.errors %}
+    <div class="bulk-errors">
+        {{ form.non_field_errors }}
+        {% for field in form %}
+            {{ field.errors }}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="POST" id="bulkFunctionsForm">
+        {% csrf_token %}
+
+        <div class="bulk-panel mb-3">
+            <h4>Planejamento</h4>
+            <p class="bulk-panel-caption">Use um planejamento como base quando a estrutura das funções já estiver pronta.</p>
+            {{ form.planejamento }}
+        </div>
+
+        <div class="bulk-functions-layout">
+            <section class="bulk-panel">
+                <h4>Eventos</h4>
+                <p class="bulk-panel-caption">Você pode aplicar em um único evento ou em vários de uma vez.</p>
+                <label class="bulk-select-all">
+                    <input type="checkbox" data-toggle-group="event-checkbox">
+                    Selecionar todos os eventos
+                </label>
+                <div class="bulk-list">
+                    {% for evento in eventos %}
+                    <label class="bulk-check-card">
+                        <input type="checkbox" class="event-checkbox" name="eventos" value="{{ evento.pk }}" {% if evento.pk in selected_eventos %}checked{% endif %}>
+                        <span>
+                            <strong>{{ evento.nome }}</strong>
+                            <span>{{ evento.data_inicio|date:"d/m/Y H:i" }} até {{ evento.data_fim|date:"H:i" }}</span>
+                        </span>
+                    </label>
+                    {% empty %}
+                    <p class="text-muted">Nenhum evento futuro disponível.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="bulk-panel">
+                <h4>Equipes e funções</h4>
+                <p class="bulk-panel-caption">Marque as equipes para filtrar a lista e selecione as funções que esses eventos precisam ter.</p>
+
+                {% for equipe, funcoes in funcoes_por_equipe.items %}
+                <div class="function-team" data-team="{{ equipe.pk }}">
+                    <div class="function-team-header">
+                        <label>
+                            <input type="checkbox" class="team-checkbox" name="equipes" value="{{ equipe.pk }}" {% if equipe.pk in selected_equipes %}checked{% endif %}>
+                            {{ equipe.nome }}
+                        </label>
+                        <div class="function-team-actions">
+                            <button type="button" class="btn btn-sm btn-secondary" data-team-select="{{ equipe.pk }}">Marcar funções</button>
+                            <button type="button" class="btn btn-sm btn-secondary" data-team-clear="{{ equipe.pk }}">Limpar</button>
+                        </div>
+                    </div>
+                    <div class="function-grid">
+                        {% for funcao in funcoes %}
+                        <label class="bulk-check-card function-card" data-team-function="{{ equipe.pk }}">
+                            <input type="checkbox" class="function-checkbox" name="funcoes" value="{{ funcao.pk }}" data-team-id="{{ equipe.pk }}" {% if funcao.pk in selected_funcoes %}checked{% endif %}>
+                            <span>
+                                <strong>{{ funcao.nome }}</strong>
+                                <span>{{ equipe.nome }}</span>
+                            </span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">Nenhuma função disponível para as equipes que você pode gerenciar.</p>
+                {% endfor %}
+            </section>
+        </div>
+
+        <div class="bulk-summary">
+            <div>
+                <strong id="bulkSummaryTitle">Nenhuma combinação selecionada</strong>
+                <span id="bulkSummaryText">Selecione eventos e funções ou use um planejamento.</span>
+            </div>
+            <button type="submit" class="btn btn-success">Adicionar funções aos eventos</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('bulkFunctionsForm');
+        const eventChecks = Array.from(document.querySelectorAll('.event-checkbox'));
+        const functionChecks = Array.from(document.querySelectorAll('.function-checkbox'));
+        const teamChecks = Array.from(document.querySelectorAll('.team-checkbox'));
+        const planejamento = document.getElementById('id_planejamento');
+        const summaryTitle = document.getElementById('bulkSummaryTitle');
+        const summaryText = document.getElementById('bulkSummaryText');
+
+        function selectedCount(items) {
+            return items.filter(item => item.checked).length;
+        }
+
+        function syncTeamVisibility() {
+            const selectedTeams = teamChecks.filter(item => item.checked).map(item => item.value);
+            const shouldFilter = selectedTeams.length > 0;
+
+            document.querySelectorAll('.function-team').forEach(team => {
+                const visible = !shouldFilter || selectedTeams.includes(team.dataset.team);
+                team.style.display = visible ? '' : 'none';
+            });
+        }
+
+        function syncSummary() {
+            const events = selectedCount(eventChecks);
+            const funcoes = selectedCount(functionChecks);
+            const hasPlanejamento = planejamento && planejamento.value;
+            const sourceText = hasPlanejamento && funcoes
+                ? 'planejamento + funções extras'
+                : hasPlanejamento
+                    ? 'planejamento selecionado'
+                    : `${funcoes} função(ões)`;
+
+            if (!events || (!funcoes && !hasPlanejamento)) {
+                summaryTitle.textContent = 'Nenhuma combinação selecionada';
+                summaryText.textContent = 'Selecione eventos e funções ou use um planejamento.';
+                return;
+            }
+
+            summaryTitle.textContent = `${events} evento(s) com ${sourceText}`;
+            summaryText.textContent = hasPlanejamento
+                ? 'As funções do planejamento serão aplicadas junto com qualquer função marcada manualmente.'
+                : `Serão geradas até ${events * funcoes} combinação(ões). O que já existir será ignorado.`;
+        }
+
+        document.querySelectorAll('[data-toggle-group]').forEach(toggle => {
+            toggle.addEventListener('change', function () {
+                document.querySelectorAll(`.${this.dataset.toggleGroup}`).forEach(item => {
+                    item.checked = this.checked;
+                });
+                syncSummary();
+            });
+        });
+
+        document.querySelectorAll('[data-team-select]').forEach(button => {
+            button.addEventListener('click', function () {
+                const teamId = this.dataset.teamSelect;
+                document.querySelectorAll(`.function-checkbox[data-team-id="${teamId}"]`).forEach(item => {
+                    item.checked = true;
+                });
+                const teamCheck = document.querySelector(`.team-checkbox[value="${teamId}"]`);
+                if (teamCheck) teamCheck.checked = true;
+                syncTeamVisibility();
+                syncSummary();
+            });
+        });
+
+        document.querySelectorAll('[data-team-clear]').forEach(button => {
+            button.addEventListener('click', function () {
+                const teamId = this.dataset.teamClear;
+                document.querySelectorAll(`.function-checkbox[data-team-id="${teamId}"]`).forEach(item => {
+                    item.checked = false;
+                });
+                syncSummary();
+            });
+        });
+
+        [...eventChecks, ...functionChecks, ...teamChecks].forEach(item => {
+            item.addEventListener('change', function () {
+                syncTeamVisibility();
+                syncSummary();
+            });
+        });
+
+        if (planejamento) {
+            planejamento.addEventListener('change', syncSummary);
+        }
+
+        form.addEventListener('submit', function (event) {
+            const events = selectedCount(eventChecks);
+            const funcoes = selectedCount(functionChecks);
+            const hasPlanejamento = planejamento && planejamento.value;
+
+            if (!events || (!funcoes && !hasPlanejamento)) {
+                event.preventDefault();
+                summaryTitle.textContent = 'Falta selecionar algo';
+                summaryText.textContent = 'Escolha pelo menos um evento e um planejamento ou uma função.';
+            }
+        });
+
+        syncTeamVisibility();
+        syncSummary();
+    });
+</script>
+{% endblock %}

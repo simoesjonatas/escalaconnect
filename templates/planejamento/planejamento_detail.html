@@ -5,38 +5,157 @@
 {% block breadcrumb %}
 <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
-    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Lista de Planejamentos</a></li>
-    <li class="breadcrumb-item">Detalhes do Planejamento</li>
+    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Planejamentos</a></li>
+    <li class="breadcrumb-item">Detalhes</li>
 </ul>
 {% endblock breadcrumb %}
 
 {% block content %}
-<div class="container">
-    <h3>{{ planejamento.nome }}</h3>
-    <ul>
-        <li><strong>Data de Cadastro:</strong> {{ planejamento.data_cadastro }}</li>
-        <li><strong>Última Atualização:</strong> {{ planejamento.data_atualizacao }}</li>
-    </ul>
-    
-    <h4>Funções Associadas:</h4>
-    <ul>
-        {% for item in planejamento.funcoes.all %}
-            <li>
-                <strong>{{ item.funcao.nome }}</strong>
-                {% if item.funcao.equipe %}
-                    <span class="text-muted"> — {{ item.funcao.equipe.nome }}</span>
-                {% endif %}
-            </li>
-        {% empty %}
-            <li>Não há funções associadas.</li>
-        {% endfor %}
-    </ul>
+<style>
+    .planning-detail-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
 
-    <div class="clearfix">
-        <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Voltar</a>
-        <a class="btn btn-warning" href="{% url 'planejamento_update' planejamento.pk %}">Editar</a>
-        <a class="btn btn-danger" href="{% url 'planejamento_delete' planejamento.pk %}">Excluir</a>
-        <a class="btn btn-success" href="{% url 'planejamento_aplicar_eventos_com_id' planejamento.pk %}">Aplicar em Eventos</a>
+    .planning-detail-header h3 {
+        margin: 0 0 6px;
+    }
+
+    .planning-detail-header p {
+        margin: 0;
+        color: var(--connect-muted);
+    }
+
+    .planning-detail-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .planning-detail-grid {
+        display: grid;
+        grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    .planning-panel {
+        padding: 18px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface);
+        box-shadow: 0 10px 24px var(--connect-shadow);
+    }
+
+    .planning-panel h4 {
+        margin: 0 0 12px;
+        font-size: 18px;
+    }
+
+    .planning-stat {
+        display: grid;
+        gap: 4px;
+        padding: 12px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface-2);
+        margin-bottom: 10px;
+    }
+
+    .planning-stat span {
+        color: var(--connect-muted);
+        font-size: 13px;
+    }
+
+    .planning-stat strong {
+        font-size: 18px;
+    }
+
+    .planning-function-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 10px;
+    }
+
+    .planning-function-item {
+        padding: 12px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface-2);
+    }
+
+    .planning-function-item strong,
+    .planning-function-item span {
+        display: block;
+    }
+
+    .planning-function-item span {
+        color: var(--connect-muted);
+        font-size: 13px;
+        margin-top: 2px;
+    }
+
+    @media (max-width: 820px) {
+        .planning-detail-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 620px) {
+        .planning-detail-header,
+        .planning-detail-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="planning-detail-header">
+        <div>
+            <h3>{{ planejamento.nome }}</h3>
+            <p>Modelo pronto para aplicar funções em eventos.</p>
+        </div>
+        <div class="planning-detail-actions">
+            <a class="btn btn-success" href="{% url 'planejamento_aplicar_eventos_com_id' planejamento.pk %}">Aplicar em Eventos</a>
+            <a class="btn btn-warning" href="{% url 'planejamento_update' planejamento.pk %}">Editar</a>
+            <a class="btn btn-danger" href="{% url 'planejamento_delete' planejamento.pk %}">Excluir</a>
+            <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Voltar</a>
+        </div>
+    </div>
+
+    <div class="planning-detail-grid">
+        <aside class="planning-panel">
+            <h4>Resumo</h4>
+            <div class="planning-stat">
+                <span>Funções</span>
+                <strong>{{ planejamento.funcoes.count }}</strong>
+            </div>
+            <div class="planning-stat">
+                <span>Criado em</span>
+                <strong>{{ planejamento.data_cadastro|date:"d/m/Y" }}</strong>
+            </div>
+            <div class="planning-stat">
+                <span>Atualizado em</span>
+                <strong>{{ planejamento.data_atualizacao|date:"d/m/Y" }}</strong>
+            </div>
+        </aside>
+
+        <section class="planning-panel">
+            <h4>Funções associadas</h4>
+            <div class="planning-function-list">
+                {% for item in planejamento.funcoes.all %}
+                <div class="planning-function-item">
+                    <strong>{{ item.funcao.nome }}</strong>
+                    <span>{{ item.funcao.equipe.nome }}</span>
+                </div>
+                {% empty %}
+                <p class="text-muted">Não há funções associadas.</p>
+                {% endfor %}
+            </div>
+        </section>
     </div>
 </div>
 {% endblock %}

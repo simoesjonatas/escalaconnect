@@ -1,75 +1,234 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Aplicar Planejamento em Eventos{% endblock %}
+{% block page_title %}Aplicar Planejamento{% endblock %}
 
 {% block breadcrumb %}
 <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
-    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Lista de Planejamentos</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Planejamentos</a></li>
     {% if planejamento %}
         <li class="breadcrumb-item"><a href="{% url 'planejamento_detail' planejamento.pk %}">{{ planejamento.nome }}</a></li>
     {% endif %}
-    <li class="breadcrumb-item">Aplicar Planejamento em Eventos</li>
+    <li class="breadcrumb-item">Aplicar</li>
 </ul>
 {% endblock breadcrumb %}
 
 {% block content %}
+<style>
+    .apply-planning-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .apply-planning-header h3 {
+        margin: 0 0 6px;
+    }
+
+    .apply-planning-header p {
+        margin: 0;
+        color: var(--connect-muted);
+    }
+
+    .apply-planning-layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .apply-panel {
+        padding: 18px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface);
+        box-shadow: 0 10px 24px var(--connect-shadow);
+    }
+
+    .apply-panel h4 {
+        margin: 0 0 12px;
+        font-size: 18px;
+    }
+
+    .apply-help {
+        margin: 0 0 14px;
+        color: var(--connect-muted);
+    }
+
+    .apply-events-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .apply-event-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        padding: 12px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface-2);
+        cursor: pointer;
+    }
+
+    .apply-event-card input {
+        margin-top: 3px;
+        accent-color: var(--connect-green);
+    }
+
+    .apply-event-card strong,
+    .apply-event-card span {
+        display: block;
+    }
+
+    .apply-event-card span {
+        color: var(--connect-muted);
+        font-size: 13px;
+        margin-top: 2px;
+    }
+
+    .apply-actions {
+        position: sticky;
+        top: 92px;
+    }
+
+    .apply-summary {
+        margin-top: 14px;
+        padding: 12px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface-2);
+    }
+
+    .apply-summary strong,
+    .apply-summary span {
+        display: block;
+    }
+
+    .apply-summary span {
+        color: var(--connect-muted);
+        font-size: 14px;
+        margin-top: 3px;
+    }
+
+    .apply-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+
+    @media (max-width: 850px) {
+        .apply-planning-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .apply-actions {
+            position: static;
+        }
+    }
+
+    @media (max-width: 620px) {
+        .apply-planning-header,
+        .apply-buttons {
+            flex-direction: column;
+            align-items: stretch;
+        }
+    }
+</style>
+
 <div class="container">
-    <div class="page-header">
+    <div class="apply-planning-header">
         <div>
-            <h3>Aplicar Planejamento em Eventos</h3>
-            <p class="muted">Selecione o planejamento e os eventos da agenda para gerar as escalas automaticamente.</p>
+            <h3>Aplicar planejamento em eventos</h3>
+            <p>Escolha os eventos que devem receber as funções deste planejamento.</p>
         </div>
+        <a class="btn btn-secondary" href="{% if planejamento %}{% url 'planejamento_detail' planejamento.pk %}{% else %}{% url 'planejamento_list' %}{% endif %}">Voltar</a>
     </div>
 
-    <div class="panel-card">
-        <form method="POST">
-            {% csrf_token %}
-
-            <div class="form-group">
-                <label for="id_planejamento">Planejamento</label>
+    <form method="POST" id="applyPlanningForm">
+        {% csrf_token %}
+        <div class="apply-planning-layout">
+            <aside class="apply-panel apply-actions">
+                <h4>Planejamento</h4>
+                <p class="apply-help">Selecione o modelo que será aplicado.</p>
                 {{ form.planejamento }}
-            </div>
 
-            <div class="form-group">
-                <div class="form-group-header">
-                    <label class="mb-0" for="id_eventos">Eventos</label>
-                    <button type="button" id="toggle-all" class="btn btn-sm btn-outline-secondary">Marcar todos</button>
+                <div class="apply-summary">
+                    <strong id="applySummaryTitle">Nenhum evento selecionado</strong>
+                    <span id="applySummaryText">Marque ao menos um evento para continuar.</span>
                 </div>
-                <div class="checkbox-list" id="eventos-container">
-                    {{ form.eventos }}
-                </div>
-            </div>
 
-            <div class="form-actions">
-                <button type="submit" class="btn btn-success">Aplicar Planejamento</button>
-                <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Cancelar</a>
-            </div>
-        </form>
-    </div>
+                <div class="apply-buttons">
+                    <button type="submit" class="btn btn-success">Aplicar Planejamento</button>
+                    <button type="button" id="toggle-all" class="btn btn-secondary">Marcar todos</button>
+                </div>
+            </aside>
+
+            <section class="apply-panel">
+                <h4>Eventos</h4>
+                <p class="apply-help">Apenas eventos futuros aparecem nesta lista.</p>
+                <div class="apply-events-list" id="eventos-container">
+                    {% for checkbox in form.eventos %}
+                    <label class="apply-event-card">
+                        {{ checkbox.tag }}
+                        <span>
+                            <strong>{{ checkbox.choice_label }}</strong>
+                        </span>
+                    </label>
+                    {% empty %}
+                    <p class="text-muted">Nenhum evento futuro disponível.</p>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+    </form>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const toggleButton = document.getElementById('toggle-all');
         const checkboxes = Array.from(document.querySelectorAll('#eventos-container input[type="checkbox"]'));
+        const summaryTitle = document.getElementById('applySummaryTitle');
+        const summaryText = document.getElementById('applySummaryText');
+        const form = document.getElementById('applyPlanningForm');
+
+        function selectedCount() {
+            return checkboxes.filter(cb => cb.checked).length;
+        }
 
         function allChecked() {
             return checkboxes.length > 0 && checkboxes.every(cb => cb.checked);
         }
 
-        function updateButtonLabel() {
+        function updateState() {
+            const count = selectedCount();
             toggleButton.textContent = allChecked() ? 'Desmarcar todos' : 'Marcar todos';
+            summaryTitle.textContent = count ? `${count} evento(s) selecionado(s)` : 'Nenhum evento selecionado';
+            summaryText.textContent = count
+                ? 'As funções do planejamento serão criadas nos eventos marcados.'
+                : 'Marque ao menos um evento para continuar.';
         }
 
         toggleButton.addEventListener('click', function () {
             const shouldCheck = !allChecked();
             checkboxes.forEach(cb => cb.checked = shouldCheck);
-            updateButtonLabel();
+            updateState();
         });
 
-        checkboxes.forEach(cb => cb.addEventListener('change', updateButtonLabel));
-        updateButtonLabel();
+        checkboxes.forEach(cb => cb.addEventListener('change', updateState));
+
+        form.addEventListener('submit', function (event) {
+            if (!selectedCount()) {
+                event.preventDefault();
+                updateState();
+            }
+        });
+
+        updateState();
     });
 </script>
 {% endblock %}

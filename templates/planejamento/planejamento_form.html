@@ -1,107 +1,318 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Adicionar/Editar Planejamento{% endblock %}
+{% block page_title %}{% if is_edit %}Editar Planejamento{% else %}Novo Planejamento{% endif %}{% endblock %}
 
 {% block breadcrumb %}
 <ul class="app-breadcrumb breadcrumb">
     <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
-    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Lista de Planejamentos</a></li>
-    <li class="breadcrumb-item">Adicionar/Editar Planejamento</li>
+    <li class="breadcrumb-item"><a href="{% url 'planejamento_list' %}">Planejamentos</a></li>
+    <li class="breadcrumb-item">{% if is_edit %}Editar{% else %}Adicionar{% endif %}</li>
 </ul>
 {% endblock breadcrumb %}
 
 {% block content %}
+<style>
+    .planning-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .planning-header h3 {
+        margin: 0 0 6px;
+    }
+
+    .planning-header p,
+    .planning-muted {
+        margin: 0;
+        color: var(--connect-muted);
+    }
+
+    .planning-layout {
+        display: grid;
+        grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
+        gap: 18px;
+        align-items: start;
+    }
+
+    .planning-panel {
+        background: var(--connect-surface);
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        padding: 18px;
+        box-shadow: 0 10px 24px var(--connect-shadow);
+    }
+
+    .planning-panel h4 {
+        margin: 0 0 10px;
+        font-size: 18px;
+    }
+
+    .planning-name-panel {
+        position: sticky;
+        top: 92px;
+    }
+
+    .planning-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+
+    .planning-errors {
+        margin-bottom: 16px;
+        padding: 12px 14px;
+        border: 1px solid rgba(255, 77, 79, .45);
+        border-radius: 8px;
+        background: rgba(255, 77, 79, .1);
+    }
+
+    .planning-team {
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 14px;
+    }
+
+    .planning-team-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: var(--connect-surface-2);
+        border-bottom: 1px solid var(--connect-border);
+    }
+
+    .planning-team-header strong {
+        display: block;
+    }
+
+    .planning-team-header span {
+        color: var(--connect-muted);
+        font-size: 13px;
+    }
+
+    .planning-team-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .planning-team-actions button {
+        min-height: 32px;
+        padding: 5px 10px;
+    }
+
+    .planning-functions-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .planning-function-card {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        min-height: 58px;
+        padding: 12px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface-2);
+        cursor: pointer;
+    }
+
+    .planning-function-card input {
+        margin-top: 3px;
+        accent-color: var(--connect-green);
+    }
+
+    .planning-function-card strong,
+    .planning-function-card span {
+        display: block;
+    }
+
+    .planning-function-card span {
+        color: var(--connect-muted);
+        font-size: 13px;
+        margin-top: 2px;
+    }
+
+    .planning-summary {
+        margin-top: 14px;
+        padding: 12px;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        background: var(--connect-surface-2);
+    }
+
+    .planning-summary strong,
+    .planning-summary span {
+        display: block;
+    }
+
+    .planning-summary span {
+        color: var(--connect-muted);
+        font-size: 14px;
+        margin-top: 3px;
+    }
+
+    @media (max-width: 900px) {
+        .planning-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .planning-name-panel {
+            position: static;
+        }
+    }
+
+    @media (max-width: 620px) {
+        .planning-header,
+        .planning-team-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .planning-functions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 <div class="container">
-    <h3>{% if form.instance.pk %}Editar{% else %}Adicionar{% endif %} Planejamento</h3>
-
-    <form method="POST">
-        {% csrf_token %}
-        
-        <div class="form-group">
-            <label for="id_nome">Nome do Planejamento</label>
-            {{ form.nome }}
+    <div class="planning-header">
+        <div>
+            <h3>{% if is_edit %}Editar planejamento{% else %}Novo planejamento{% endif %}</h3>
+            <p>Monte um conjunto de funções para reaplicar em vários eventos depois.</p>
         </div>
+        <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Voltar</a>
+    </div>
 
-        <h4>Funções Associadas</h4>
-        {% if formset.non_form_errors %}
-            <div class="alert alert-danger">{{ formset.non_form_errors }}</div>
-        {% endif %}
-        {{ formset.management_form }}
-        <div id="funcoes-container">
-            {% for form_funcao in formset %}
-                <div class="funcao-item" data-form-index="{{ forloop.counter0 }}">
-                    {{ form_funcao.id }}
-                    <div class="form-group">
-                        {{ form_funcao.funcao }}
-                        {% if form_funcao.funcao.errors %}
-                            <div class="text-danger">{{ form_funcao.funcao.errors }}</div>
-                        {% endif %}
+    {% if form.errors %}
+    <div class="planning-errors">
+        {{ form.non_field_errors }}
+        {{ form.nome.errors }}
+    </div>
+    {% endif %}
+
+    <form method="POST" id="planningForm">
+        {% csrf_token %}
+
+        <div class="planning-layout">
+            <aside class="planning-panel planning-name-panel">
+                <h4>Identificação</h4>
+                <p class="planning-muted mb-3">Use um nome fácil de reconhecer na hora de aplicar em eventos.</p>
+
+                <div class="form-group">
+                    <label for="id_nome">Nome do planejamento</label>
+                    {{ form.nome }}
+                </div>
+
+                <div class="planning-summary">
+                    <strong id="planningSummaryTitle">Nenhuma função selecionada</strong>
+                    <span id="planningSummaryText">Escolha as funções por equipe para salvar.</span>
+                </div>
+
+                <div class="planning-actions">
+                    <button type="submit" class="btn btn-success">Salvar planejamento</button>
+                    <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Cancelar</a>
+                </div>
+            </aside>
+
+            <section class="planning-panel">
+                <h4>Funções</h4>
+                <p class="planning-muted mb-3">Selecione tudo que esse planejamento deve criar quando for aplicado em um evento.</p>
+
+                {% for equipe, funcoes in funcoes_por_equipe.items %}
+                <div class="planning-team" data-team="{{ equipe.pk }}">
+                    <div class="planning-team-header">
+                        <div>
+                            <strong>{{ equipe.nome }}</strong>
+                            <span>{{ funcoes|length }} função(ões)</span>
+                        </div>
+                        <div class="planning-team-actions">
+                            <button type="button" class="btn btn-sm btn-secondary" data-select-team="{{ equipe.pk }}">Marcar equipe</button>
+                            <button type="button" class="btn btn-sm btn-secondary" data-clear-team="{{ equipe.pk }}">Limpar</button>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <span style="display:none;">{{ form_funcao.DELETE }}</span>
-                        <button type="button" class="btn btn-danger remove-funcao">Remover</button>
+                    <div class="planning-functions-grid">
+                        {% for funcao in funcoes %}
+                        <label class="planning-function-card">
+                            <input type="checkbox" class="planning-function" name="funcoes" value="{{ funcao.pk }}" data-team-id="{{ equipe.pk }}" {% if funcao.pk in selected_funcoes %}checked{% endif %}>
+                            <span>
+                                <strong>{{ funcao.nome }}</strong>
+                                <span>{{ equipe.nome }}</span>
+                            </span>
+                        </label>
+                        {% endfor %}
                     </div>
                 </div>
-            {% empty %}
-                <div class="text-muted">Nenhuma função adicionada.</div>
-            {% endfor %}
+                {% empty %}
+                <p class="planning-muted">Nenhuma função cadastrada. Cadastre funções nas equipes antes de criar um planejamento.</p>
+                {% endfor %}
+            </section>
         </div>
-
-        <button type="button" id="add-funcao" class="btn btn-primary">Adicionar Função</button>
-
-        <button type="submit" class="btn btn-success">Salvar</button>
-        <a class="btn btn-secondary" href="{% url 'planejamento_list' %}">Cancelar</a>
     </form>
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const formsetPrefix = "{{ formset.prefix }}";
-        const totalFormsInput = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
-        const container = document.getElementById("funcoes-container");
-        const addButton = document.getElementById("add-funcao");
+    document.addEventListener('DOMContentLoaded', function () {
+        const checks = Array.from(document.querySelectorAll('.planning-function'));
+        const summaryTitle = document.getElementById('planningSummaryTitle');
+        const summaryText = document.getElementById('planningSummaryText');
+        const form = document.getElementById('planningForm');
 
-        const emptyFormTemplate = `
-            <div class="funcao-item" data-form-index="__prefix__">
-                <input type="hidden" name="${formsetPrefix}-__prefix__-id" id="id_${formsetPrefix}-__prefix__-id" />
-                <div class="form-group">
-                    {{ formset.empty_form.funcao|escapejs }}
-                </div>
-                <div class="form-group">
-                    <input type="checkbox" name="${formsetPrefix}-__prefix__-DELETE" id="id_${formsetPrefix}-__prefix__-DELETE" style="display:none;" />
-                    <button type="button" class="btn btn-danger remove-funcao">Remover</button>
-                </div>
-            </div>
-        `;
-
-        function bindRemoveButtons(scope) {
-            scope.querySelectorAll(".remove-funcao").forEach(function (button) {
-                button.addEventListener("click", function () {
-                    const item = this.closest(".funcao-item");
-                    const deleteInput = item.querySelector(`input[name$='-DELETE']`);
-                    if (deleteInput) {
-                        deleteInput.checked = true;
-                        item.style.display = "none";
-                    } else {
-                        item.remove();
-                        totalFormsInput.value = container.querySelectorAll(".funcao-item").length;
-                    }
-                });
-            });
+        function selectedChecks() {
+            return checks.filter(check => check.checked);
         }
 
-        bindRemoveButtons(container);
+        function updateSummary() {
+            const selected = selectedChecks();
+            const teams = new Set(selected.map(check => check.dataset.teamId));
 
-        addButton.addEventListener("click", function () {
-            const formIndex = parseInt(totalFormsInput.value, 10);
-            const newFormHtml = emptyFormTemplate.replace(/__prefix__/g, formIndex);
-            const tempDiv = document.createElement("div");
-            tempDiv.innerHTML = newFormHtml.trim();
-            const newForm = tempDiv.firstChild;
-            container.appendChild(newForm);
-            totalFormsInput.value = formIndex + 1;
-            bindRemoveButtons(newForm);
+            if (!selected.length) {
+                summaryTitle.textContent = 'Nenhuma função selecionada';
+                summaryText.textContent = 'Escolha as funções por equipe para salvar.';
+                return;
+            }
+
+            summaryTitle.textContent = `${selected.length} função(ões) selecionada(s)`;
+            summaryText.textContent = `Distribuídas em ${teams.size} equipe(s).`;
+        }
+
+        document.querySelectorAll('[data-select-team]').forEach(button => {
+            button.addEventListener('click', function () {
+                const teamId = this.dataset.selectTeam;
+                checks.filter(check => check.dataset.teamId === teamId).forEach(check => check.checked = true);
+                updateSummary();
+            });
         });
+
+        document.querySelectorAll('[data-clear-team]').forEach(button => {
+            button.addEventListener('click', function () {
+                const teamId = this.dataset.clearTeam;
+                checks.filter(check => check.dataset.teamId === teamId).forEach(check => check.checked = false);
+                updateSummary();
+            });
+        });
+
+        checks.forEach(check => check.addEventListener('change', updateSummary));
+
+        form.addEventListener('submit', function (event) {
+            if (!selectedChecks().length) {
+                event.preventDefault();
+                summaryTitle.textContent = 'Falta selecionar funções';
+                summaryText.textContent = 'Selecione pelo menos uma função para salvar o planejamento.';
+            }
+        });
+
+        updateSummary();
     });
 </script>
 {% endblock %}

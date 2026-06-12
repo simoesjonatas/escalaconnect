@@ -164,3 +164,38 @@
     color: var(--connect-text);
 }
 
+/* === FullCalendar: tema escuro — corrige os fundos claros (principalmente a visão de Lista) === */
+.fc {
+    --fc-neutral-bg-color: var(--connect-surface-2);     /* fundo do cabeçalho de dia / células sombreadas */
+    --fc-list-event-hover-bg-color: var(--connect-surface);
+    --fc-border-color: var(--connect-border);
+    --fc-page-bg-color: var(--connect-bg);
+    --fc-today-bg-color: rgba(57, 255, 20, 0.08);
+}
+
+/* Cabeçalho de cada dia na Lista (ex.: "domingo — 7 de junho") estava claro e ilegível */
+.fc .fc-list-day-cushion,
+.fc-theme-standard .fc-list-day-cushion {
+    background-color: var(--connect-surface-2);
+    color: var(--connect-text);
+}
+.fc .fc-list-day-text,
+.fc .fc-list-day-side-text {
+    color: var(--connect-text);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+/* Eventos na Lista */
+.fc .fc-list-event-title a,
+.fc .fc-list-event-time {
+    color: var(--connect-text);
+}
+.fc .fc-list-event:hover td {
+    background-color: var(--connect-surface);
+}
+.fc .fc-list-empty {
+    background: var(--connect-surface);
+    color: var(--connect-muted);
+}
+

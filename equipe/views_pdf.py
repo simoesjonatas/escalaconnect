@@ -12,10 +12,17 @@ from equipe.decorators import require_lideranca
 def exportar_tabela_para_pdf(request, equipe_pk):
     try:
         from weasyprint import HTML
-    except (ImportError, OSError):
+    except (ImportError, OSError) as exc:
         return HttpResponse(
-            "Geracao de PDF indisponivel. Instale as bibliotecas nativas do WeasyPrint.",
+            (
+                "Geracao de PDF indisponivel.\n\n"
+                "No macOS, instale as bibliotecas nativas do WeasyPrint com:\n"
+                "brew install pango gdk-pixbuf libffi\n\n"
+                "Depois reinicie o servidor Django.\n\n"
+                f"Erro original: {exc}"
+            ),
             status=503,
+            content_type="text/plain; charset=utf-8",
         )
 
     if request.method == 'POST':
@@ -61,7 +68,7 @@ def exportar_tabela_para_pdf(request, equipe_pk):
         html_string = render_to_string('meu_template.html', {'escalas': escalas, 'equipe': equipe, 'mes_nome': mes_nome})
 
         # Criar um objeto HTML WeasyPrint
-        html = HTML(string=html_string)
+        html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
 
         # Gerar o PDF
         pdf = html.write_pdf()

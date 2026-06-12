@@ -7,7 +7,10 @@ class PlanejamentoForm(forms.ModelForm):
         model = Planejamento
         fields = ['nome']
         widgets = {
-            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'nome': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex.: Culto de domingo - manhã',
+            }),
         }
 
 class PlanejamentoFuncaoForm(forms.ModelForm):

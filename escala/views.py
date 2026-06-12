@@ -2,12 +2,13 @@ from datetime import timezone as datetime_timezone
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
 from django.http import JsonResponse, HttpResponse
 from escala.models import Escala, Funcao
 from evento.models import Evento
-from escala.forms import EscalaForm, MultiEscalaForm
+from escala.forms import EscalaForm, MultiEscalaForm, AplicarFuncoesEventosForm
 from escala.solicitacao_desistencia_forms import DesistenciaForm
 from equipe.decorators import require_lideranca 
 from django.contrib.auth.decorators import login_required
@@ -17,6 +18,14 @@ from django.conf import settings
 from usuario.models import Usuario
 from equipe.models import Lideranca, Equipe
 from escala.utils import usuarios_disponiveis_para_evento, preencher_vagas
+
+
+def _user_can_manage_event_functions(user):
+    if not user.is_authenticated:
+        return False
+    if user.is_staff or user.is_superuser:
+        return True
+    return Lideranca.objects.filter(usuario=user).exists()
 
 
 def escalas_por_evento(request, pk):
@@ -348,6 +357,69 @@ def carregar_funcoes(request):
         funcoes = Funcao.objects.filter(equipe_id=equipe_id).values('id', 'nome')
         return JsonResponse(list(funcoes), safe=False)
     return JsonResponse([], safe=False)
+
+
+@login_required
+def aplicar_funcoes_eventos(request):
+    if not _user_can_manage_event_functions(request.user):
+        return render(request, '403_forbidden.html', status=403)
+
+    if request.method == 'POST':
+        form = AplicarFuncoesEventosForm(request.POST, user=request.user)
+        if form.is_valid():
+            eventos = list(form.cleaned_data['eventos'])
+            funcoes = list(form.funcoes_selecionadas())
+            criadas = 0
+            existentes = 0
+
+            with transaction.atomic():
+                for evento in eventos:
+                    for funcao in funcoes:
+                        ja_existe = Escala.objects.filter(evento=evento, funcao=funcao).exists()
+                        if ja_existe:
+                            existentes += 1
+                            continue
+
+                        Escala.objects.create(evento=evento, funcao=funcao)
+                        criadas += 1
+
+            if criadas:
+                messages.success(
+                    request,
+                    f"{criadas} função(ões) adicionada(s) aos evento(s) selecionado(s)."
+                )
+            if existentes:
+                messages.info(
+                    request,
+                    f"{existentes} combinação(ões) já existiam e foram ignoradas para evitar duplicidade."
+                )
+            if not criadas and not existentes:
+                messages.warning(request, "Selecione pelo menos um evento e uma função.")
+
+            return redirect('aplicar_funcoes_eventos')
+    else:
+        form = AplicarFuncoesEventosForm(user=request.user)
+
+    selected_equipes = {int(value) for value in request.POST.getlist('equipes') if value.isdigit()}
+    selected_eventos = {int(value) for value in request.POST.getlist('eventos') if value.isdigit()}
+    selected_funcoes = {int(value) for value in request.POST.getlist('funcoes') if value.isdigit()}
+    selected_planejamento = request.POST.get('planejamento') or ''
+
+    funcoes_por_equipe = {}
+    for funcao in form.fields['funcoes'].queryset:
+        funcoes_por_equipe.setdefault(funcao.equipe, []).append(funcao)
+
+    context = {
+        'form': form,
+        'eventos': form.fields['eventos'].queryset,
+        'equipes': form.fields['equipes'].queryset,
+        'funcoes_por_equipe': funcoes_por_equipe,
+        'selected_equipes': selected_equipes,
+        'selected_eventos': selected_eventos,
+        'selected_funcoes': selected_funcoes,
+        'selected_planejamento': selected_planejamento,
+    }
+    return render(request, 'escala/aplicar_funcoes_eventos.html', context)
 
 
 def _ics_escape(text):

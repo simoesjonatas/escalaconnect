@@ -12,7 +12,7 @@
     overflow-y: auto;
     max-height: calc(100vh - 24px);
     scrollbar-width: thin;
-    scrollbar-color: var(--connect-green) var(--connect-black);
+    scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
     border-radius: 18px;
     overflow-x: hidden;
     margin: 12px;
@@ -21,6 +21,32 @@
     padding-bottom: 10px;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+}
+
+/* Barra de rolagem do menu: discreta sempre que houver overflow (ajuda no touch do
+   tablet, que não tem hover) e realçada em verde ao passar o mouse, deixando claro
+   que o menu rola. */
+.sidebar::-webkit-scrollbar {
+    width: 10px;
+}
+.sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: background-color 0.2s;
+}
+.sidebar:hover {
+    scrollbar-color: var(--connect-green) transparent;   /* Firefox: realça no hover */
+}
+.sidebar:hover::-webkit-scrollbar-thumb {
+    background-color: var(--connect-green);
+}
+.sidebar::-webkit-scrollbar-thumb:active {
+    background-color: var(--connect-green-600, #1fd10a);
 }
 
 .content {

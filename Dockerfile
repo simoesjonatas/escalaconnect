@@ -12,6 +12,8 @@ RUN apt-get update \
         libjpeg62-turbo \
         libopenjp2-7 \
         shared-mime-info \
+        fonts-dejavu-core \
+        fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /code
