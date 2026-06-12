@@ -1,0 +1,487 @@
+/* Final theme layer. Loaded after the legacy CSS to normalize colors and layout. */
+:root {
+    color-scheme: dark;
+    --connect-green: #39ff14;
+    --connect-green-600: #1fd10a;
+    --connect-black: #0b0b0b;
+    --connect-bg: #0f1115;
+    --connect-surface: #14181f;
+    --connect-surface-2: #1b2230;
+    --connect-surface-3: #202938;
+    --connect-text: #eaf2ed;
+    --connect-muted: #a9b4bd;
+    --connect-border: #2a3342;
+    --connect-shadow: rgba(0, 0, 0, 0.35);
+    --connect-focus: rgba(57, 255, 20, 0.28);
+    --connect-info: #20c7d9;
+    --connect-warning: #ffd400;
+    --connect-danger: #ff4d4f;
+}
+
+html[data-theme="light"] {
+    color-scheme: light;
+    --connect-green: #159a25;
+    --connect-green-600: #0f7e1d;
+    --connect-black: #ffffff;
+    --connect-bg: #f4f7f5;
+    --connect-surface: #ffffff;
+    --connect-surface-2: #eef3f0;
+    --connect-surface-3: #e5ece8;
+    --connect-text: #17221b;
+    --connect-muted: #5f6f67;
+    --connect-border: #d4ded8;
+    --connect-shadow: rgba(18, 33, 24, 0.12);
+    --connect-focus: rgba(21, 154, 37, 0.22);
+    --connect-info: #087f95;
+    --connect-warning: #9a7400;
+    --connect-danger: #c92a2a;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background:
+        radial-gradient(circle at top right, rgba(57, 255, 20, 0.06), transparent 28rem),
+        var(--connect-bg);
+    color: var(--connect-text);
+    line-height: 1.45;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+html[data-theme="light"] body {
+    background:
+        radial-gradient(circle at top right, rgba(21, 154, 37, 0.08), transparent 26rem),
+        var(--connect-bg);
+}
+
+a {
+    color: var(--connect-green);
+}
+
+a:hover {
+    color: var(--connect-green-600);
+}
+
+.content {
+    background: transparent;
+}
+
+.main-content {
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+}
+
+.topbar {
+    gap: 12px;
+    min-height: 76px;
+    border: 1px solid var(--connect-border);
+    background: rgba(20, 24, 31, 0.92);
+    backdrop-filter: blur(12px);
+}
+
+html[data-theme="light"] .topbar {
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.topbar h2 {
+    flex: 1 1 auto;
+    line-height: 1.2;
+    margin: 0;
+    min-width: 0;
+    font-size: clamp(1.25rem, 2vw, 1.8rem);
+    overflow-wrap: anywhere;
+}
+
+.menu-toggle {
+    flex: 0 0 auto;
+}
+
+.theme-toggle {
+    align-items: center;
+    background: var(--connect-surface-2);
+    border: 1px solid var(--connect-border);
+    border-radius: 999px;
+    color: var(--connect-text);
+    cursor: pointer;
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 8px;
+    min-height: 38px;
+    padding: 8px 12px;
+    transition: background .2s, border-color .2s, color .2s, transform .15s;
+}
+
+.theme-toggle:hover {
+    border-color: var(--connect-green);
+    color: var(--connect-green);
+    transform: translateY(-1px);
+}
+
+.theme-toggle i {
+    color: var(--connect-green);
+}
+
+.container,
+.section-card,
+.panel-card,
+.dashboard-card,
+.home-hero,
+.team-availability-panel,
+.availability-filters,
+.availability-submit-bar,
+.event-card,
+.modal-content {
+    background: var(--connect-surface);
+    border-color: var(--connect-border);
+    box-shadow: 0 10px 24px var(--connect-shadow);
+}
+
+.container {
+    width: min(100%, 1200px);
+    border-radius: 8px;
+}
+
+.dashboard-card,
+.event-card,
+.summary-item,
+.home-suggestion,
+.team-availability-panel,
+.availability-filters,
+.availability-submit-bar {
+    border-radius: 8px;
+}
+
+.dashboard-card:hover {
+    border-color: var(--connect-green);
+}
+
+.form-inline,
+.filters,
+.checkbox-list,
+.info-list,
+.info-list li,
+.availability-day-filter label,
+.team-availability-panel,
+.summary-item {
+    background: var(--connect-surface);
+    border-color: var(--connect-border);
+}
+
+.form-control,
+input,
+select,
+textarea {
+    background: var(--connect-surface-2);
+    border: 1px solid var(--connect-border);
+    color: var(--connect-text);
+    border-radius: 8px;
+}
+
+.form-control:focus,
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible,
+a:focus-visible {
+    outline: 3px solid var(--connect-focus);
+    outline-offset: 2px;
+}
+
+.btn {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 8px 18px rgba(0, 0, 0, .12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-weight: 800;
+    letter-spacing: 0;
+    min-height: 38px;
+    text-transform: none;
+    transition: background .2s, border-color .2s, color .2s, transform .15s, box-shadow .2s;
+}
+
+.btn:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, .28);
+}
+
+.btn-primary,
+.btn-success {
+    background: var(--connect-green);
+    border-color: var(--connect-green);
+    color: #071008;
+}
+
+.btn-primary:hover,
+.btn-success:hover {
+    background: var(--connect-green-600);
+    border-color: var(--connect-green-600);
+    color: #071008;
+    box-shadow: 0 0 0 1px rgba(57, 255, 20, .18), 0 10px 20px rgba(57, 255, 20, .16);
+}
+
+.btn-secondary {
+    background: var(--connect-surface-2);
+    border-color: var(--connect-border);
+    color: var(--connect-text);
+}
+
+.btn-secondary:hover {
+    background: var(--connect-surface-3);
+    border-color: var(--connect-green);
+    color: var(--connect-green);
+}
+
+.btn-info {
+    background: var(--connect-info);
+    border-color: var(--connect-info);
+    color: #071014;
+}
+
+.btn-info:hover {
+    background: #18aebe;
+    border-color: #18aebe;
+    color: #061114;
+    box-shadow: 0 0 0 1px rgba(32, 199, 217, .16), 0 10px 20px rgba(32, 199, 217, .14);
+}
+
+.btn-warning {
+    background: var(--connect-warning);
+    border-color: var(--connect-warning);
+    color: #151000;
+}
+
+.btn-warning:hover {
+    background: #e6bf00;
+    border-color: #e6bf00;
+    color: #151000;
+    box-shadow: 0 0 0 1px rgba(255, 212, 0, .16), 0 10px 20px rgba(255, 212, 0, .13);
+}
+
+.btn-danger {
+    background: var(--connect-danger);
+    border-color: var(--connect-danger);
+    color: #fff;
+}
+
+.btn-danger:hover {
+    background: #e63f41;
+    border-color: #e63f41;
+    color: #fff;
+    box-shadow: 0 0 0 1px rgba(255, 77, 79, .16), 0 10px 20px rgba(255, 77, 79, .16);
+}
+
+.btn-outline-secondary:hover {
+    background: var(--connect-surface-3);
+    border-color: var(--connect-green);
+    color: var(--connect-green);
+}
+
+.btn-outline-info:hover {
+    background: rgba(32, 199, 217, .14);
+    border-color: var(--connect-info);
+    color: #a7f4ff;
+}
+
+html[data-theme="light"] .btn {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .72) inset, 0 8px 16px rgba(18, 33, 24, .08);
+}
+
+html[data-theme="light"] .btn:hover {
+    box-shadow: 0 10px 18px rgba(18, 33, 24, .12);
+}
+
+html[data-theme="light"] .btn-primary,
+html[data-theme="light"] .btn-success {
+    background: #178329;
+    border-color: #178329;
+    color: #fff;
+}
+
+html[data-theme="light"] .btn-primary:hover,
+html[data-theme="light"] .btn-success:hover {
+    background: #0f6f20;
+    border-color: #0f6f20;
+    color: #fff;
+}
+
+html[data-theme="light"] .btn-secondary {
+    background: #fff;
+    border-color: #c9d6cf;
+    color: #243128;
+}
+
+html[data-theme="light"] .btn-secondary:hover {
+    background: #edf5f0;
+    border-color: #9eb2a5;
+    color: #17221b;
+}
+
+html[data-theme="light"] .btn-info {
+    background: #087f95;
+    border-color: #087f95;
+    color: #fff;
+}
+
+html[data-theme="light"] .btn-warning {
+    background: #b88700;
+    border-color: #b88700;
+    color: #fff;
+}
+
+html[data-theme="light"] .btn-danger {
+    background: #c92a2a;
+    border-color: #c92a2a;
+    color: #fff;
+}
+
+html[data-theme="light"] .btn-outline-secondary {
+    background: transparent;
+    border-color: #bccbc2;
+    color: #26342b;
+}
+
+html[data-theme="light"] .btn-outline-secondary:hover {
+    background: #edf5f0;
+    border-color: #9eb2a5;
+    color: #17221b;
+}
+
+html[data-theme="light"] .btn-outline-info {
+    border-color: #087f95;
+    color: #075c6b;
+}
+
+html[data-theme="light"] .btn-outline-info:hover {
+    background: rgba(8, 127, 149, .12);
+    color: #064c58;
+}
+
+.table {
+    color: var(--connect-text);
+}
+
+.table th {
+    background: var(--connect-surface);
+}
+
+.table td {
+    background: color-mix(in srgb, var(--connect-surface) 72%, transparent);
+}
+
+.table tbody tr:hover {
+    background: color-mix(in srgb, var(--connect-green) 9%, transparent);
+    transform: none;
+}
+
+.breadcrumb,
+.app-breadcrumb {
+    background: var(--connect-surface);
+    border-color: var(--connect-border);
+}
+
+.modal {
+    background: rgba(0, 0, 0, 0.58);
+}
+
+html[data-theme="light"] .modal {
+    background: rgba(14, 24, 18, 0.38);
+}
+
+.modal-content {
+    color: var(--connect-text);
+}
+
+.alert {
+    background: var(--connect-surface);
+    border-color: var(--connect-border);
+    color: var(--connect-text);
+}
+
+.alert-info {
+    background: color-mix(in srgb, var(--connect-info) 12%, var(--connect-surface));
+    border-color: color-mix(in srgb, var(--connect-info) 42%, var(--connect-border));
+    color: var(--connect-text);
+}
+
+.alert-success {
+    background: color-mix(in srgb, var(--connect-green) 12%, var(--connect-surface));
+    border-color: color-mix(in srgb, var(--connect-green) 42%, var(--connect-border));
+    color: var(--connect-text);
+}
+
+.alert-warning {
+    background: color-mix(in srgb, var(--connect-warning) 15%, var(--connect-surface));
+    border-color: color-mix(in srgb, var(--connect-warning) 42%, var(--connect-border));
+    color: var(--connect-text);
+}
+
+.alert-danger {
+    background: color-mix(in srgb, var(--connect-danger) 13%, var(--connect-surface));
+    border-color: color-mix(in srgb, var(--connect-danger) 44%, var(--connect-border));
+    color: var(--connect-text);
+}
+
+.badge-success {
+    background: color-mix(in srgb, var(--connect-green) 34%, #0b2210);
+    color: #eaffea;
+}
+
+html[data-theme="light"] .badge-success {
+    color: #063b10;
+}
+
+.badge-warning {
+    background: color-mix(in srgb, var(--connect-warning) 40%, #2a2200);
+    color: #fff8d8;
+}
+
+html[data-theme="light"] .badge-warning {
+    color: #4a3700;
+}
+
+.badge-danger {
+    background: color-mix(in srgb, var(--connect-danger) 42%, #2a0808);
+    color: #ffe5e5;
+}
+
+html[data-theme="light"] .badge-danger {
+    color: #6d1111;
+}
+
+@media (max-width: 1100px) {
+    .main-content {
+        max-width: 100%;
+    }
+
+    .topbar {
+        margin: 10px 12px 0;
+    }
+
+    .main-content {
+        padding: 16px 12px;
+    }
+}
+
+@media (max-width: 640px) {
+    .topbar {
+        align-items: center;
+        min-height: 64px;
+        padding: 10px 12px;
+    }
+
+    .theme-toggle span {
+        display: none;
+    }
+
+    .container {
+        padding: 14px;
+    }
+}

@@ -1,11 +1,17 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escala Connect</title>
+    <script>
+        (function () {
+            const savedTheme = localStorage.getItem('connect-theme');
+            document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dark';
+        })();
+    </script>
     <link rel="icon" href="{% static 'images/logo_pibvp_2022.png' %}" type="image/png">
     <!-- <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="stylesheet" href="/static/css/calendario.css">
@@ -22,6 +28,7 @@
     <link rel="stylesheet" href="{% static 'css/modal.css' %}">
     <link rel="stylesheet" href="{% static 'css/tabs.css' %}">
     <link rel="stylesheet" href="{% static 'css/utilities.css' %}">
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
     
     <!-- <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet"> -->
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
@@ -61,14 +68,14 @@
             width: 520px;               /* desktop confortável */
             max-width: 100%;
             border-radius: 14px;
-            background: #14181f;
+            background: var(--connect-surface);
             padding: 18px 20px 16px;
-            box-shadow: 0 12px 30px rgba(0,0,0,.45);
+            box-shadow: 0 12px 30px var(--connect-shadow);
             box-sizing: border-box;
             max-height: 85vh;           /* evita estourar a tela */
             overflow: auto;             /* cria scroll interno quando necessário */
-            color: #e6f0ea;
-            border: 1px solid #232a35;
+            color: var(--connect-text);
+            border: 1px solid var(--connect-border);
         }
 
         .close {
@@ -76,14 +83,14 @@
             top: 10px; right: 12px;
             font-size: 20px;
             cursor: pointer;
-            color: #9aa4ad;
+            color: var(--connect-muted);
             width: 28px;
             height: 28px;
             display: grid;
             place-items: center;
             border-radius: 8px;
         }
-        .close:hover { color: #39ff14; background: rgba(57,255,20,.12); }
+        .close:hover { color: var(--connect-green); background: rgba(57,255,20,.12); }
 
         /* Inputs ocupam toda a largura e têm espaçamento */
         #eventForm label { margin-top: .5rem; }
@@ -130,9 +137,9 @@
         tr.table-danger { background-color: transparent; color: var(--connect-text); }
 
         /* manter a cor ao passar o mouse (desktop) */
-        tr.table-success:hover { background-color: rgba(57,255,20,.14) !important; color: #eaffea; }
-        tr.table-warning:hover { background-color: rgba(255,212,0,.18) !important; color: #fff5c2; }
-        tr.table-danger:hover  { background-color: rgba(255,59,59,.22) !important; color: #ffd2d2; }
+        tr.table-success:hover { background-color: rgba(57,255,20,.14) !important; color: var(--connect-text); }
+        tr.table-warning:hover { background-color: rgba(255,212,0,.18) !important; color: var(--connect-text); }
+        tr.table-danger:hover  { background-color: rgba(255,59,59,.22) !important; color: var(--connect-text); }
         
         /* CARD dos filtros */
         .filters{
@@ -210,28 +217,28 @@
             border-radius: 10px;
             border: 1px solid transparent;
             padding: 10px 12px;
-            color: #e6f0ea;
-            background: #1b2230;
+            color: var(--connect-text);
+            background: var(--connect-surface);
         }
         .alert-info {
             border-color: rgba(57,255,20,.35);
             background: rgba(57,255,20,.08);
-            color: #dfffe0;
+            color: var(--connect-text);
         }
         .alert-success {
             border-color: rgba(57,255,20,.45);
             background: rgba(57,255,20,.12);
-            color: #eaffea;
+            color: var(--connect-text);
         }
         .alert-warning {
             border-color: rgba(255,212,0,.45);
             background: rgba(255,212,0,.12);
-            color: #fff5c2;
+            color: var(--connect-text);
         }
         .alert-danger {
             border-color: rgba(255,59,59,.55);
             background: rgba(255,59,59,.12);
-            color: #ffd2d2;
+            color: var(--connect-text);
         }
         </style>
 
@@ -252,6 +259,10 @@
             <header class="topbar">
                 <button class="menu-toggle" id="menuToggle" style="display: none;">&#9776;</button>
                 <h2>{% block page_title %}{% endblock page_title %}</h2>
+                <button type="button" class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
+                    <i class="fa fa-moon"></i>
+                    <span>Tema</span>
+                </button>
             </header>
                         
             <div class="main-content">
@@ -309,6 +320,30 @@
 
         window.addEventListener('resize', handleResize);
         window.addEventListener('load', handleResize);
+
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle ? themeToggle.querySelector('i') : null;
+
+        function applyTheme(theme) {
+            const normalizedTheme = theme === 'light' ? 'light' : 'dark';
+            document.documentElement.dataset.theme = normalizedTheme;
+            localStorage.setItem('connect-theme', normalizedTheme);
+
+            if (themeIcon) {
+                themeIcon.className = normalizedTheme === 'light' ? 'fa fa-sun' : 'fa fa-moon';
+            }
+            if (themeToggle) {
+                themeToggle.title = normalizedTheme === 'light' ? 'Trocar para tema escuro' : 'Trocar para tema claro';
+            }
+        }
+
+        if (themeToggle) {
+            applyTheme(document.documentElement.dataset.theme);
+            themeToggle.addEventListener('click', () => {
+                const nextTheme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+                applyTheme(nextTheme);
+            });
+        }
     </script>
 </body>
 </html>

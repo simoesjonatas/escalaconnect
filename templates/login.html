@@ -1,27 +1,47 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="{% static 'images/logo_pibvp_2022.png' %}" type="image/png">
     <title>Login - Escalaconnect</title>
-    <link rel="stylesheet" href="/static/css/login.css">
+    <script>
+        (function () {
+            var savedTheme = localStorage.getItem('connect-theme');
+            document.documentElement.dataset.theme = savedTheme === 'light' ? 'light' : 'dark';
+        })();
+    </script>
+    <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
 </head>
-<body>
-    <div class="login-container">
-        <div class="login-card">
-            <div class="login-logo" aria-hidden="true">
+<body class="auth-body">
+    <button class="auth-theme-toggle" id="themeToggle" type="button" aria-label="Alternar tema">Tema escuro</button>
+
+    <main class="auth-page auth-login">
+        <section class="auth-brand" aria-label="Escala Connect">
+            <div class="auth-brand-logo">
                 <img src="{% static 'images/logo_connect.JPG' %}" alt="Connect" />
             </div>
-            <h1>Login</h1>
+            <p class="auth-eyebrow">Escala Connect</p>
+            <h1>Entre para organizar suas escalas com mais clareza.</h1>
+            <p>Confirme participações, acompanhe eventos e mantenha sua disponibilidade sempre em dia.</p>
+        </section>
+
+        <section class="login-container auth-card" aria-label="Entrar">
+            <div class="login-card">
+                <div class="login-logo">
+                    <img src="{% static 'images/logo_connect.JPG' %}" alt="Connect" />
+                </div>
+                <p class="auth-eyebrow">Bem-vindo de volta</p>
+                <h2>Entrar</h2>
             {% if form.errors %}
                 <div class="error-messages">
                     <p>Usuário ou senha incorretos. Tente novamente.</p>
                 </div>
             {% endif %}
             <form action="/login/" method="POST">
-                <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                {% csrf_token %}
                 <div class="form-group">
                     <label for="username">Usuário ou E-mail</label>
                     <input type="text" id="username" name="username" placeholder="Digite seu usuário ou e-mail" required>
@@ -33,20 +53,38 @@
                 </div>
                 <input type="hidden" name="next" value="{{ request.GET.next }}">
                 <button type="submit">Entrar</button>
-                {% if form.errors %}
-                <div class="form-group forgot-password signup">
+                <div class="forgot-password signup">
                     <a href="{% url 'recuperar_senha' %}">Esqueci minha senha</a>
                 </div>
-                {% endif %}
                 
                 <p class="signup">Não tem uma conta? <a href="{% url 'signup' %}">Cadastre-se</a></p>
             </form>
         </div>
-    </div>
+        </section>
+    </main>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.querySelector('form');
             const password = document.getElementById('password');
+            const themeToggle = document.getElementById('themeToggle');
+
+            function syncThemeIcon() {
+                const isLight = document.documentElement.dataset.theme === 'light';
+                if (themeToggle) {
+                    themeToggle.textContent = isLight ? 'Tema claro' : 'Tema escuro';
+                }
+            }
+
+            if (themeToggle) {
+                syncThemeIcon();
+                themeToggle.addEventListener('click', function () {
+                    const nextTheme = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+                    document.documentElement.dataset.theme = nextTheme;
+                    localStorage.setItem('connect-theme', nextTheme);
+                    syncThemeIcon();
+                });
+            }
+
             if (form && password) {
                 password.addEventListener('keydown', function (event) {
                     if (event.key === 'Enter') {
