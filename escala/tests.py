@@ -374,3 +374,36 @@ class MinhaEscalaDetailPageTests(TestCase):
         # O projeto usa handler404 customizado que redireciona para a home,
         # então o Http404 do get_object_or_404 vira 302 (e não 404 cru).
         self.assertEqual(resp.status_code, 302)
+
+
+class MinhaAgendaIcsTests(TestCase):
+    """A agenda .ics deve conter só escalas de hoje para frente."""
+
+    def test_ics_so_inclui_eventos_futuros(self):
+        equipe = Equipe.objects.create(nome="Som ICS")
+        funcao = Funcao.objects.create(nome="Mesa", equipe=equipe)
+        user = criar_usuario("vol_ics")
+        user.is_first_login = False
+        user.termo_aceito_em = timezone.now()
+        user.save()
+
+        passado = Evento.objects.create(
+            nome="Evento Passado ICS",
+            data_inicio=timezone.now() - timedelta(days=10),
+            data_fim=timezone.now() - timedelta(days=10) + timedelta(hours=2),
+        )
+        futuro = Evento.objects.create(
+            nome="Evento Futuro ICS",
+            data_inicio=timezone.now() + timedelta(days=10),
+            data_fim=timezone.now() + timedelta(days=10) + timedelta(hours=2),
+        )
+        Escala.objects.create(usuario=user, funcao=funcao, evento=passado)
+        Escala.objects.create(usuario=user, funcao=funcao, evento=futuro)
+
+        self.client.force_login(user)
+        resp = self.client.get(reverse('minha_agenda_ics'))
+
+        self.assertEqual(resp.status_code, 200)
+        body = resp.content.decode('utf-8')
+        self.assertIn('Evento Futuro ICS', body)
+        self.assertNotIn('Evento Passado ICS', body)

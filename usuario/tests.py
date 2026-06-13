@@ -1,3 +1,6 @@
+import datetime
+
+from django.core import mail
 from django.test import TestCase
 from django.urls import reverse
 from django.core.exceptions import ValidationError
@@ -83,7 +86,9 @@ class SignupPageSmokeTests(TestCase):
     def test_pagina_de_cadastro_renderiza_com_mascara(self):
         resp = self.client.get(reverse('signup'))
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'telefone-mask.js')
+        # O storage de produção adiciona hash ao nome (telefone-mask.<hash>.js),
+        # então conferimos só o prefixo do script.
+        self.assertContains(resp, 'telefone-mask')
 
 
 class PerfilContatoTests(TestCase):
@@ -165,3 +170,43 @@ class HomeAvisoContatoTests(TestCase):
         self.client.force_login(user)
         resp = self.client.get('/')
         self.assertNotContains(resp, 'Atualizar contato')
+
+
+class RecuperarSenhaTests(TestCase):
+    """CPF + data de nascimento corretos devem localizar o usuário.
+
+    Regressão: 'aniversario' virou DateField, mas a view usava TruncDate
+    (com USE_TZ) e deslocava o dia, retornando 'Dados não encontrados'.
+    """
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='vol_reset', password='x', cpf='15504146747',
+            email='vol_reset@example.com',
+            aniversario=datetime.date(1996, 1, 7),
+        )
+
+    def test_cpf_e_data_corretos_enviam_email_e_redirecionam(self):
+        resp = self.client.post(reverse('recuperar_senha'), {
+            'cpf': '15504146747',
+            'data_nascimento': '1996-01-07',
+        })
+        self.assertRedirects(resp, reverse('recuperar_senha_sucesso'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn('vol_reset@example.com', mail.outbox[0].to)
+
+    def test_cpf_com_mascara_tambem_funciona(self):
+        resp = self.client.post(reverse('recuperar_senha'), {
+            'cpf': '155.041.467-47',
+            'data_nascimento': '1996-01-07',
+        })
+        self.assertRedirects(resp, reverse('recuperar_senha_sucesso'))
+
+    def test_data_errada_nao_encontra(self):
+        resp = self.client.post(reverse('recuperar_senha'), {
+            'cpf': '15504146747',
+            'data_nascimento': '1996-01-08',
+        })
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'Dados não encontrados')
+        self.assertEqual(len(mail.outbox), 0)

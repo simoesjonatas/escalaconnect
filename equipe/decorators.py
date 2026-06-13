@@ -9,7 +9,8 @@ def require_lideranca(view_func):
     """
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        equipe_id = kwargs.get('equipe_pk') or kwargs.get('pk')  # Obtém o ID da equipe
+        # O ID da equipe pode vir como equipe_pk, equipe_id ou pk dependendo da rota.
+        equipe_id = kwargs.get('equipe_pk') or kwargs.get('equipe_id') or kwargs.get('pk')
 
         # print("super user")
         # Permite acesso se for superusuário ou staff

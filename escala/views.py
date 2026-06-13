@@ -441,10 +441,13 @@ def _ics_datetime(dt):
 
 @login_required
 def minha_agenda_ics(request):
-    """Exporta as escalas do usuário como arquivo .ics (Google/Apple Calendar)."""
+    """Exporta as escalas do usuário como arquivo .ics (Google/Apple Calendar).
+
+    Só eventos de hoje para frente — não faz sentido importar escalas passadas.
+    """
     escalas = (
         Escala.objects
-        .filter(usuario=request.user)
+        .filter(usuario=request.user, evento__data_inicio__gte=now())
         .select_related('evento', 'funcao', 'funcao__equipe')
         .order_by('evento__data_inicio')
     )

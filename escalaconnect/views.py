@@ -16,7 +16,10 @@ from django.urls import reverse
 @login_required(login_url='/login/')
 def base_view(request):
     tem_disponibilidade = Disponivel.objects.filter(usuario=request.user).exists()
-    tem_escalas = Escala.objects.filter(usuario=request.user).exists()
+    # Só escalas futuras: a agenda (.ics) e o botão de baixar consideram de hoje pra frente.
+    tem_escalas = Escala.objects.filter(
+        usuario=request.user, evento__data_inicio__gte=timezone.now()
+    ).exists()
 
     # Contato incompleto: sem e-mail, ou telefone vazio/sem DDD (menos de 10 dígitos).
     falta_email = not request.user.email

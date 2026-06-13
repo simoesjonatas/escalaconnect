@@ -8,7 +8,6 @@ from .models import Usuario, PasswordResetRequest
 from .forms import RecuperarSenhaForm
 from .mail import enviar_email_redefinicao_senha
 from django.urls import reverse
-from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.conf import settings
 import re
@@ -79,12 +78,13 @@ def recuperar_senha(request):
             
             try:
                 # Remover caracteres não numéricos do CPF
-                cpf_numerico = re.sub(r'[^0-9]', '', cpf)   
-                usuario = Usuario.objects.annotate(
-                    aniversario_data=TruncDate('aniversario')
-                ).get(
-                    cpf=cpf_numerico, 
-                    aniversario_data=aniversario
+                cpf_numerico = re.sub(r'[^0-9]', '', cpf)
+                # aniversario é DateField: comparar direto. (Não usar TruncDate aqui —
+                # com USE_TZ ele aplica conversão de fuso indevida num campo de data,
+                # deslocando o dia e fazendo "Dados não encontrados".)
+                usuario = Usuario.objects.get(
+                    cpf=cpf_numerico,
+                    aniversario=aniversario,
                 )
                 
                  # Desativa hashes anteriores
