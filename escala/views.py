@@ -172,7 +172,8 @@ def escala_detail(request, pk):
 
 @login_required
 def minhas_escalas(request):
-    order_by = request.GET.get('order_by', 'id')
+    # Cards ordenados pela data do evento (a próxima escala primeiro).
+    order_by = request.GET.get('order_by', 'evento__data_inicio')
     direction = request.GET.get('direction', 'asc')
     query = request.GET.get('q', '')
 

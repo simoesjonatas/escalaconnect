@@ -14,3 +14,4 @@ django-celery-results>=2.5,<3
 
 # PDF generation
 weasyprint>=64,<65
+reportlab>=4,<5

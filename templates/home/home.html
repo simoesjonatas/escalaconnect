@@ -10,6 +10,20 @@
         <p>Bem-vindo ao Escala Connect — acompanhe suas escalas, confirme presença e mantenha sua disponibilidade em dia.</p>
     </section>
 
+    {% if falta_email or falta_telefone %}
+    <div class="alert alert-danger home-alert">
+        <i class="fa fa-address-book"></i>
+        <span>
+            Seu cadastro está sem
+            <strong>{% if falta_email and falta_telefone %}e-mail e telefone{% elif falta_email %}e-mail{% else %}telefone válido (com DDD){% endif %}</strong>.
+            Os líderes precisam disso para falar com você.
+        </span>
+        <a href="{% url 'perfil_usuario' %}" class="btn btn-danger btn-sm">
+            <i class="fa fa-address-card mr-1"></i> Atualizar contato
+        </a>
+    </div>
+    {% endif %}
+
     {% if not tem_disponibilidade %}
     <div class="alert alert-warning home-alert">
         <i class="fa fa-exclamation-triangle"></i>
@@ -25,12 +39,20 @@
             <i class="fa fa-calendar-days"></i>
             <span>
                 <strong>Leve suas escalas para sua agenda.</strong>
+                {% if tem_escalas %}
                 Baixe um arquivo compatível com Google Calendar, Apple Calendar e Outlook.
+                {% else %}
+                Quando você for escalado, o download da agenda aparece aqui.
+                {% endif %}
             </span>
         </div>
+        {% if tem_escalas %}
         <a class="btn btn-info btn-sm" href="{% url 'minha_agenda_ics' %}">
             <i class="fa fa-download mr-1"></i> Exportar agenda
         </a>
+        {% else %}
+        <span class="home-suggestion-empty"><i class="fa fa-info-circle mr-1"></i> Nenhuma escala ainda</span>
+        {% endif %}
     </div>
 
     {% if escalas_pendentes %}
@@ -55,52 +77,71 @@
     </div>
     {% endif %}
 
-    <div class="dashboard-grid">
-        <a href="{% url 'minhas_escalas' %}" class="dashboard-card">
-            <i class="fa fa-calendar-check"></i>
-            <h3>Minhas Escalas</h3>
-            <p>Veja suas escalas e confirme presença.</p>
+    <div class="home-cards">
+        <a href="{% url 'minhas_escalas' %}" class="home-card">
+            <span class="home-card-icon"><i class="fa fa-calendar-check"></i></span>
+            <span class="home-card-body">
+                <strong>Minhas Escalas</strong>
+                <small>Veja e confirme suas escalas</small>
+            </span>
+            <i class="fa fa-chevron-right home-card-arrow"></i>
         </a>
 
-        <a href="{% url 'calendario' %}" class="dashboard-card">
-            <i class="fa fa-calendar-alt"></i>
-            <h3>Calendário</h3>
-            <p>Seus eventos e escalas no calendário.</p>
+        <a href="{% url 'registrar_disponibilidade_evento' %}" class="home-card">
+            <span class="home-card-icon"><i class="fa fa-calendar-plus"></i></span>
+            <span class="home-card-body">
+                <strong>Disponibilidade</strong>
+                <small>Diga quando você pode servir</small>
+            </span>
+            <i class="fa fa-chevron-right home-card-arrow"></i>
         </a>
 
-        <a href="{% url 'registrar_disponibilidade_evento' %}" class="dashboard-card">
-            <i class="fa fa-calendar-plus"></i>
-            <h3>Disponibilidades</h3>
-            <p>Informe quando você pode servir.</p>
+        <a href="{% url 'calendario' %}" class="home-card">
+            <span class="home-card-icon"><i class="fa fa-calendar-alt"></i></span>
+            <span class="home-card-body">
+                <strong>Calendário</strong>
+                <small>Eventos e escalas no mês</small>
+            </span>
+            <i class="fa fa-chevron-right home-card-arrow"></i>
         </a>
 
         {% if not request.user.is_staff and not request.user.is_superuser %}
-        <a href="{% url 'processar_candidatura' %}" class="dashboard-card dashboard-card-accent">
-            <i class="fa fa-user-plus"></i>
-            <h3>Candidatar-se a Equipes</h3>
-            <p>Escolha onde deseja servir.</p>
+        <a href="{% url 'processar_candidatura' %}" class="home-card">
+            <span class="home-card-icon"><i class="fa fa-user-plus"></i></span>
+            <span class="home-card-body">
+                <strong>Entrar numa Equipe</strong>
+                <small>Escolha onde deseja servir</small>
+            </span>
+            <i class="fa fa-chevron-right home-card-arrow"></i>
         </a>
         {% endif %}
 
-        <a href="{% url 'evento_list' %}" class="dashboard-card">
-            <i class="fa fa-calendar"></i>
-            <h3>Eventos</h3>
-            <p>Acesse os eventos e programações.</p>
+        <a href="{% url 'evento_list' %}" class="home-card">
+            <span class="home-card-icon"><i class="fa fa-calendar"></i></span>
+            <span class="home-card-body">
+                <strong>Eventos</strong>
+                <small>Programações da igreja</small>
+            </span>
+            <i class="fa fa-chevron-right home-card-arrow"></i>
         </a>
 
         {% if request.user.is_leader or request.user.is_staff or request.user.is_superuser %}
-        <a href="{% url 'equipe_list' %}" class="dashboard-card">
-            <i class="fa fa-users"></i>
-            <h3>Equipes</h3>
-            <p>Suas equipes e membros.</p>
+        <a href="{% url 'equipe_list' %}" class="home-card">
+            <span class="home-card-icon"><i class="fa fa-users"></i></span>
+            <span class="home-card-body">
+                <strong>Equipes</strong>
+                <small>Membros, funções e escalas</small>
+            </span>
+            <i class="fa fa-chevron-right home-card-arrow"></i>
         </a>
-        {% endif %}
 
-        {% if request.user.is_leader or request.user.is_staff or request.user.is_superuser %}
-        <a href="{% url 'dashboard_lider' %}" class="dashboard-card">
-            <i class="fa fa-chart-line"></i>
-            <h3>Painel do Líder</h3>
-            <p>Buracos na escala, disponíveis e confirmação.</p>
+        <a href="{% url 'dashboard_lider' %}" class="home-card home-card-lider">
+            <span class="home-card-icon"><i class="fa fa-chart-line"></i></span>
+            <span class="home-card-body">
+                <strong>Painel do Líder</strong>
+                <small>Vagas, pendências e confirmações</small>
+            </span>
+            <i class="fa fa-chevron-right home-card-arrow"></i>
         </a>
         {% endif %}
     </div>
@@ -153,6 +194,11 @@
         margin: 0;
         white-space: nowrap;
     }
+    .home-suggestion-empty {
+        color: var(--connect-muted, #9aa4ad);
+        font-size: .85rem;
+        white-space: nowrap;
+    }
     /* links genéricos dentro de avisos (legíveis no fundo escuro/verde) */
     .home-alert a:not(.btn):not(.home-chip) { color: #9fffa6; text-decoration: underline; }
     /* equipes como chips/pílulas */
@@ -172,12 +218,49 @@
         border-radius: 999px; padding: 0 7px;
         font-size: .78rem; font-weight: 600;
     }
-    .dashboard-card-accent {
+    /* cards de navegação da home */
+    .home-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 12px;
+        margin-top: 18px;
+    }
+    .home-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px;
         background: var(--connect-surface, #14181f);
+        border: 1px solid var(--connect-border, #232a35);
+        border-radius: 12px;
+        text-decoration: none;
+        color: var(--connect-text, #e6f0ea);
+        transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
     }
-    .dashboard-card-accent:hover {
-        border-color: rgba(57, 255, 20, 0.4);
+    .home-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--connect-green, #39ff14);
+        color: var(--connect-text, #e6f0ea);
+        box-shadow: 0 10px 22px var(--connect-shadow, rgba(0, 0, 0, .35));
     }
+    .home-card-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        background: color-mix(in srgb, var(--connect-green, #39ff14) 14%, var(--connect-surface-2, #1b2230));
+        color: var(--connect-green, #39ff14);
+        font-size: 1.15rem;
+    }
+    .home-card-body { display: flex; flex-direction: column; min-width: 0; }
+    .home-card-body strong { font-size: 1rem; }
+    .home-card-body small { color: var(--connect-muted, #9aa4ad); }
+    .home-card-arrow { margin-left: auto; color: var(--connect-muted, #9aa4ad); font-size: .8rem; }
+    .home-card:hover .home-card-arrow { color: var(--connect-green, #39ff14); }
+    .home-card-lider { border-style: dashed; }
     @media (max-width: 720px) {
         .home-suggestion { align-items: stretch; flex-direction: column; }
         .home-suggestion .btn { text-align: center; width: 100%; }

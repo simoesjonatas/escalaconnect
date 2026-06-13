@@ -13,20 +13,45 @@
 
 {% block content %}
 <div class="container">
-    <div class="page-header">
+
+    <!-- Resumo da escala -->
+    <div class="escala-resumo">
         <div>
-            <h3>Escala para o Evento: {{ escala.evento.nome }}</h3>
-            <h4>Dia do Evento: {{ escala.evento.data_inicio }}</h4>
+            <h3>{{ escala.evento.nome }}</h3>
+            <p class="resumo-data">
+                <i class="fa fa-clock mr-1"></i>
+                {{ escala.evento.data_inicio|date:"l, d/m/Y H:i" }} — {{ escala.evento.data_fim|date:"H:i" }}
+            </p>
+            <div class="resumo-tags">
+                <span class="badge badge-secondary">{{ escala.funcao.equipe.nome }}</span>
+                <span class="badge badge-info">{{ escala.funcao.nome }}</span>
+                {% if escala.confirmada %}
+                    <span class="badge badge-success">Confirmada</span>
+                {% elif escala.usuario %}
+                    <span class="badge badge-warning">Aguardando confirmação</span>
+                {% else %}
+                    <span class="badge badge-danger">Vaga em aberto</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="resumo-pessoa">
+            {% if escala.usuario %}
+            <div class="resumo-avatar">{{ escala.usuario.get_full_name|default:escala.usuario.username|first|upper }}</div>
+            <div>
+                <div class="pessoa-nome">{{ escala.usuario.get_full_name|default:escala.usuario.username }}</div>
+                <div class="pessoa-status">
+                    {% if escala.confirmada %}Confirmou em {{ escala.data_confirmacao|date:"d/m/Y H:i" }}{% else %}Ainda não confirmou{% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="resumo-avatar"><i class="fa fa-user-plus"></i></div>
+            <div>
+                <div class="pessoa-nome resumo-vaga">Vaga em aberto</div>
+                <div class="pessoa-status">Escale alguém disponível abaixo</div>
+            </div>
+            {% endif %}
         </div>
     </div>
-
-    <ul class="info-list">
-        <li><strong>Usuário:</strong> {{ escala.usuario }}</li>
-        <li><strong>Equipe:</strong> {{ escala.funcao.equipe.nome }}</li>
-        <li><strong>Função:</strong> {{ escala.funcao.nome }}</li>
-        <li><strong>Confirmada:</strong> {% if escala.confirmada %}✅ Sim {% else %}❌ Não {% endif %}</li>
-        <li><strong>Data de Confirmação:</strong> {{ escala.data_confirmacao|default:"-" }}</li>
-    </ul>
 
     <div class="action-bar">
         <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe.pk %}">Voltar</a>
@@ -42,113 +67,97 @@
         {% endif %}
     </div>
 
-    {% if escala.has_impedimento or escala.has_solicitacao_troca_aberta%}
-        {% if escala.has_impedimento%}
-        <td>
-            <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger" role="button">
-                <i class="fa fa-exclamation-circle" title="Impedimento pendente. Clique para mais detalhes."></i> Impedimento
-            </a>
-        </td>            
-        {% endif %}   
-        {% if escala.has_solicitacao_troca_aberta%}
-        <td>
-            {% with troca_id=escala.get_pending_troca_id %}
-                {% if troca_id %}
-                    <a href="{% url 'detalhes_solicitacao_troca' troca_id %}" class="btn btn-danger" role="button">
-                        <i class="fa fa-exclamation-circle" title="Solicitação de troca. Clique para mais detalhes."></i> Troca
-                    </a>
-                {% endif %}
-            {% endwith %}
-        </td>            
-        {% endif %}        
+    {% if escala.has_impedimento or escala.has_solicitacao_troca_aberta %}
+    <div class="alert alert-danger escala-pendencias">
+        <span><i class="fa fa-exclamation-circle mr-1"></i> Esta escala tem pendências aguardando análise.</span>
+        <span class="pend-acoes">
+            {% if escala.has_impedimento %}
+            <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger btn-sm">Analisar impedimento</a>
+            {% endif %}
+            {% if escala.has_solicitacao_troca_aberta %}
+                {% with troca_id=escala.get_pending_troca_id %}
+                    {% if troca_id %}
+                    <a href="{% url 'detalhes_solicitacao_troca' troca_id %}" class="btn btn-warning btn-sm">Analisar troca</a>
+                    {% endif %}
+                {% endwith %}
+            {% endif %}
+        </span>
+    </div>
     {% else %}
         {% if not escala.confirmada %}
-            <!-- Abas com Bootstrap -->
+            <!-- Abas: disponíveis x escalados -->
             <div class="section-card">
-            <ul class="nav nav-tabs" id="escalaTabs" role="tablist">
-                <li class="nav-item">
-                    <a class="nav-link active" id="disponiveis-tab" data-bs-toggle="tab" href="#disponiveis" role="tab" aria-controls="disponiveis" aria-selected="true">Usuários Disponíveis</a>
+            <ul class="escala-tabs" id="escalaTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" id="disponiveis-tab" data-bs-toggle="tab" href="#disponiveis" role="tab" aria-controls="disponiveis" aria-selected="true">
+                        <i class="fa fa-user-check"></i> Disponíveis
+                        <span class="tab-count">{{ usuarios_disponiveis|length }}</span>
+                    </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" id="escalados-tab" data-bs-toggle="tab" href="#escalados" role="tab" aria-controls="escalados" aria-selected="false">Usuários Escalados</a>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" id="escalados-tab" data-bs-toggle="tab" href="#escalados" role="tab" aria-controls="escalados" aria-selected="false">
+                        <i class="fa fa-clipboard-list"></i> Escalados no evento
+                        <span class="tab-count">{{ usuarios_escalados|length }}</span>
+                    </a>
                 </li>
             </ul>
 
-            <div class="tab-content table-responsive" id="escalaTabsContent">
-                <div class="tab-pane fade show active table-responsive" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
-                    <h3 class="d-flex align-items-center justify-content-between">
-                    <span>Usuários Disponíveis:</span>
-                    </h3>
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Usuário</th>
-                                {% if request.user.is_staff or request.user.is_superuser or is_leader %}
-                                <th>Ações</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for usuario in usuarios_disponiveis %}
-                                <tr>
-                                    <td>{{ usuario.username }}</td>
-                                    {% if request.user.is_staff or request.user.is_superuser or is_leader %}
-                                    <td>
-                                        <a class="btn btn-success" href="{% url 'escalar_usuario_equipe' escala.pk usuario.pk %}">
-                                            <i class="fa fa-user-plus"></i> Escalar
-                                        </a>
-                                    </td>
-                                    {% endif %}
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="2">Nenhum usuário disponível.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <div class="tab-content escala-tab-content" id="escalaTabsContent">
+                <div class="tab-pane fade show active" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
+                    <div class="pessoa-lista">
+                        {% for usuario in usuarios_disponiveis %}
+                        <div class="pessoa-row">
+                            <div class="resumo-avatar">{{ usuario.get_full_name|default:usuario.username|first|upper }}</div>
+                            <div class="pessoa-info">
+                                <strong>{{ usuario.get_full_name|default:usuario.username }}</strong>
+                                <small>Disponível neste horário</small>
+                            </div>
+                            {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+                            <div class="pessoa-acoes">
+                                <a class="btn btn-success btn-sm" href="{% url 'escalar_usuario_equipe' escala.pk usuario.pk %}">
+                                    <i class="fa fa-user-plus"></i> Escalar
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% empty %}
+                        <div class="pessoa-vazio">
+                            <i class="fa fa-user-slash d-block mb-1"></i>
+                            Ninguém da equipe está disponível neste horário.<br>
+                            <small>Se precisar, use “Escalar alguém da equipe” acima (ignora a disponibilidade).</small>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
-                <div class="tab-pane fade table-responsive" id="escalados" role="tabpanel" aria-labelledby="escalados-tab">
-                    <h3 class="d-flex align-items-center justify-content-between">
-                        <span>Usuários Escalados:</span>
-                    </h3>
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Usuário</th>
-                                <th>Função</th>
-                                <th>Equipe</th>
-                                <th>Confirmado</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for escalado in usuarios_escalados %}
-                            <tr onclick="window.location.href='{% url 'escala_detail_equipe' escalado.funcao.equipe.pk escalado.pk %}'">
-                                    <td>{{ escalado.usuario.username }}</td>
-                                    <td>{{ escalado.funcao.nome }}</td>
-                                    <td>{{ escalado.funcao.equipe.nome }}</td>
-                                    <td>{{ escalado.confirmada|yesno:"✅ Sim,❌ Não" }}</td>
-                                    <td>
-                                        <!-- <a class="btn btn-danger" href="{% url 'cancelar_escala' escalado.pk %}">
-                                            <i class="fa fa-user-minus"></i> Remover
-                                        </a> -->
-                                        <!-- <a class="btn btn-success" href="{% url 'escalar_usuario_equipe' escala.pk escalado.usuario.pk %}">
-                                            <i class="fa fa-user-plus"></i> Escalar
-                                        </a> -->
-                                        <a class="btn btn-success" href="javascript:void(0);" onclick="confirmarEscala(event, '{% url 'escalar_usuario_equipe' escala.pk escalado.usuario.pk %}', '{{ escalado.usuario.username }}')">
-                                            <i class="fa fa-user-plus"></i> Escalar
-                                        </a>
-                                        
-                                    </td>
-                                </tr>
-                            {% empty %}
-                                <tr>
-                                    <td colspan="4">Nenhum usuário escalado ainda.</td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <div class="tab-pane fade" id="escalados" role="tabpanel" aria-labelledby="escalados-tab">
+                    <div class="pessoa-lista">
+                        {% for escalado in usuarios_escalados %}
+                        <div class="pessoa-row pessoa-row-link" onclick="window.location.href='{% url 'escala_detail_equipe' escalado.funcao.equipe.pk escalado.pk %}'">
+                            <div class="resumo-avatar">{{ escalado.usuario.get_full_name|default:escalado.usuario.username|first|upper }}</div>
+                            <div class="pessoa-info">
+                                <strong>{{ escalado.usuario.get_full_name|default:escalado.usuario.username }}</strong>
+                                <small>{{ escalado.funcao.nome }} — {{ escalado.funcao.equipe.nome }}</small>
+                            </div>
+                            <div class="pessoa-acoes">
+                                {% if escalado.confirmada %}
+                                <span class="badge badge-success">Confirmada</span>
+                                {% else %}
+                                <span class="badge badge-warning">A confirmar</span>
+                                {% endif %}
+                                {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+                                <a class="btn btn-success btn-sm" href="javascript:void(0);" onclick="confirmarEscala(event, '{% url 'escalar_usuario_equipe' escala.pk escalado.usuario.pk %}', '{{ escalado.usuario.username }}')">
+                                    <i class="fa fa-user-plus"></i> Escalar
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="pessoa-vazio">
+                            <i class="fa fa-clipboard d-block mb-1"></i>
+                            Ninguém escalado neste evento ainda.
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
             </div>
@@ -156,28 +165,33 @@
     {% endif %}
 
     {% if request.user.is_staff or request.user.is_superuser or is_leader %}
-    <div class="modal fade" id="forcarEscalaModal" tabindex="-1" aria-labelledby="forcarEscalaLabel" aria-hidden="true">
+    <div class="modal fade escala-modal" id="forcarEscalaModal" tabindex="-1" aria-labelledby="forcarEscalaLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
         <div class="modal-header">
-            <h5 class="modal-title" id="forcarEscalaLabel">Escalar alguém da equipe (sem disponibilidade)</h5>
-            {% comment %} <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button> {% endcomment %}
+            <span class="modal-icon"><i class="fa fa-user-shield"></i></span>
+            <div class="modal-heading">
+                <h5 class="modal-title" id="forcarEscalaLabel">Escalar sem disponibilidade</h5>
+                <small>Escolha alguém da equipe, mesmo sem cadastro de disponibilidade.</small>
+            </div>
+            <button type="button" class="close" data-bs-dismiss="modal" aria-label="Fechar">&times;</button>
         </div>
         <div class="modal-body">
             {% if usuarios_equipe %}
-            <div class="mb-3">
-                <label for="usuarioEquipeSelect" class="form-label">Selecione o usuário da equipe</label>
-                <select id="usuarioEquipeSelect" class="form-select">
-                <option value="" selected disabled>— escolha um usuário —</option>
+            <label for="usuarioEquipeSelect" class="form-label">Membro da equipe</label>
+            <select id="usuarioEquipeSelect" class="form-select">
+                <option value="" selected disabled>— escolha um membro —</option>
                 {% for u in usuarios_equipe %}
-                    <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }}</option>
+                <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }}</option>
                 {% endfor %}
-                </select>
-                <small class="text-muted">Este fluxo ignora a verificação de disponibilidade.</small>
+            </select>
+            <div class="modal-nota">
+                <i class="fa fa-exclamation-triangle"></i>
+                <span>A pessoa escolhida <strong>não marcou disponibilidade</strong> para este horário — combine com ela antes de escalar.</span>
             </div>
             {% else %}
             <div class="alert alert-warning mb-0">
-                Nenhum membro da equipe foi carregado no contexto (<code>usuarios_equipe</code>).
+                Nenhum membro aprovado encontrado nesta equipe.
             </div>
             {% endif %}
         </div>
@@ -252,12 +266,9 @@
       const template = btn.getAttribute('data-url-template'); // .../escalar/<escala_id>/0/equipe
       // Substitui o "0" entre /escalar/ e /equipe
       const url = template.replace(/(\/escalar\/)(\d+)(\/equipe)/, `$1${userId}$3`);
-      // alternativa equivalente:
-      // const url = template.replace(/\/escalar\/\d+\//, `/escalar/${userId}/`);
       window.location.href = url;
     });
   })();
 </script>
-
 
 {% endblock %}

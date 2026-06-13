@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from equipe.models import Equipe, Lideranca, MembrosEquipe
-from escala.models import Escala
+from escala.models import Escala, Desistencia, SolicitacaoTroca
 from django.utils.timezone import now
 from equipe.lideranca_forms import LiderancaForm
 from django.contrib.auth.decorators import login_required
@@ -154,6 +154,23 @@ def dashboard_lider(request):
         .order_by('-total')[:10]
     )
 
+    # Pendências que travam a escala: desistências e trocas aguardando o líder.
+    impedimentos = (
+        Desistencia.objects
+        .filter(escala__funcao__equipe__in=equipes, aprovada=False)
+        .select_related('escala', 'escala__evento', 'escala__funcao', 'escala__funcao__equipe', 'usuario')
+        .order_by('escala__evento__data_inicio')
+    )
+    trocas_abertas = (
+        SolicitacaoTroca.objects
+        .filter(escala_origem__funcao__equipe__in=equipes, aprovada=False)
+        .select_related(
+            'escala_origem', 'escala_origem__evento',
+            'escala_origem__funcao', 'escala_origem__funcao__equipe', 'solicitante',
+        )
+        .order_by('escala_origem__evento__data_inicio')
+    )
+
     contexto = {
         'equipes': equipes,
         'total_futuras': futuras.count(),
@@ -164,5 +181,8 @@ def dashboard_lider(request):
         'taxa_confirmacao': round(100 * confirmadas / designadas_total) if designadas_total else 0,
         'buracos': buracos[:25],
         'ranking': ranking,
+        'impedimentos': impedimentos[:25],
+        'trocas_abertas': trocas_abertas[:25],
+        'pendencias_total': impedimentos.count() + trocas_abertas.count(),
     }
     return render(request, 'equipe/dashboard_lider.html', contexto)

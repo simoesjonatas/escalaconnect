@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Detalhes da Minha Escala{% endblock %}
+{% block page_title %}Minha Escala{% endblock %}
 
 {% block breadcrumb %}
 <ul class="app-breadcrumb breadcrumb">
@@ -12,64 +12,104 @@
 
 {% block content %}
 <div class="container">
-    <h3>{{ escala.evento.nome }}</h3>
-    <ul>
-        <li><strong>Equipe:</strong> {{ escala.funcao.equipe.nome }}</li>
-        <li><strong>Função:</strong> {{ escala.funcao.nome }}</li>
-        <li><strong>Data do Evento:</strong> {{ escala.evento.data_inicio }} - {{ escala.evento.data_fim }}</li>
-        <li><strong>Status:</strong> 
-            {% if escala.confirmada %}
-                <span class="badge badge-success">Confirmada</span>
-            {% else %}
-                <span class="badge badge-warning">Pendente</span>
-            {% endif %}
-        </li>
-        <li><strong>Data de Confirmação:</strong> {{ escala.data_confirmacao|default:"-" }}</li>
-    </ul>
-    
-    <div class="schedule-actions">
+
+    <!-- Resumo da escala -->
+    <div class="escala-resumo">
+        <div class="d-flex align-items-center" style="gap: 16px;">
+            <div class="me-data">
+                <span class="me-dia">{{ escala.evento.data_inicio|date:"d" }}</span>
+                <span class="me-mes">{{ escala.evento.data_inicio|date:"b" }}</span>
+                <span class="me-hora">{{ escala.evento.data_inicio|date:"H:i" }}</span>
+            </div>
+            <div>
+                <h3>{{ escala.evento.nome }}</h3>
+                <p class="resumo-data">
+                    <i class="fa fa-clock mr-1"></i>
+                    {{ escala.evento.data_inicio|date:"l, d/m/Y H:i" }} — {{ escala.evento.data_fim|date:"H:i" }}
+                </p>
+                <div class="resumo-tags">
+                    <span class="badge badge-secondary">{{ escala.funcao.equipe.nome }}</span>
+                    <span class="badge badge-info">{{ escala.funcao.nome }}</span>
+                    {% if escala.confirmada %}
+                    <span class="badge badge-success">Confirmada</span>
+                    {% else %}
+                    <span class="badge badge-warning">A confirmar</span>
+                    {% endif %}
+                    {% if escala.has_impedimento %}
+                    <span class="badge badge-danger">Impedimento em análise</span>
+                    {% endif %}
+                    {% if escala.has_solicitacao_troca_aberta %}
+                    <span class="badge badge-danger">Desistência em análise</span>
+                    {% endif %}
+                </div>
+                {% if escala.data_confirmacao %}
+                <small class="text-muted d-block mt-1">Confirmada em {{ escala.data_confirmacao|date:"d/m/Y H:i" }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="schedule-actions mb-3">
         <a class="btn btn-secondary back-action" href="{% url 'minhas_escalas' %}">
             <i class="fa fa-arrow-left"></i>
-            <span>Voltar para minhas escalas</span>
+            <span>Voltar</span>
         </a>
-        
-        {% if not escala.confirmada %}
-        
-            {% if not escala.has_solicitacao_troca_aberta %}
-            <form method="post" action="{% url 'solicitar_desistencia' escala.id %}">
-                {% csrf_token %}
-                {{ desistencia_form.as_p }}
-                <button type="submit" class="btn btn-warning">Solicitar Desistência</button>
-            </form>
-            <!-- Se a escala não está confirmada, permite a confirmação -->
-            <form method="POST" action="{% url 'confirmar_minha_escala' escala.pk %}" style="display: inline;">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success">Confirmar Escala</button>
-            </form>
-            {% else %}
-            <div class="alert alert-info" role="alert">
-                Existe uma solicitação de troca pendente para esta escala. Caso deseje desistir da troca, você pode cancelar a solicitação.
-                <form method="post" action="{% url 'cancelar_solicitacao_troca' escala.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger">Cancelar Solicitação de Troca</button>
-                </form>
-            </div>
-            {% endif %}
-        {% else %}
-            {% if escala.has_impedimento %}
-                <!-- Se há Impedimento Notificado, mostra um botão desativado indicando isso -->
-                <button class="btn btn-warning btn-sm" disabled>Impedimento Notificado</button>
-            {% else %}
-                <!-- Se a escala está confirmada e não há impedimentos em análise, permite sinalizar um novo impedimento -->
-                <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}" style="display:inline;">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger btn-sm">Sinalizar Impedimento</button>
-                </form>
-            {% endif %}
+
+        {% if not escala.confirmada and not escala.has_solicitacao_troca_aberta %}
+        <form method="POST" action="{% url 'confirmar_minha_escala' escala.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">
+                <i class="fa fa-check mr-1"></i> Confirmar escala
+            </button>
+        </form>
         {% endif %}
 
-
+        {% if escala.confirmada and not escala.has_impedimento %}
+        <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">
+                <i class="fa fa-exclamation-circle mr-1"></i> Sinalizar impedimento
+            </button>
+        </form>
+        {% endif %}
     </div>
+
+    {% if not escala.confirmada %}
+        {% if escala.has_solicitacao_troca_aberta %}
+        <div class="alert alert-warning escala-pendencias">
+            <span><i class="fa fa-hourglass-half mr-1"></i> Sua solicitação de desistência está <strong>em análise</strong> pela liderança.</span>
+            <form method="post" action="{% url 'cancelar_solicitacao_troca' escala.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Cancelar solicitação</button>
+            </form>
+        </div>
+        {% else %}
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title"><i class="fa fa-hand-paper mr-1"></i> Não vai poder servir?</h4>
+                <p class="text-muted mb-2">Explique o motivo e envie a solicitação de desistência — a liderança será avisada.</p>
+                <form method="post" action="{% url 'solicitar_desistencia' escala.id %}">
+                    {% csrf_token %}
+                    {{ desistencia_form.motivo }}
+                    {% if desistencia_form.motivo.errors %}
+                    <small class="text-danger d-block mt-1">{{ desistencia_form.motivo.errors|join:" " }}</small>
+                    {% endif %}
+                    {% if desistencia_form.non_field_errors %}
+                    <small class="text-danger d-block mt-1">{{ desistencia_form.non_field_errors|join:" " }}</small>
+                    {% endif %}
+                    <button type="submit" class="btn btn-warning mt-2">
+                        <i class="fa fa-paper-plane mr-1"></i> Solicitar desistência
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    {% elif escala.has_impedimento %}
+    <div class="alert alert-info">
+        <i class="fa fa-hourglass-half mr-1"></i> Seu impedimento foi notificado e está <strong>em análise</strong> pela liderança.
+    </div>
+    {% endif %}
+
 </div>
 
 <style>
@@ -78,32 +118,27 @@
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-top: 18px;
+        margin-top: 16px;
     }
-    .schedule-actions form {
-        margin: 0;
-    }
-    .schedule-actions .btn {
-        margin: 0;
-    }
+    .schedule-actions form { margin: 0; }
     .back-action {
         align-items: center;
         display: inline-flex;
         gap: 8px;
         text-transform: none;
     }
-    .back-action i {
-        font-size: .9rem;
+    .back-action i { font-size: .9rem; }
+    #id_motivo {
+        width: 100%;
+        max-width: 640px;
+        display: block;
+        border-radius: 8px;
+        padding: 10px 12px;
     }
     @media (max-width: 640px) {
-        .schedule-actions {
-            align-items: stretch;
-            flex-direction: column;
-        }
-        .schedule-actions .btn {
-            justify-content: center;
-            width: 100%;
-        }
+        .schedule-actions { align-items: stretch; flex-direction: column; }
+        .schedule-actions .btn { justify-content: center; width: 100%; }
+        .schedule-actions form .btn { width: 100%; }
     }
 </style>
 {% endblock %}

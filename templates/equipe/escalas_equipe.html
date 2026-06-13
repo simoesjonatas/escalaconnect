@@ -15,120 +15,276 @@ Escalas da Equipe {{ equipe.nome }}
 
 {% block content %}
 
-<div class="container">
-    <div class="clearfix mb-3">
-        <form method="GET" class="form-inline">
-            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar Escala..." value="{{ query }}">
+<style>
+    .equipe-escalas-page .escala-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .equipe-escalas-page .escala-search-form {
+        flex: 1 1 320px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 0;
+    }
+
+    .equipe-escalas-page .escala-search-form input {
+        flex: 1 1 240px;
+    }
+
+    .equipe-escalas-page .escala-toolbar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .equipe-escalas-page .escala-toolbar-actions form {
+        margin: 0;
+    }
+
+    .equipe-escalas-page .cal-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        color: var(--connect-muted);
+        font-size: 14px;
+    }
+
+    .equipe-escalas-page .cal-dot {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 6px;
+    }
+
+    @media (max-width: 720px) {
+        .equipe-escalas-page {
+            padding: 14px;
+        }
+
+        .equipe-escalas-page .escala-toolbar,
+        .equipe-escalas-page .escala-search-form,
+        .equipe-escalas-page .escala-toolbar-actions {
+            display: grid;
+            grid-template-columns: 1fr;
+            width: 100%;
+        }
+
+        .equipe-escalas-page .escala-search-form input,
+        .equipe-escalas-page .escala-search-form .btn,
+        .equipe-escalas-page .escala-toolbar-actions .btn,
+        .equipe-escalas-page .escala-toolbar-actions form,
+        .equipe-escalas-page .escala-toolbar-actions button {
+            width: 100%;
+            margin: 0;
+        }
+
+        .equipe-escalas-page .cal-legend {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .equipe-escalas-page .minha-escala-card {
+            display: grid;
+            grid-template-columns: 58px minmax(0, 1fr);
+            align-items: start;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .equipe-escalas-page .me-data {
+            min-width: 58px;
+            padding: 8px 6px;
+            border-radius: 8px;
+        }
+
+        .equipe-escalas-page .me-info {
+            min-width: 0;
+            width: 100%;
+        }
+
+        .equipe-escalas-page .me-info strong,
+        .equipe-escalas-page .pessoa-info strong {
+            overflow-wrap: anywhere;
+        }
+
+        .equipe-escalas-page .me-disp,
+        .equipe-escalas-page .me-pessoa,
+        .equipe-escalas-page .me-acoes {
+            grid-column: 1 / -1;
+            width: 100%;
+            min-width: 0;
+            margin-left: 0;
+        }
+
+        .equipe-escalas-page .me-disp {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            align-items: center;
+            justify-items: start;
+            text-align: left;
+            padding: 10px;
+            border: 1px solid var(--connect-border);
+            border-radius: 8px;
+            background: var(--connect-surface-2);
+        }
+
+        .equipe-escalas-page .me-disp .disp-names {
+            grid-column: 1 / -1;
+            max-width: 100%;
+            text-align: left;
+            white-space: normal;
+        }
+
+        .equipe-escalas-page .me-pessoa {
+            padding: 10px;
+            border: 1px solid var(--connect-border);
+            border-radius: 8px;
+            background: var(--connect-surface-2);
+        }
+
+        .equipe-escalas-page .me-acoes {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .equipe-escalas-page .me-acoes .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="container equipe-escalas-page">
+    <div class="escala-toolbar">
+        <form method="GET" class="escala-search-form">
+            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar por evento, função ou voluntário..." value="{{ query }}">
             <button type="submit" class="btn btn-primary mr-2">Buscar</button>
-            <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">Limpar Filtro</a>
+            {% if query %}
+            <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">Limpar</a>
+            {% endif %}
         </form>
+        <div class="escala-toolbar-actions">
+            <a href="#" class="btn btn-info" data-toggle="modal" data-target="#exportModal">
+                <i class="fa fa-file-pdf mr-1"></i> Exportar PDF
+            </a>
+            <a href="{% url 'disponibilidades_equipe' equipe_pk=equipe.pk %}" class="btn btn-success">
+                <i class="fa fa-calendar-check mr-1"></i> Ver Disponibilidades
+            </a>
+            {% if request.user.is_staff or request.user.is_superuser or request.user.is_leader %}
+            <form method="post" action="{% url 'auto_escalar_equipe' equipe_pk=equipe.pk %}" class="d-inline"
+                  onsubmit="return confirm('Preencher automaticamente as vagas futuras em aberto desta equipe com voluntários disponíveis?');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning" title="Preenche as vagas em aberto com voluntários disponíveis, priorizando quem serviu menos">
+                    <i class="fa fa-magic"></i> Auto-escalar
+                </button>
+            </form>
+            {% endif %}
+        </div>
     </div>
-    <div class="table-responsive">
-        <a href="#" class="btn btn-info" data-toggle="modal" data-target="#exportModal">Exportar PDF</a>
 
-        <!-- dentro do bloco content, antes/ao lado do Exportar PDF -->
-        <a href="{% url 'disponibilidades_equipe' equipe_pk=equipe.pk %}" class="btn btn-success" > 
-            {% comment %} class="btn btn-outline-info ml-2" {% endcomment %}
-        Ver Disponibilidades
-        </a>
-        {% if request.user.is_staff or request.user.is_superuser or request.user.is_leader %}
-        <form method="post" action="{% url 'auto_escalar_equipe' equipe_pk=equipe.pk %}" class="d-inline"
-              onsubmit="return confirm('Preencher automaticamente as vagas futuras em aberto desta equipe com voluntários disponíveis?');">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-warning" title="Preenche as vagas em aberto com voluntários disponíveis, priorizando quem serviu menos">
-                <i class="fa fa-magic"></i> Auto-escalar
-            </button>
-        </form>
-        {% endif %}
-        <table class="table table-bordered mt-3">
-           <thead>
-                <tr>
-                    {% for field_display in escala_fields %}
-                        {% if field_display.0 != '__disponiveis__' %}
-                            <th>
-                            <a href="?q={{ query }}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
-                                {{ field_display.1 }}
-                                {% if order_by == field_display.0 %}
-                                <i class="fa {% if direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
-                                {% endif %}
-                            </a>
-                            </th>
+    <div class="cal-legend mb-2">
+        <span><i class="cal-dot" style="background:var(--connect-danger)"></i> Ninguém disponível</span>
+        <span><i class="cal-dot" style="background:var(--connect-warning)"></i> Só 1 disponível</span>
+        <span><i class="cal-dot" style="background:var(--connect-green)"></i> Vários disponíveis</span>
+    </div>
+
+    <div class="minhas-escalas-lista">
+        {% for escala in page_obj %}
+        {% with c=escala.disponiveis_count names=escala.disponiveis_names %}
+        <div class="minha-escala-card {% if c == 0 %}disp-0{% elif c == 1 %}disp-1{% else %}disp-ok{% endif %}"
+             onclick="window.location.href='{% url 'escala_detail_equipe' equipe.pk escala.pk %}'">
+            <div class="me-data">
+                <span class="me-dia">{{ escala.evento.data_inicio|date:"d" }}</span>
+                <span class="me-mes">{{ escala.evento.data_inicio|date:"b" }}</span>
+                <span class="me-hora">{{ escala.evento.data_inicio|date:"H:i" }}</span>
+            </div>
+
+            <div class="me-info">
+                <strong>{{ escala.evento.nome }}</strong>
+                <small>{{ escala.evento.data_inicio|date:"l, d/m/Y" }}</small>
+                <div class="me-tags">
+                    <span class="badge badge-info">{{ escala.funcao.nome }}</span>
+                    {% if escala.has_impedimento %}
+                    <span class="badge badge-danger">Impedimento em análise</span>
+                    {% endif %}
+                    {% if escala.has_solicitacao_troca_aberta %}
+                    <span class="badge badge-danger">Desistência em análise</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="me-disp" title="{% if names %}Disponíveis: {{ names|join:", " }}{% else %}Ninguém da equipe está disponível neste horário{% endif %}">
+                <span class="badge-disp {% if c == 0 %}red{% elif c == 1 %}yellow{% else %}green{% endif %}">{{ c }}</span>
+                <span class="me-disp-label">disponíve{{ c|pluralize:"l,is" }}</span>
+                {% if names %}
+                <small class="disp-names">{% for n in names|slice:":2" %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if names|length > 2 %} +{{ names|length|add:"-2" }}{% endif %}</small>
+                {% endif %}
+            </div>
+
+            <div class="me-pessoa">
+                {% if escala.usuario %}
+                <div class="resumo-avatar resumo-avatar-sm">{{ escala.usuario.get_full_name|default:escala.usuario.username|first|upper }}</div>
+                <div class="pessoa-info">
+                    <strong>{{ escala.usuario.get_full_name|default:escala.usuario.username }}</strong>
+                    <small>
+                        {% if escala.confirmada %}
+                        <span class="badge badge-success">Confirmada</span>
                         {% else %}
-                            <th>{{ field_display.1 }}</th>
+                        <span class="badge badge-warning">A confirmar</span>
                         {% endif %}
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% for escala in page_obj %}
-                    {% with c=escala.disponiveis_count names=escala.disponiveis_names %}
-                    <tr
-                    class="{% if c == 0 %}table-danger{% elif c == 1 %}table-warning{% else %}table-success{% endif %}"
-                    onclick="window.location.href='{% url 'escala_detail_equipe' equipe.pk escala.pk %}'"
-                    >
-                    <td>{{ escala.evento.nome }}</td>
-                    <td>{{ escala.evento.data_inicio|date:"d/m/Y H:i" }}</td>
-                    <td>{{ escala.funcao.nome }}</td>
-                    <!-- DISPONIBILIDADE (pílula colorida) -->
-                    <td class="disp-col">
-                    <div>
-                        <span class="badge-disp
-                            {% if c == 0 %}red
-                            {% elif c == 1 %}yellow
-                            {% else %}green
-                            {% endif %}">
-                            {{ c }}
-                        </span>
-                    </div>
-                    <small class="disp-names d-block mt-1">
-                    {% if names %}
-                        {% for n in names|slice:":3" %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                        {% if names|length > 3 %}
-                        +{{ names|length|add:"-3" }}
-                        {% endif %}
-                    {% endif %}
                     </small>
-                </td>
-                    <td>{{ escala.usuario.username }}</td>
+                </div>
+                {% else %}
+                <div class="resumo-avatar resumo-avatar-sm"><i class="fa fa-user-plus"></i></div>
+                <div class="pessoa-info">
+                    <strong class="resumo-vaga">Vaga em aberto</strong>
+                    <small>Escolha alguém disponível</small>
+                </div>
+                {% endif %}
+            </div>
 
-                    {% if escala.has_impedimento or escala.has_solicitacao_troca_aberta %}
-                        {% if escala.has_impedimento %}
-                        <td>
-                            <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger" role="button">
-                            <i class="fa fa-exclamation-circle" title="Impedimento pendente. Clique para mais detalhes."></i> Impedimento
-                            </a>
-                        </td>
-                        {% endif %}
-                        {% if escala.has_solicitacao_troca_aberta %}
-                        <td>
-                            {% with troca_id=escala.get_pending_troca_id %}
-                            {% if troca_id %}
-                                <a href="{% url 'detalhes_solicitacao_troca' troca_id %}" class="btn btn-danger" role="button">
-                                <i class="fa fa-exclamation-circle" title="Solicitação de troca. Clique para mais detalhes."></i> Troca
-                                </a>
-                            {% endif %}
-                            {% endwith %}
-                        </td>
-                        {% endif %}
-                    {% else %}
-                        <td>{{ escala.confirmada|yesno:"✅ Sim,❌ Não" }}</td>
+            <div class="me-acoes" onclick="event.stopPropagation();">
+                {% if escala.has_impedimento %}
+                <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger btn-sm">Analisar impedimento</a>
+                {% endif %}
+                {% if escala.has_solicitacao_troca_aberta %}
+                    {% with troca_id=escala.get_pending_troca_id %}
+                    {% if troca_id %}
+                    <a href="{% url 'detalhes_solicitacao_troca' troca_id %}" class="btn btn-warning btn-sm">Analisar troca</a>
                     {% endif %}
-                    </tr>
                     {% endwith %}
-                {% empty %}
-                    <tr>
-                    <td colspan="6" class="text-center">Nenhuma escala encontrada para esta equipe.</td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-
-
-
-
-        </table>
+                {% endif %}
+                {% if not escala.usuario %}
+                <a href="{% url 'escala_detail_equipe' equipe.pk escala.pk %}" class="btn btn-success btn-sm">
+                    <i class="fa fa-user-plus mr-1"></i> Escalar
+                </a>
+                {% else %}
+                <a href="{% url 'escala_detail_equipe' equipe.pk escala.pk %}" class="btn btn-secondary btn-sm">Detalhes</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div class="pessoa-vazio">
+            <i class="fa fa-calendar d-block mb-1"></i>
+            {% if query %}
+            Nenhuma escala encontrada para "{{ query }}".
+            {% else %}
+            Nenhuma escala futura para esta equipe.
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
+
     {% include 'includes/pagination.html' %}
-    
+
     <!-- Modal para exportação -->
     <div class="modal fade" id="exportModal" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
@@ -142,23 +298,23 @@ Escalas da Equipe {{ equipe.nome }}
                 <div class="modal-body">
                     <form id="exportModalForm"  action="{% url 'exportar_pdf' equipe_pk=equipe.pk %}" method="POST">
                         {% csrf_token %}
+                        {% now "n" as mes_atual %}
                         <div class="form-group">
                             <label for="mes">Escolha o mês:</label>
                             <select class="form-control" id="mes" name="mes">
-                                <option value="1">Janeiro</option>
-                                <option value="2">Fevereiro</option>
-                                <option value="3">Março</option>
-                                <option value="4">Abril</option>
-                                <option value="5">Maio</option>
-                                <option value="6">Junho</option>
-                                <option value="7">Julho</option>
-                                <option value="8">Agosto</option>
-                                <option value="9">Setembro</option>
-                                <option value="10">Outubro</option>
-                                <option value="11">Novembro</option>
-                                <option value="12">Dezembro</option>
+                                <option value="1" {% if mes_atual == "1" %}selected{% endif %}>Janeiro</option>
+                                <option value="2" {% if mes_atual == "2" %}selected{% endif %}>Fevereiro</option>
+                                <option value="3" {% if mes_atual == "3" %}selected{% endif %}>Março</option>
+                                <option value="4" {% if mes_atual == "4" %}selected{% endif %}>Abril</option>
+                                <option value="5" {% if mes_atual == "5" %}selected{% endif %}>Maio</option>
+                                <option value="6" {% if mes_atual == "6" %}selected{% endif %}>Junho</option>
+                                <option value="7" {% if mes_atual == "7" %}selected{% endif %}>Julho</option>
+                                <option value="8" {% if mes_atual == "8" %}selected{% endif %}>Agosto</option>
+                                <option value="9" {% if mes_atual == "9" %}selected{% endif %}>Setembro</option>
+                                <option value="10" {% if mes_atual == "10" %}selected{% endif %}>Outubro</option>
+                                <option value="11" {% if mes_atual == "11" %}selected{% endif %}>Novembro</option>
+                                <option value="12" {% if mes_atual == "12" %}selected{% endif %}>Dezembro</option>
                             </select>
-                            
                         </div>
                         <button type="submit" class="btn btn-primary">Exportar</button>
                     </form>

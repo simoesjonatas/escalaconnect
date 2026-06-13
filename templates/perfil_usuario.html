@@ -18,12 +18,42 @@
                     Informações do Usuário
                 </div>
                 <ul class="list-group list-group-flush">
+                    <li class="list-group-item">Nome: {{ user.get_full_name|default:"-" }}</li>
                     <li class="list-group-item">Nome de usuário: {{ user.username }}</li>
                     <li class="list-group-item">E-mail: {{ user.email }}</li>
-                    <li class="list-group-item">Telefone: {{ user.telefone }}</li>
+                    <li class="list-group-item">Telefone: {{ user.telefone_formatado|default:"-" }}</li>
                     <li class="list-group-item">Aniversário: {{ user.aniversario|date:"d/m/Y" }}</li>
                     <li class="list-group-item">CPF: {{ user.cpf }}</li>
                 </ul>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <i class="fa fa-address-card mr-1"></i> Atualizar contato
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ contato_form.email.id_for_label }}">E-mail</label>
+                            {{ contato_form.email }}
+                            {% if contato_form.email.errors %}
+                            <small class="text-danger d-block mt-1">{{ contato_form.email.errors|join:" " }}</small>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ contato_form.telefone.id_for_label }}">Telefone (com DDD)</label>
+                            {{ contato_form.telefone }}
+                            {% if contato_form.telefone.errors %}
+                            <small class="text-danger d-block mt-1">{{ contato_form.telefone.errors|join:" " }}</small>
+                            {% endif %}
+                            <small class="text-muted d-block mt-1">Pode digitar com ou sem máscara — salvamos só os números.</small>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fa fa-save mr-1"></i> Salvar contato
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
         <div class="col-md-4">
@@ -38,4 +68,6 @@
         </div>
     </div>
 </div>
+
+{# A máscara do telefone vem de js/telefone-mask.js (carregado no base.html), aplicada a todo input[type="tel"]. #}
 {% endblock %}

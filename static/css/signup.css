@@ -174,7 +174,8 @@ body {
     margin: 18px 0;
     padding: 13px 14px;
     display: flex;
-    align-items: flex-start;
+    flex-wrap: wrap;          /* o erro (flex-basis 100%) desce para a própria linha */
+    align-items: center;
     gap: 10px;
     border: 1px solid var(--connect-border);
     border-radius: 8px;
@@ -184,7 +185,7 @@ body {
 }
 
 .form-check input {
-    margin-top: 2px;
+    margin-top: 0;
     accent-color: var(--connect-green);
 }
 
@@ -193,7 +194,12 @@ body {
     margin-left: 28px;
 }
 
+.form-check .error:empty {
+    display: none;            /* sem erro, não ocupa espaço nem força quebra */
+}
+
 .form-check-label {
+    flex: 1;                  /* ocupa a linha toda, sem quebrar "Termos de Uso" */
     line-height: 1.45;
 }
 

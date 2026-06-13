@@ -6,7 +6,11 @@ from django.views.generic.detail import DetailView
 from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 from equipe.decorators import require_lider
+from escala.utils import usuarios_disponiveis_para_evento
+
+User = get_user_model()
 
 
 @login_required
@@ -50,6 +54,25 @@ class DetalhesDesistenciaPorEscalaView(DetailView):
         # Encontre a desistência relacionada a essa escala
         desistencia = get_object_or_404(Desistencia, escala__id=escala_id, aprovada=False)
         return desistencia
+
+    def get_context_data(self, **kwargs):
+        # Quem está disponível para cobrir o furo caso a desistência seja aprovada.
+        context = super().get_context_data(**kwargs)
+        escala = self.object.escala
+        if escala.funcao and escala.evento:
+            ids = usuarios_disponiveis_para_evento(
+                equipe=escala.funcao.equipe,
+                evento=escala.evento,
+                excluir_escala_id=escala.pk,
+            )
+        else:
+            ids = []
+        context['disponiveis'] = (
+            User.objects.filter(id__in=ids)
+            .exclude(pk=self.object.usuario_id)  # quem está desistindo não é candidato
+            .order_by('first_name', 'username')
+        )
+        return context
 
 
 @login_required

@@ -1,8 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import get_user_model
+from django.contrib import messages
 from django.urls import reverse
-from .forms import UsuarioForm
+from .forms import UsuarioForm, PerfilContatoForm
 from django.core.paginator import Paginator
 from django.db.models import Q
 from usuario.models import Usuario
@@ -94,4 +95,13 @@ def usuario_delete(request, pk):
 
 @login_required
 def perfil_usuario(request):
-    return render(request, 'perfil_usuario.html', {'user': request.user})
+    # O próprio usuário pode atualizar e-mail e telefone pelo perfil.
+    if request.method == 'POST':
+        form = PerfilContatoForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Contato atualizado com sucesso!")
+            return redirect('perfil_usuario')
+    else:
+        form = PerfilContatoForm(instance=request.user)
+    return render(request, 'perfil_usuario.html', {'user': request.user, 'contato_form': form})

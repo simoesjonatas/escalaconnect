@@ -13,85 +13,82 @@ Minhas Escalas
 
 {% block content %}
 <div class="container">
-    <div class="clearfix mb-3">
-        <form method="GET" class="form-inline">
-            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar Escala..." value="{{ query }}">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-3" style="gap: 10px;">
+        <form method="GET" class="form-inline" style="flex: 1 1 300px;">
+            <input type="text" name="q" class="form-control mr-2" placeholder="Buscar por evento, equipe ou função..." value="{{ query }}">
             <button type="submit" class="btn btn-primary mr-2">Buscar</button>
-            <a class="btn btn-secondary" href="{% url 'minhas_escalas' %}">Limpar Filtro</a>
-            <a class="btn btn-info ml-2" href="{% url 'minha_agenda_ics' %}" title="Exporta suas escalas para o Google/Apple Calendar"><i class="fa fa-calendar mr-1"></i> Baixar agenda (.ics)</a>
+            {% if query %}
+            <a class="btn btn-secondary" href="{% url 'minhas_escalas' %}">Limpar</a>
+            {% endif %}
         </form>
+        <a class="btn btn-info" href="{% url 'minha_agenda_ics' %}" title="Exporta suas escalas para o Google/Apple Calendar">
+            <i class="fa fa-calendar mr-1"></i> Baixar agenda (.ics)
+        </a>
     </div>
-    
-    <div class="table-responsive">
-        <table class="table table-bordered mt-3">
-            <thead>
-                <tr>
-                    {% for field_display in escala_fields %}
-                    <th>
-                        <a href="?q={{ query }}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
-                            {{ field_display.1 }}
-                            {% if order_by == field_display.0 %}
-                                <i class="fa {% if direction == 'asc' %}fa-sort-up{% else %}fa-sort-down{% endif %}"></i>
-                            {% endif %}
-                        </a>
-                    </th>
-                    {% endfor %}
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                
-                {% for escala in page_obj %}
-                <tr onclick="window.location.href='{% url 'minha_escala_detail' escala.pk %}'">
-                    <td>
-                        {{ escala.evento.nome }}<br>
-                        {{ escala.evento.data_inicio_com_dia_da_semana|safe }}
-                    </td>
-                    
-                    <td>{{ escala.funcao.equipe.nome }}</td>
-                    <td>{{ escala.funcao.nome }}</td>
-                    <td>
-                        {% if escala.confirmada %}
-                            <span class="badge badge-success">Confirmada</span>
-                        {% else %}
-                            <span class="badge badge-warning">Pendente</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ escala.data_confirmacao|default:"-" }}</td>
-                    <td>
-                        {% if escala.confirmada %}
-                            {% if escala.has_impedimento %}
-                                <!-- Botão desativado indicando que o impedimento está em análise -->
-                                <button class="btn btn-warning btn-sm" disabled>Impedimento Notificado</button>
-                            {% else %}
-                                <!-- Formulário para sinalizar impedimento se a escala estiver confirmada e não houver impedimentos em análise -->
-                                <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}" style="display:inline;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-danger btn-sm">Sinalizar Impedimento</button>
-                                </form>
-                            {% endif %}
-                        {% else %}
-                            {% if  escala.has_solicitacao_troca_aberta %}
-                            <button class="btn btn-warning btn-sm" disabled> Desistência Notificada</button>
 
-                            {% else %}
-                            <!-- Formulário para confirmar escala se ela não estiver confirmada -->
-                            <form method="post" action="{% url 'confirmar_minha_escala' escala.pk %}" style="display:inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-success btn-sm">Confirmar Escala</button>
-                            </form>
-                            {% endif %}
-                        {% endif %}
-                    </td>
-                    
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center">Nenhuma escala encontrada.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="minhas-escalas-lista">
+        {% for escala in page_obj %}
+        <div class="minha-escala-card" onclick="window.location.href='{% url 'minha_escala_detail' escala.pk %}'">
+            <div class="me-data">
+                <span class="me-dia">{{ escala.evento.data_inicio|date:"d" }}</span>
+                <span class="me-mes">{{ escala.evento.data_inicio|date:"b" }}</span>
+                <span class="me-hora">{{ escala.evento.data_inicio|date:"H:i" }}</span>
+            </div>
+
+            <div class="me-info">
+                <strong>{{ escala.evento.nome }}</strong>
+                <small>{{ escala.evento.data_inicio|date:"l, d/m/Y" }}</small>
+                <div class="me-tags">
+                    <span class="badge badge-secondary">{{ escala.funcao.equipe.nome }}</span>
+                    <span class="badge badge-info">{{ escala.funcao.nome }}</span>
+                    {% if escala.confirmada %}
+                    <span class="badge badge-success">Confirmada</span>
+                    {% else %}
+                    <span class="badge badge-warning">A confirmar</span>
+                    {% endif %}
+                    {% if escala.has_impedimento %}
+                    <span class="badge badge-danger">Impedimento em análise</span>
+                    {% endif %}
+                    {% if escala.has_solicitacao_troca_aberta %}
+                    <span class="badge badge-danger">Desistência em análise</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="me-acoes" onclick="event.stopPropagation();">
+                {% if escala.confirmada %}
+                    {% if not escala.has_impedimento %}
+                    <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger btn-sm">
+                            <i class="fa fa-exclamation-circle mr-1"></i> Sinalizar impedimento
+                        </button>
+                    </form>
+                    {% endif %}
+                {% else %}
+                    {% if not escala.has_solicitacao_troca_aberta %}
+                    <form method="post" action="{% url 'confirmar_minha_escala' escala.pk %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-sm">
+                            <i class="fa fa-check mr-1"></i> Confirmar
+                        </button>
+                    </form>
+                    {% endif %}
+                {% endif %}
+                <a class="btn btn-secondary btn-sm" href="{% url 'minha_escala_detail' escala.pk %}">Detalhes</a>
+            </div>
+        </div>
+        {% empty %}
+        <div class="pessoa-vazio">
+            <i class="fa fa-calendar d-block mb-1"></i>
+            {% if query %}
+            Nenhuma escala encontrada para "{{ query }}".
+            {% else %}
+            Você não tem escalas futuras.<br>
+            <small>Mantenha sua <a href="{% url 'registrar_disponibilidade_evento' %}">disponibilidade</a> em dia para ser escalado.</small>
+            {% endif %}
+        </div>
+        {% endfor %}
     </div>
 
     <!-- Paginação -->

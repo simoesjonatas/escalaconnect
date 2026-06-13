@@ -46,7 +46,7 @@
                 <tr onclick="window.location.href='{% url 'usuario_detail' usuario.pk %}'">
                     <td>{{ usuario.username }}</td>
                     <td>{{ usuario.email }}</td>
-                    <td>{{ usuario.telefone }}</td>
+                    <td>{{ usuario.telefone_formatado }}</td>
                     <td>{{ usuario.aniversario|date:"d/m/Y" }}</td>
                 </tr>
                 {% empty %}

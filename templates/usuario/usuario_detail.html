@@ -15,7 +15,7 @@
     <ul>
         <li><strong>ID:</strong> {{ usuario.id }}</li>
         <li><strong>Email:</strong> {{ usuario.email }}</li>
-        <li><strong>Telefone:</strong> {{ usuario.telefone }}</li>
+        <li><strong>Telefone:</strong> {{ usuario.telefone_formatado|default:"-" }}</li>
         <li><strong>Aniversário:</strong> {{ usuario.aniversario|date:"Y-m-d" }}</li>
         <!-- <li><strong>CPF:</strong> {{ usuario.cpf }}</li> -->
     </ul>

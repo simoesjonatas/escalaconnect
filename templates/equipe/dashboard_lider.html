@@ -38,7 +38,39 @@
         <div class="dash-card"><div class="dash-num ok">{{ confirmadas }}</div><div class="dash-label">Confirmadas</div></div>
         <div class="dash-card"><div class="dash-num">{{ a_confirmar }}</div><div class="dash-label">A confirmar</div></div>
         <div class="dash-card"><div class="dash-num">{{ taxa_confirmacao }}%</div><div class="dash-label">Taxa de confirmação</div></div>
+        <div class="dash-card"><div class="dash-num {% if pendencias_total %}alerta{% endif %}">{{ pendencias_total }}</div><div class="dash-label">Pendências</div></div>
     </div>
+
+    {% if impedimentos or trocas_abertas %}
+    <h4 class="dash-section-title">Pendências aguardando você <small class="text-muted">(impedimentos e trocas)</small></h4>
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr><th>Tipo</th><th>Evento</th><th>Equipe / Função</th><th>Voluntário</th><th>Ação</th></tr>
+            </thead>
+            <tbody>
+                {% for d in impedimentos %}
+                <tr>
+                    <td><span class="badge badge-danger">Impedimento</span></td>
+                    <td>{{ d.escala.evento.nome }}<br><small>{{ d.escala.evento.data_inicio|date:"d/m/Y H:i" }}</small></td>
+                    <td>{{ d.escala.funcao.equipe.nome }} — {{ d.escala.funcao.nome }}</td>
+                    <td>{{ d.usuario.get_full_name|default:d.usuario.username }}</td>
+                    <td><a class="btn btn-sm btn-danger" href="{% url 'detalhes_desistencia_escala' d.escala.pk %}">Analisar</a></td>
+                </tr>
+                {% endfor %}
+                {% for t in trocas_abertas %}
+                <tr>
+                    <td><span class="badge badge-warning">Troca</span></td>
+                    <td>{{ t.escala_origem.evento.nome }}<br><small>{{ t.escala_origem.evento.data_inicio|date:"d/m/Y H:i" }}</small></td>
+                    <td>{{ t.escala_origem.funcao.equipe.nome }} — {{ t.escala_origem.funcao.nome }}</td>
+                    <td>{{ t.solicitante.get_full_name|default:t.solicitante.username }}</td>
+                    <td><a class="btn btn-sm btn-warning" href="{% url 'detalhes_solicitacao_troca' t.pk %}">Analisar</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 
     <h4 class="dash-section-title">Buracos na escala <small class="text-muted">(próximos eventos sem voluntário)</small></h4>
     <div class="table-responsive">

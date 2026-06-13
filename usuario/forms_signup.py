@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import Usuario
+from .utils import normalizar_telefone, validate_telefone
 from django.core.exceptions import ValidationError
 
 
@@ -12,7 +13,14 @@ class SignupForm(UserCreationForm):
         max_length=255, required=True, widget=forms.TextInput(attrs={'class': 'form-control'})
     )
     telefone = forms.CharField(
-        max_length=255, required=False, widget=forms.TextInput(attrs={'class': 'form-control'})
+        max_length=255,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'type': 'tel',
+            'inputmode': 'tel',
+            'placeholder': '(21) 99999-9999',
+        }),
     )
     aniversario = forms.DateField(
         required=False, widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
@@ -50,6 +58,13 @@ class SignupForm(UserCreationForm):
 
         return cleaned_data
 
+
+    def clean_telefone(self):
+        """Guarda o telefone no formato canônico: só dígitos, com DDD, sem +55."""
+        telefone = normalizar_telefone(self.cleaned_data.get('telefone'))
+        if telefone:
+            validate_telefone(telefone)
+        return telefone
 
     def clean_aceitar_termos(self):
         """Valida se o usuário aceitou os termos."""

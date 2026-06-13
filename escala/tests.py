@@ -253,3 +253,124 @@ class AplicarFuncoesEventosTests(TestCase):
 
         self.assertEqual(resp.status_code, 302)
         self.assertTrue(Escala.objects.filter(evento=self.evento_1, funcao=self.funcao_porta).exists())
+
+
+class PaginasEscalacaoSmokeTests(TestCase):
+    """Smoke tests das páginas de escalação (evento e equipe) após a repaginação."""
+
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Smoke")
+        self.funcao = Funcao.objects.create(nome="Som", equipe=self.equipe)
+        base = (timezone.now() + timedelta(days=4)).replace(
+            hour=19, minute=0, second=0, microsecond=0
+        )
+        self.evento = Evento.objects.create(
+            nome="Evento Smoke", data_inicio=base, data_fim=base + timedelta(hours=2)
+        )
+        self.vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+
+        self.lider = criar_usuario("lider_smoke")
+        self.lider.is_first_login = False
+        self.lider.termo_aceito_em = timezone.now()
+        self.lider.save()
+        Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+
+    def test_escala_detail_evento_renderiza(self):
+        self.client.force_login(self.lider)
+        resp = self.client.get(reverse('escala_detail', args=[self.vaga.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Vaga em aberto")
+
+    def test_escala_detail_equipe_renderiza(self):
+        self.client.force_login(self.lider)
+        resp = self.client.get(
+            reverse('escala_detail_equipe', args=[self.equipe.pk, self.vaga.pk])
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Vaga em aberto")
+
+
+class MinhasEscalasPageTests(TestCase):
+    """Smoke test da página Minhas Escalas após a repaginação em cards."""
+
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Recepção ME")
+        self.funcao = Funcao.objects.create(nome="Porta", equipe=self.equipe)
+        base = (timezone.now() + timedelta(days=3)).replace(
+            hour=19, minute=0, second=0, microsecond=0
+        )
+        self.evento = Evento.objects.create(
+            nome="Culto ME", data_inicio=base, data_fim=base + timedelta(hours=2)
+        )
+        self.user = criar_usuario("vol_me")
+        self.user.is_first_login = False
+        self.user.termo_aceito_em = timezone.now()
+        self.user.save()
+        Escala.objects.create(usuario=self.user, funcao=self.funcao, evento=self.evento)
+
+    def test_renderiza_cards_com_acao_de_confirmar(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('minhas_escalas'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Culto ME")
+        self.assertContains(resp, "A confirmar")
+        self.assertContains(resp, "Confirmar")
+        self.assertContains(resp, "Baixar agenda (.ics)")
+
+    def test_estado_vazio_sem_escalas(self):
+        outro = criar_usuario("sem_escalas_me")
+        outro.is_first_login = False
+        outro.termo_aceito_em = timezone.now()
+        outro.save()
+        self.client.force_login(outro)
+        resp = self.client.get(reverse('minhas_escalas'))
+        self.assertContains(resp, "Você não tem escalas futuras")
+
+
+class MinhaEscalaDetailPageTests(TestCase):
+    """Smoke test do detalhe da minha escala após a repaginação."""
+
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Som MED")
+        self.funcao = Funcao.objects.create(nome="Mesa", equipe=self.equipe)
+        base = (timezone.now() + timedelta(days=5)).replace(
+            hour=18, minute=0, second=0, microsecond=0
+        )
+        self.evento = Evento.objects.create(
+            nome="Culto MED", data_inicio=base, data_fim=base + timedelta(hours=2)
+        )
+        self.user = criar_usuario("vol_med")
+        self.user.is_first_login = False
+        self.user.termo_aceito_em = timezone.now()
+        self.user.save()
+        self.escala = Escala.objects.create(
+            usuario=self.user, funcao=self.funcao, evento=self.evento
+        )
+
+    def test_pendente_mostra_confirmar_e_desistencia(self):
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('minha_escala_detail', args=[self.escala.pk]))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Culto MED")
+        self.assertContains(resp, "Confirmar escala")
+        self.assertContains(resp, "Não vai poder servir?")
+
+    def test_confirmada_mostra_sinalizar_impedimento(self):
+        self.escala.confirmada = True
+        self.escala.data_confirmacao = timezone.now()
+        self.escala.save()
+        self.client.force_login(self.user)
+        resp = self.client.get(reverse('minha_escala_detail', args=[self.escala.pk]))
+        self.assertContains(resp, "Sinalizar impedimento")
+        self.assertNotContains(resp, "Confirmar escala")
+
+    def test_escala_de_outro_usuario_retorna_404(self):
+        outro = criar_usuario("intruso_med")
+        outro.is_first_login = False
+        outro.termo_aceito_em = timezone.now()
+        outro.save()
+        self.client.force_login(outro)
+        resp = self.client.get(reverse('minha_escala_detail', args=[self.escala.pk]))
+        # O projeto usa handler404 customizado que redireciona para a home,
+        # então o Http404 do get_object_or_404 vira 302 (e não 404 cru).
+        self.assertEqual(resp.status_code, 302)

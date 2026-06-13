@@ -16,6 +16,11 @@ from django.urls import reverse
 @login_required(login_url='/login/')
 def base_view(request):
     tem_disponibilidade = Disponivel.objects.filter(usuario=request.user).exists()
+    tem_escalas = Escala.objects.filter(usuario=request.user).exists()
+
+    # Contato incompleto: sem e-mail, ou telefone vazio/sem DDD (menos de 10 dígitos).
+    falta_email = not request.user.email
+    falta_telefone = len(request.user.telefone or '') < 10
     escalas_pendentes = Escala.objects.filter(
         usuario=request.user,
         confirmada=False,
@@ -42,8 +47,11 @@ def base_view(request):
 
     return render(request, 'home/home.html', {
         'tem_disponibilidade': tem_disponibilidade,
+        'tem_escalas': tem_escalas,
         'escalas_pendentes': escalas_pendentes,
         'equipes_com_pendentes': equipes_com_pendentes,
+        'falta_email': falta_email,
+        'falta_telefone': falta_telefone,
     })
 
 # View para renderizar o calendário

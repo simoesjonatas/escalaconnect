@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.apps import apps
-from .utils import validate_cpf
+from .utils import validate_cpf, formatar_telefone
 from django.utils import timezone
 
 import uuid
@@ -22,6 +22,10 @@ class Usuario(AbstractUser):
         help_text="Digite apenas os números do CPF (sem pontos ou traços)."
     )
     
+    @property
+    def telefone_formatado(self):
+        return formatar_telefone(self.telefone)
+
     def __str__(self):
         return f"{self.username} ({self.email})"
 
