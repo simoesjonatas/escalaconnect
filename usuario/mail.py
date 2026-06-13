@@ -48,12 +48,11 @@ def enviar_email_lembrete(email, evento):
     email = EmailMessage(
         subject=assunto,
         body=corpo_email,
-        from_email='jonatasimoes.js@gmail.com',
         to=[email]
     )
     email.content_subtype = 'html'  # Especifica que o conteúdo é HTML
     email.send()
-    
+
 
 def enviar_email_redefinicao_senha(email_usuario, reset_request):
     reset_link = settings.DEFAULT_DOMAIN + reverse('password_reset_confirm', args=[reset_request.hash])

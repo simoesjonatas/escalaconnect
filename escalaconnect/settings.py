@@ -45,11 +45,13 @@ ADMIN_ALLOWED_PATHS = [
 ]
 
 # Origens confiáveis para CSRF (necessário atrás de proxy HTTPS).
-CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS',
-    default='https://connect.simoesti.com.br',
-    cast=Csv()
-)
+# Fixo no código para não depender de variável de ambiente compartilhada do servidor.
+CSRF_TRUSTED_ORIGINS = [
+    'https://connect.simoesti.com.br',
+    'https://www.connect.simoesti.com.br',
+    'https://connect.pibvp.org.br',
+    'https://www.connect.pibvp.org.br',
+]
 
 # Segurança HTTPS/cookies — ativada quando DEBUG=False.
 # Confia no cabeçalho do proxy reverso para reconhecer requisições HTTPS.
@@ -233,8 +235,12 @@ EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
+
+EMAIL_HOST_USER = config('EMAIL_HOST_USER2', default='')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD2', default='')
+# Remetente padrão (o "De:" dos e-mails) = o próprio noreply autenticado.
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+SERVER_EMAIL = EMAIL_HOST_USER
 
 # === Celery ===
 # Broker
