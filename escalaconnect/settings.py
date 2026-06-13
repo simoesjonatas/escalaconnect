@@ -209,7 +209,8 @@ STORAGES = {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        # Hash no nome dos arquivos = cache-busting automático (ver escalaconnect/storage.py).
+        "BACKEND": "escalaconnect.storage.ForgivingManifestStaticFilesStorage",
     },
 }
 
