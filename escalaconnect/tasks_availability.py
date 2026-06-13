@@ -88,7 +88,7 @@ def disparar_pedido_disponibilidades(ano: int, mes: int, equipe_id: int | None =
     if equipe_id:
         try:
             # TENTA usar um modelo de membresia explícito
-            MembroEquipe = apps.get_model("equipe", "MembroEquipe")
+            MembroEquipe = apps.get_model("equipe", "MembrosEquipe")
             base_user_ids = (
                 MembroEquipe.objects
                 .filter(equipe_id=equipe_id, aprovado=True)

@@ -10,6 +10,7 @@ from equipe.decorators import require_lideranca
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.utils.datastructures import MultiValueDictKeyError
+from django.conf import settings
 
 from escalaconnect.tasks_availability import disparar_pedido_disponibilidades
 from escala.utils import preencher_vagas
@@ -153,17 +154,23 @@ def lider_pedir_disponibilidades(request, equipe_id: int):
     lider_nome = request.user.get_full_name() or request.user.get_username()
 
     # publica no worker: só enviará para quem AINDA NÃO cadastrou no mês
-    disparar_pedido_disponibilidades.delay(
+    task_result = disparar_pedido_disponibilidades.delay(
         ano=ano,
         mes=mes,
         equipe_id=equipe_id,
         lider_nome=lider_nome,
     )
 
-    messages.success(
-        request,
-        f"Lembretes publicados para {mes:02d}/{ano}. Verifique o admin em Notification/Attempts."
-    )
+    if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        resultado = task_result.get()
+        enviados = resultado.get("emails_enviados", 0) if isinstance(resultado, dict) else 0
+        faltantes = resultado.get("usuarios_faltantes", 0) if isinstance(resultado, dict) else 0
+        messages.success(request, f"Lembretes processados para {mes:02d}/{ano}: {enviados} enviado(s), {faltantes} pendente(s).")
+    else:
+        messages.success(
+            request,
+            f"Lembretes publicados para {mes:02d}/{ano}. Verifique o admin em Notification/Attempts."
+        )
     return redirect("disponibilidades_equipe", equipe_pk=equipe_id)
 
 

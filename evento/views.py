@@ -167,31 +167,44 @@ def evento_detail(request, pk):
     return render(request, 'evento/evento_detail.html', {'evento': evento})
 
 def view_enviar_confirmacao(request, evento_id):
-    # Obtém o evento
     evento = get_object_or_404(Evento, pk=evento_id)
 
-    # Busca todas as escalas associadas ao evento que não foram confirmadas
-    escalas_nao_confirmadas = Escala.objects.filter(evento=evento, confirmada=False)
+    escalas_nao_confirmadas = (
+        Escala.objects
+        .filter(evento=evento, confirmada=False)
+        .select_related("usuario", "funcao", "funcao__equipe")
+        .exclude(usuario__email__isnull=True)
+        .exclude(usuario__email__exact="")
+    )
 
-    if escalas_nao_confirmadas.exists():
-        for escala in escalas_nao_confirmadas:
-            if escala.usuario and escala.usuario.email:
-                # print(escala.usuario)
-                # print(escala.usuario.email)
-                enviar_email_confirmacao_task.delay(
-                    evento.nome,
-                    escala.usuario.email
-                )
-        messages.success(request, "Emails de confirmação enviados com sucesso para os participantes não confirmados.")
+    total = escalas_nao_confirmadas.count()
+    for escala in escalas_nao_confirmadas:
+        enviar_email_confirmacao_task.delay(escala.id)
+
+    if total:
+        messages.success(request, f"{total} e-mail(s) de confirmação publicado(s) para envio.")
     else:
-        messages.info(request, "Todos os participantes já confirmaram ou não há participantes para confirmar.")
+        messages.info(request, "Ninguém pendente de confirmação com e-mail cadastrado.")
 
     return redirect('evento_detail', pk=evento_id)
 
 def view_enviar_lembrete(request, evento_id):
     evento = get_object_or_404(Evento, pk=evento_id)
-    # emails_participantes = [e.email for e in evento.participantes]  # Ajuste conforme seu modelo
-    # for email in emails_participantes:
-    #     send_email_task.delay('Lembrete de Escala', 'Não esqueça do evento!', 'jonatasimoes.js@gmail.com', [email])
-    messages.success(request, "Emails de lembrete enviados com sucesso!")
+
+    escalas_pendentes = (
+        Escala.objects
+        .filter(evento=evento, confirmada=False)
+        .select_related("usuario", "funcao", "funcao__equipe")
+        .exclude(usuario__email__isnull=True)
+        .exclude(usuario__email__exact="")
+    )
+
+    total = escalas_pendentes.count()
+    for escala in escalas_pendentes:
+        enviar_email_confirmacao_task.delay(escala.id)
+
+    if total:
+        messages.success(request, f"{total} lembrete(s) de escala publicado(s) para envio.")
+    else:
+        messages.info(request, "Ninguém pendente de lembrete com e-mail cadastrado.")
     return redirect('evento_detail', pk=evento_id)

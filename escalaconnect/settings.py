@@ -31,7 +31,8 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 # Domínios autorizados, separados por vírgula (ex.: "connect.simoesti.com.br,localhost")
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
-DEFAULT_DOMAIN = "https://connect.simoesti.com.br"
+SITE_URL = config('SITE_URL', default='https://connect.pibvp.org.br').rstrip('/')
+DEFAULT_DOMAIN = config('DEFAULT_DOMAIN', default=SITE_URL).rstrip('/')
 
 ADMIN_PROTECTED_PATHS = [
     '/admin/',              # Exemplo de URL padrão do Django Admin
@@ -237,8 +238,8 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = config('EMAIL_HOST_USER2', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD2', default='')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default=config('EMAIL_HOST_USER2', default=''))
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default=config('EMAIL_HOST_PASSWORD2', default=''))
 # Remetente padrão (o "De:" dos e-mails) = o próprio noreply autenticado.
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = EMAIL_HOST_USER
