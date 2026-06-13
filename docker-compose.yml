@@ -7,8 +7,12 @@ services:
     # Produção: migra, coleta estáticos e sobe o gunicorn (em entrypoint.sh,
     # para evitar o YAML quebrar os argumentos do gunicorn em várias linhas).
     command: sh /code/entrypoint.sh
-    ports:
-      - "8095:8000"
+    # Sem porta pública: quem expõe é o nginx. Continua acessível pelo nome 'web' na rede.
+    expose:
+      - "8000"
+    volumes:
+      # Compartilha os estáticos coletados com o nginx.
+      - static_volume:/code/staticfiles
     env_file:
       - .env
     environment:
@@ -23,6 +27,18 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: escalaconnect-nginx
+    restart: always
+    ports:
+      - "8095:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_volume:/usr/share/nginx/static:ro
+    depends_on:
+      - web
 
   celeryworker:
     container_name: escalaconnect-celery
@@ -72,3 +88,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+
+volumes:
+  static_volume:
