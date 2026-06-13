@@ -155,15 +155,25 @@ def dashboard_lider(request):
     )
 
     # Pendências que travam a escala: desistências e trocas aguardando o líder.
+    # Só de eventos de hoje para frente (pendência de evento passado não interessa mais).
+    agora = now()
     impedimentos = (
         Desistencia.objects
-        .filter(escala__funcao__equipe__in=equipes, aprovada=False)
+        .filter(
+            escala__funcao__equipe__in=equipes,
+            aprovada=False,
+            escala__evento__data_inicio__gte=agora,
+        )
         .select_related('escala', 'escala__evento', 'escala__funcao', 'escala__funcao__equipe', 'usuario')
         .order_by('escala__evento__data_inicio')
     )
     trocas_abertas = (
         SolicitacaoTroca.objects
-        .filter(escala_origem__funcao__equipe__in=equipes, aprovada=False)
+        .filter(
+            escala_origem__funcao__equipe__in=equipes,
+            aprovada=False,
+            escala_origem__evento__data_inicio__gte=agora,
+        )
         .select_related(
             'escala_origem', 'escala_origem__evento',
             'escala_origem__funcao', 'escala_origem__funcao__equipe', 'solicitante',

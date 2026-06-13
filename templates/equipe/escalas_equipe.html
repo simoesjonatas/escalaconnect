@@ -63,6 +63,28 @@ Escalas da Equipe {{ equipe.nome }}
         margin-right: 6px;
     }
 
+    /* Desktop: vira grid de colunas fixas (data | evento | disponíveis | pessoa | ação),
+       pra todas as linhas alinharem verticalmente. */
+    @media (min-width: 721px) {
+        .equipe-escalas-page .minha-escala-card {
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) 168px 220px auto;
+            align-items: center;
+            gap: 18px;
+        }
+        .equipe-escalas-page .me-info { min-width: 0; }
+        .equipe-escalas-page .me-info > strong {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .equipe-escalas-page .me-disp { width: 100%; min-width: 0; }
+        .equipe-escalas-page .me-pessoa { min-width: 0; }
+        .equipe-escalas-page .me-pessoa .pessoa-info { min-width: 0; }
+        .equipe-escalas-page .me-acoes { margin-left: 0; justify-content: flex-end; }
+    }
+
     @media (max-width: 720px) {
         .equipe-escalas-page {
             padding: 14px;

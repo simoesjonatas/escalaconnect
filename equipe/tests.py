@@ -7,7 +7,7 @@ from django.utils.timezone import now
 
 from equipe.models import Equipe, Lideranca, MembrosEquipe
 from evento.models import Evento
-from escala.models import Funcao, Escala
+from escala.models import Funcao, Escala, Desistencia
 from disponivel.models import Disponivel
 
 User = get_user_model()
@@ -62,6 +62,41 @@ class DashboardLiderTests(TestCase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertContains(resp, "voluntario_d")  # o disponível aparece na coluna do painel
+
+    def test_pendencias_so_de_eventos_futuros(self):
+        equipe = Equipe.objects.create(nome="Diaconia P")
+        funcao = Funcao.objects.create(nome="Porta", equipe=equipe)
+        lider = User.objects.create_user(
+            username="lider_p", password="x", cpf="10000008001",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+        vol = User.objects.create_user(
+            username="vol_p", password="x", cpf="10000008002",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+
+        passado = Evento.objects.create(
+            nome="Culto Passado",
+            data_inicio=now() - timedelta(days=30),
+            data_fim=now() - timedelta(days=30) + timedelta(hours=2),
+        )
+        futuro = Evento.objects.create(
+            nome="Culto Futuro",
+            data_inicio=now() + timedelta(days=5),
+            data_fim=now() + timedelta(days=5) + timedelta(hours=2),
+        )
+        esc_passado = Escala.objects.create(usuario=vol, funcao=funcao, evento=passado, confirmada=True)
+        esc_futuro = Escala.objects.create(usuario=vol, funcao=funcao, evento=futuro, confirmada=True)
+        Desistencia.objects.create(escala=esc_passado, usuario=vol, motivo="x", aprovada=False)
+        Desistencia.objects.create(escala=esc_futuro, usuario=vol, motivo="y", aprovada=False)
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, "Culto Futuro")        # pendência futura aparece
+        self.assertNotContains(resp, "Culto Passado")    # pendência passada NÃO aparece
 
 
 class HomeAvisoMembrosPendentesTests(TestCase):
