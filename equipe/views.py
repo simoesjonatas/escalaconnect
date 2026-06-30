@@ -132,6 +132,24 @@ def candidatura_equipe(request):
     return render(request, 'equipe/candidatura_equipe.html', context)
 
 @login_required
+def minhas_equipes(request):
+    # equipes em que o usuario ja participa (aprovado) ou aguarda aprovacao (pendente)
+    membros = (
+        MembrosEquipe.objects
+        .filter(usuario=request.user)
+        .select_related('equipe')
+        .order_by('equipe__nome')
+    )
+    aprovadas = [m.equipe for m in membros if m.aprovado]
+    pendentes = [m.equipe for m in membros if not m.aprovado]
+
+    context = {
+        'aprovadas': aprovadas,
+        'pendentes': pendentes,
+    }
+    return render(request, 'equipe/minhas_equipes.html', context)
+
+@login_required
 @require_lideranca
 def disponibilidades_equipe(request, equipe_pk):
     equipe = get_object_or_404(Equipe, pk=equipe_pk)

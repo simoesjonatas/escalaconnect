@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Minhas Equipes{% endblock page_title %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item">Minhas Equipes</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h2>Minhas Equipes</h2>
+    <p>Aqui estão as equipes das quais você já faz parte e as candidaturas que aguardam aprovação.</p>
+
+    <h3>Equipes que participo</h3>
+    {% if aprovadas %}
+    <div class="event-grid">
+        {% for equipe in aprovadas %}
+        <div class="event-card">
+            <h3>{{ equipe.nome }}</h3>
+            <span class="badge badge-success">Membro aprovado</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>Você ainda não faz parte de nenhuma equipe.</p>
+    {% endif %}
+
+    <br>
+
+    <h3>Candidaturas pendentes</h3>
+    {% if pendentes %}
+    <div class="event-grid">
+        {% for equipe in pendentes %}
+        <div class="event-card">
+            <h3>{{ equipe.nome }}</h3>
+            <span class="badge badge-warning">Aguardando aprovação</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p>Você não tem candidaturas pendentes.</p>
+    {% endif %}
+
+    <br>
+    <a href="{% url 'processar_candidatura' %}" class="btn btn-secondary">Candidatar-se a novas equipes</a>
+</div>
+{% endblock %}

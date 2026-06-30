@@ -35,6 +35,7 @@
                     <th><a href="?q={{ query }}&order_by=evento__nome&direction={{ direction }}">Evento</a></th>
                     <th><a href="?q={{ query }}&order_by=data_inicio&direction={{ direction }}">Início</a></th>
                     <th><a href="?q={{ query }}&order_by=data_fim&direction={{ direction }}">Fim</a></th>
+                    <th class="availability-actions-col">Ações</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,10 +46,19 @@
                     </td>
                     <td>{{ disponivel.data_inicio|date:"D, d/m/Y H:i" }}</td>
                     <td>{{ disponivel.data_fim|date:"D, d/m/Y H:i" }}</td>
+                    <td class="availability-actions-col" onclick="event.stopPropagation();">
+                        <form method="post" action="{% url 'excluir_disponivel' disponivel.pk %}"
+                              onsubmit="return confirm('Tem certeza que deseja excluir esta disponibilidade?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="fa fa-trash"></i> Excluir
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="3" class="text-center availability-empty">
+                    <td colspan="4" class="text-center availability-empty">
                         <i class="fa fa-calendar-plus"></i>
                         <strong>Nenhuma disponibilidade futura encontrada.</strong>
                         <span>Registre sua disponibilidade para os próximos eventos.</span>
@@ -92,6 +102,8 @@
     .availability-table { margin-top: 0; }
     .availability-table tbody tr { cursor: pointer; }
     .availability-table tbody tr:hover { background: rgba(57, 255, 20, .08); }
+    .availability-actions-col { width: 1%; white-space: nowrap; text-align: center; }
+    .availability-actions-col form { margin: 0; }
     .availability-empty {
         padding: 34px 16px !important;
         color: var(--connect-muted, #9aa4ad);
