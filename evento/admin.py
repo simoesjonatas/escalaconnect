@@ -4,9 +4,10 @@ from .models import Notification, NotificationAttempt
 
 @admin.register(Evento)
 class EventoAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'data_inicio', 'data_fim']
-    list_filter = ['data_inicio']
+    list_display = ['nome', 'data_inicio', 'data_fim', 'equipe']
+    list_filter = ['data_inicio', 'equipe']
     search_fields = ['nome']
+    list_select_related = ['equipe']
 
 @admin.register(Disponibilidade)
 class DisponibilidadeAdmin(admin.ModelAdmin):

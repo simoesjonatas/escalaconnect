@@ -63,6 +63,18 @@
         font-weight: 800;
     }
 
+    .event-filter {
+        margin-bottom: 12px;
+    }
+
+    .event-filter label {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--connect-muted);
+        font-size: 13px;
+        font-weight: 800;
+    }
+
     .bulk-list {
         display: grid;
         gap: 10px;
@@ -227,17 +239,22 @@
             <section class="bulk-panel">
                 <h4>Eventos</h4>
                 <p class="bulk-panel-caption">Você pode aplicar em um único evento ou em vários de uma vez.</p>
+                <div class="event-filter">
+                    <label for="id_filtro_eventos">Exibir eventos</label>
+                    {{ form.filtro_eventos }}
+                </div>
                 <label class="bulk-select-all">
                     <input type="checkbox" data-toggle-group="event-checkbox">
-                    Selecionar todos os eventos
+                    Selecionar eventos exibidos
                 </label>
                 <div class="bulk-list">
                     {% for evento in eventos %}
-                    <label class="bulk-check-card">
+                    <label class="bulk-check-card event-card" data-event-scope="{% if evento.equipe_id %}equipe{% else %}publicos{% endif %}">
                         <input type="checkbox" class="event-checkbox" name="eventos" value="{{ evento.pk }}" {% if evento.pk in selected_eventos %}checked{% endif %}>
                         <span>
                             <strong>{{ evento.nome }}</strong>
                             <span>{{ evento.data_inicio|date:"d/m/Y H:i" }} até {{ evento.data_fim|date:"H:i" }}</span>
+                            <span>{% if evento.equipe %}Equipe: {{ evento.equipe.nome }}{% else %}Público{% endif %}</span>
                         </span>
                     </label>
                     {% empty %}
@@ -296,12 +313,20 @@
         const eventChecks = Array.from(document.querySelectorAll('.event-checkbox'));
         const functionChecks = Array.from(document.querySelectorAll('.function-checkbox'));
         const teamChecks = Array.from(document.querySelectorAll('.team-checkbox'));
+        const eventFilter = document.getElementById('id_filtro_eventos');
         const planejamento = document.getElementById('id_planejamento');
         const summaryTitle = document.getElementById('bulkSummaryTitle');
         const summaryText = document.getElementById('bulkSummaryText');
 
         function selectedCount(items) {
             return items.filter(item => item.checked).length;
+        }
+
+        function syncEventVisibility() {
+            const filter = eventFilter ? eventFilter.value : 'todos';
+            document.querySelectorAll('.event-card').forEach(card => {
+                card.style.display = filter === 'todos' || card.dataset.eventScope === filter ? '' : 'none';
+            });
         }
 
         function syncTeamVisibility() {
@@ -339,11 +364,17 @@
         document.querySelectorAll('[data-toggle-group]').forEach(toggle => {
             toggle.addEventListener('change', function () {
                 document.querySelectorAll(`.${this.dataset.toggleGroup}`).forEach(item => {
-                    item.checked = this.checked;
+                    if (!item.closest('.event-card') || item.closest('.event-card').style.display !== 'none') {
+                        item.checked = this.checked;
+                    }
                 });
                 syncSummary();
             });
         });
+
+        if (eventFilter) {
+            eventFilter.addEventListener('change', syncEventVisibility);
+        }
 
         document.querySelectorAll('[data-team-select]').forEach(button => {
             button.addEventListener('click', function () {
@@ -391,6 +422,7 @@
             }
         });
 
+        syncEventVisibility();
         syncTeamVisibility();
         syncSummary();
     });

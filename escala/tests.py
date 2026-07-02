@@ -254,6 +254,33 @@ class AplicarFuncoesEventosTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.assertTrue(Escala.objects.filter(evento=self.evento_1, funcao=self.funcao_porta).exists())
 
+    def test_filtro_lista_eventos_publicos_e_apenas_da_equipe_liderada(self):
+        outra_equipe = Equipe.objects.create(nome="Outra equipe")
+        inicio = timezone.now() + timedelta(days=7)
+        evento_da_equipe = Evento.objects.create(
+            nome="Evento da recepção",
+            equipe=self.equipe,
+            data_inicio=inicio,
+            data_fim=inicio + timedelta(hours=2),
+        )
+        evento_de_outra_equipe = Evento.objects.create(
+            nome="Evento privado de outra equipe",
+            equipe=outra_equipe,
+            data_inicio=inicio,
+            data_fim=inicio + timedelta(hours=2),
+        )
+
+        self.client.force_login(self.lider)
+        resp = self.client.get(reverse('aplicar_funcoes_eventos'))
+
+        self.assertEqual(resp.status_code, 200)
+        eventos = resp.context['eventos']
+        self.assertIn(self.evento_1, eventos)
+        self.assertIn(evento_da_equipe, eventos)
+        self.assertNotIn(evento_de_outra_equipe, eventos)
+        self.assertContains(resp, 'Somente públicos')
+        self.assertContains(resp, 'Da equipe')
+
 
 class PaginasEscalacaoSmokeTests(TestCase):
     """Smoke tests das páginas de escalação (evento e equipe) após a repaginação."""

@@ -2,12 +2,49 @@ from django.db import models
 from django.conf import settings
 from django.utils.formats import date_format
 
+
+class EventoQuerySet(models.QuerySet):
+    def visiveis_para(self, user):
+        """
+        Restringe os eventos ao que o usuário pode enxergar:
+        - eventos públicos (sem equipe) aparecem para todos;
+        - eventos vinculados a uma equipe aparecem apenas para membros aprovados,
+          liderança dessa equipe e para admin (staff/superuser).
+        """
+        if not getattr(user, 'is_authenticated', False):
+            return self.filter(equipe__isnull=True)
+        if user.is_superuser or user.is_staff:
+            return self
+        from equipe.models import MembrosEquipe, Lideranca
+        equipe_ids = set(
+            MembrosEquipe.objects.filter(usuario=user, aprovado=True)
+            .values_list('equipe_id', flat=True)
+        )
+        equipe_ids |= set(
+            Lideranca.objects.filter(usuario=user).values_list('equipe_id', flat=True)
+        )
+        return self.filter(
+            models.Q(equipe__isnull=True) | models.Q(equipe_id__in=equipe_ids)
+        )
+
+
 class Evento(models.Model):
     nome = models.CharField(max_length=255)
     data_inicio = models.DateTimeField()
     data_fim = models.DateTimeField()
     observacao = models.TextField(null=True, blank=True)
-    
+    equipe = models.ForeignKey(
+        'equipe.Equipe',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='eventos',
+        help_text="Deixe em branco para um evento público. Se selecionar uma equipe, "
+                  "o evento fica visível apenas para os integrantes dela.",
+    )
+
+    objects = EventoQuerySet.as_manager()
+
     def __str__(self):
         return f"{self.nome} ({self.data_inicio} - {self.data_fim})"
     
@@ -28,6 +65,20 @@ class Evento(models.Model):
             if escala.has_solicitacao_troca_aberta() or escala.has_impedimento():
                 return True
         return False
+
+    def pode_ser_gerenciada_por(self, user):
+        """
+        Define quem pode editar/excluir este evento:
+        - admin (staff/superuser) sempre pode;
+        - eventos públicos: apenas admin (um líder não edita evento global);
+        - eventos de equipe: a liderança daquela equipe.
+        """
+        if user.is_superuser or user.is_staff:
+            return True
+        if self.equipe_id is None:
+            return False
+        from equipe.models import Lideranca
+        return Lideranca.objects.filter(usuario=user, equipe_id=self.equipe_id).exists()
 
 
 class Disponibilidade(models.Model):

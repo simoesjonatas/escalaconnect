@@ -13,6 +13,7 @@ urlpatterns = [
     
     path('lista', evento_list, name='evento_list'),
     path('create/event', evento_create, name='evento_create'),
+    path('gerar-em-massa/', gerar_eventos_em_massa, name='gerar_eventos_em_massa'),
     path('<int:pk>/', evento_detail, name='evento_detail'),
     path('<int:pk>/edit/', evento_update, name='evento_update'),
     path('<int:pk>/delete/', evento_delete, name='evento_delete'),

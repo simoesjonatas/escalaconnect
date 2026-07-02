@@ -29,6 +29,16 @@
             <select id="filtroMes" class="form-control">
                 <option value="all">Todos</option>
             </select>
+            {% if equipes_eventos %}
+            <label for="filtroEquipe" class="availability-filter-label-extra">Equipe</label>
+            <select id="filtroEquipe" class="form-control">
+                <option value="all">Todas</option>
+                <option value="publicos">Somente públicos</option>
+                {% for eq_id, eq_nome in equipes_eventos %}
+                <option value="{{ eq_id }}">{{ eq_nome }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
         </div>
         <div id="filtroDias" class="availability-day-filter">
             <span>Dias da semana</span>
@@ -47,9 +57,14 @@
 
     <form method="post" action="{% url 'processar_disponibilidade_evento' %}">
         {% csrf_token %}
+        <div class="availability-bulk-actions">
+            <button type="button" class="btn btn-secondary" id="toggleVisibleEvents">
+                <i class="fa fa-check-double"></i> Marcar todos os eventos exibidos
+            </button>
+        </div>
         <div class="event-grid availability-event-grid">
             {% for evento in eventos %}
-            <div class="event-card availability-event-card" data-ym="{{ evento.data_inicio|date:'Y-m' }}" data-dow="{{ evento.data_inicio|date:'w' }}">
+            <div class="event-card availability-event-card" data-ym="{{ evento.data_inicio|date:'Y-m' }}" data-dow="{{ evento.data_inicio|date:'w' }}" data-equipe="{{ evento.equipe_id|default:'' }}">
                 <div class="event-date-badge">
                     <strong>{{ evento.data_inicio|date:"d" }}</strong>
                     <span>{{ evento.data_inicio|date:"M" }}</span>
@@ -60,6 +75,9 @@
                         <i class="fa fa-clock"></i>
                         {{ evento.data_inicio|date:"D, H:i" }} - {{ evento.data_fim|date:"H:i" }}
                     </p>
+                    {% if evento.equipe %}
+                    <span class="event-team-badge"><i class="fa fa-lock"></i> Exclusivo · {{ evento.equipe.nome }}</span>
+                    {% endif %}
                 </div>
                 <button type="button" class="btn btn-success toggle-select" data-evento-id="{{ evento.id }}">
                     Marcar
@@ -86,36 +104,61 @@
     // ---- Seleção de eventos ----
     const selectedCount = document.getElementById('selectedCount');
     const submitBtn = document.querySelector('.submit-btn');
+    const toggleVisibleBtn = document.getElementById('toggleVisibleEvents');
+
+    function definirSelecao(card, selecionado) {
+        const button = card.querySelector('.toggle-select');
+        const input = card.querySelector('input[type="hidden"]');
+        card.classList.toggle('selected', selecionado);
+        button.textContent = selecionado ? 'Desmarcar' : 'Marcar';
+        button.classList.toggle('btn-danger', selecionado);
+        button.classList.toggle('btn-success', !selecionado);
+        input.disabled = !selecionado;
+    }
+
+    function atualizarBotaoExibidos() {
+        if (!toggleVisibleBtn) return;
+        const exibidos = [...document.querySelectorAll('.event-card')]
+            .filter(card => card.style.display !== 'none');
+        const todosMarcados = exibidos.length > 0 && exibidos.every(card => card.classList.contains('selected'));
+        toggleVisibleBtn.disabled = exibidos.length === 0;
+        toggleVisibleBtn.setAttribute('aria-pressed', String(todosMarcados));
+        toggleVisibleBtn.innerHTML = todosMarcados
+            ? '<i class="fa fa-times"></i> Desmarcar eventos exibidos'
+            : '<i class="fa fa-check-double"></i> Marcar todos os eventos exibidos';
+    }
 
     function atualizarContador() {
         const total = document.querySelectorAll('.event-card.selected').length;
         selectedCount.textContent = total;
         if (submitBtn) submitBtn.disabled = total === 0;
+        atualizarBotaoExibidos();
     }
 
     document.querySelectorAll('.toggle-select').forEach(button => {
         button.addEventListener('click', function () {
         const card = this.closest('.event-card');
-        const input = card.querySelector('input[type="hidden"]');
-        card.classList.toggle('selected');
-        if (card.classList.contains('selected')) {
-            this.textContent = 'Desmarcar';
-            this.classList.replace('btn-success', 'btn-danger');
-            input.disabled = false;
-        } else {
-            this.textContent = 'Marcar';
-            this.classList.replace('btn-danger', 'btn-success');
-            input.disabled = true;
-        }
+        definirSelecao(card, !card.classList.contains('selected'));
         atualizarContador();
         });
     });
+
+    if (toggleVisibleBtn) {
+        toggleVisibleBtn.addEventListener('click', () => {
+            const exibidos = [...document.querySelectorAll('.event-card')]
+                .filter(card => card.style.display !== 'none');
+            const marcar = !exibidos.every(card => card.classList.contains('selected'));
+            exibidos.forEach(card => definirSelecao(card, marcar));
+            atualizarContador();
+        });
+    }
 
     // ---- Filtros (mês + múltiplos dias da semana) ----
     const cards = document.querySelectorAll('.event-card');
     const filtroMes = document.getElementById('filtroMes');
     const checkDias = document.querySelectorAll('#filtroDias input[type="checkbox"]:not(#todosDias)');
     const todosDias = document.getElementById('todosDias');
+    const filtroEquipe = document.getElementById('filtroEquipe');
 
     // Popular meses
     const mesesSet = new Set([...cards].map(c => c.dataset.ym).filter(Boolean));
@@ -131,12 +174,17 @@
         const mes = filtroMes.value;
         const diasSelecionados = [...checkDias].filter(c => c.checked).map(c => c.value);
         const mostrarTodosDias = todosDias.checked || diasSelecionados.length === 0;
+        const equipe = filtroEquipe ? filtroEquipe.value : 'all';
 
         cards.forEach(c => {
         const okMes = (mes === 'all' || c.dataset.ym === mes);
         const okDia = (mostrarTodosDias || diasSelecionados.includes(c.dataset.dow));
-        c.style.display = (okMes && okDia) ? '' : 'none';
+        let okEquipe = true;
+        if (equipe === 'publicos') okEquipe = (c.dataset.equipe === '');
+        else if (equipe !== 'all') okEquipe = (c.dataset.equipe === equipe);
+        c.style.display = (okMes && okDia && okEquipe) ? '' : 'none';
         });
+        atualizarBotaoExibidos();
     }
 
     // Eventos dos filtros
@@ -149,6 +197,7 @@
         if (e.target.checked) checkDias.forEach(cb => cb.checked = false);
         aplicarFiltros();
     });
+    if (filtroEquipe) filtroEquipe.addEventListener('change', aplicarFiltros);
 
     // Mês atual automático
     (function selecionarMesAtual() {
@@ -202,6 +251,7 @@
         font-weight: 700;
     }
     .availability-filters .form-control { margin: 6px 0 0; }
+    .availability-filter-label-extra { display: block; margin-top: 12px; }
     .availability-day-filter {
         display: grid;
         grid-template-columns: repeat(4, minmax(120px, 1fr));
@@ -228,6 +278,18 @@
         grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
         gap: 14px;
     }
+    .availability-bulk-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin: 0 0 14px;
+    }
+    .availability-bulk-actions .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin: 0;
+    }
     .availability-event-card {
         display: grid;
         grid-template-columns: auto 1fr;
@@ -253,6 +315,21 @@
     .event-date-badge span { color: var(--connect-muted, #9aa4ad); font-size: .78rem; text-transform: uppercase; }
     .event-card-body h3 { font-size: 1rem; margin: 0 0 8px; }
     .event-card-body p { color: var(--connect-muted, #9aa4ad); margin: 0; font-size: .9rem; }
+    .event-team-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: var(--connect-surface-2, #1b2230);
+        border: 1px solid var(--connect-green, #39ff14);
+        color: var(--connect-green, #39ff14);
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
     .availability-event-card .toggle-select {
         grid-column: 1 / -1;
         margin: 2px 0 0;
@@ -267,12 +344,28 @@
         gap: 12px;
         margin-top: 18px;
         padding: 12px 14px;
-        background: var(--connect-surface, #14181f);
-        border: 1px solid var(--connect-border, #232a35);
+        background: linear-gradient(135deg, rgba(57, 255, 20, .15), var(--connect-surface-2, #1b2230));
+        border: 1px solid rgba(57, 255, 20, .42);
         border-radius: 8px;
         box-shadow: 0 -8px 18px rgba(0, 0, 0, .2);
     }
     .availability-submit-bar .btn { margin: 0; }
+    .availability-submit-bar > span {
+        color: var(--connect-text, #e6f0ea);
+        font-weight: 700;
+    }
+    .availability-submit-bar #selectedCount {
+        display: inline-grid;
+        place-items: center;
+        min-width: 30px;
+        min-height: 30px;
+        margin-right: 4px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--connect-green, #39ff14);
+        color: #071007;
+        font-weight: 900;
+    }
     .availability-no-events {
         grid-column: 1 / -1;
         text-align: center;
@@ -293,6 +386,7 @@
         .availability-filters { grid-template-columns: 1fr; }
         .availability-filters > div:first-child { align-self: stretch; }
         .availability-day-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .availability-bulk-actions .btn { width: 100%; }
         .availability-submit-bar .btn { width: 100%; }
     }
     @media (max-width: 520px) {

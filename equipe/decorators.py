@@ -45,4 +45,22 @@ def require_lider(view_func):
         return view_func(request, *args, **kwargs)
 
     return _wrapped_view
+
+
+def require_lider_ou_staff(view_func):
+    """
+    Libera a view para admin (staff/superuser) ou para qualquer usuário que seja
+    líder de pelo menos uma equipe. Caso contrário, retorna 403.
+
+    Usado em rotas que não têm um equipe_id na URL (ex.: criar evento), onde a
+    equipe é escolhida dentro do próprio formulário.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        user = request.user
+        if user.is_authenticated and (user.is_superuser or user.is_staff or user.is_leader()):
+            return view_func(request, *args, **kwargs)
+        return render(request, '403_forbidden.html', status=403)
+
+    return _wrapped_view
 # {% if request.user.is_staff or request.user.is_superuser or is_leader %}

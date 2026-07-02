@@ -1,4 +1,5 @@
 from django import forms
+from django.db import models
 from django.utils.timezone import now
 from escala.models import Escala,Funcao
 from equipe.models import Equipe
@@ -20,6 +21,12 @@ class MultiEscalaForm(forms.Form):
 
 
 class AplicarFuncoesEventosForm(forms.Form):
+    FILTRO_EVENTOS_CHOICES = (
+        ('equipe', 'Da equipe'),
+        ('publicos', 'Somente públicos'),
+        ('todos', 'Todos'),
+    )
+
     planejamento = forms.ModelChoiceField(
         queryset=Planejamento.objects.none(),
         required=False,
@@ -37,6 +44,13 @@ class AplicarFuncoesEventosForm(forms.Form):
         queryset=Evento.objects.none(),
         label="Eventos",
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'event-checkbox-list'}),
+    )
+    filtro_eventos = forms.ChoiceField(
+        choices=FILTRO_EVENTOS_CHOICES,
+        required=False,
+        initial='todos',
+        label="Exibir eventos",
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_filtro_eventos'}),
     )
     funcoes = forms.ModelMultipleChoiceField(
         queryset=Funcao.objects.none(),
@@ -58,7 +72,12 @@ class AplicarFuncoesEventosForm(forms.Form):
 
         equipes = equipes.distinct().order_by('nome')
         funcoes = Funcao.objects.filter(equipe__in=equipes).select_related('equipe').order_by('equipe__nome', 'nome')
-        eventos = Evento.objects.filter(data_fim__gte=now()).order_by('data_inicio', 'nome')
+        eventos = Evento.objects.filter(data_fim__gte=now())
+        if user and not (user.is_staff or user.is_superuser):
+            eventos = eventos.filter(
+                models.Q(equipe__isnull=True) | models.Q(equipe__in=equipes)
+            )
+        eventos = eventos.select_related('equipe').distinct().order_by('data_inicio', 'nome')
 
         self.fields['equipes'].queryset = equipes
         self.fields['funcoes'].queryset = funcoes

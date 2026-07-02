@@ -20,6 +20,10 @@ def set_password(request):
             user = form.save()
             user.is_first_login = False
             user.save()
+            # Trocar a senha do próprio usuário logado invalida o hash da sessão;
+            # sem isto o usuário é deslogado na requisição seguinte (caía no /login/
+            # logo após definir a senha).
+            update_session_auth_hash(request, user)
             return redirect('base_page')
     else:
         form = SetPasswordForm(request.user)
@@ -126,7 +130,14 @@ def password_reset_confirm(request, hash):
         if request.method == 'POST':
             form = SetPasswordForm(reset_request.usuario, request.POST)
             if form.is_valid():
-                form.save()
+                user = form.save()
+
+                # O usuário acabou de definir a própria senha pelo link do e-mail:
+                # não faz sentido forçá-lo a trocar de novo no primeiro login
+                # (evita o passo redundante de set_password ao entrar).
+                if user.is_first_login:
+                    user.is_first_login = False
+                    user.save(update_fields=['is_first_login'])
 
                 reset_request.is_used = True
                 reset_request.reset_at = timezone.now()

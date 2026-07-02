@@ -246,9 +246,15 @@
 
 </head>
 <body>
-        {% if not user.is_in_team %}
+        {% comment %}
+            Leva o usuário sem equipe para a inscrição — mas só depois de concluir as
+            etapas anteriores do onboarding (definir senha e aceitar o termo). Sem essa
+            guarda, quando is_first_login=True o FirstLoginMiddleware manda para
+            set_password (que estende este base) e este script devolve para inscricao,
+            criando um loop infinito de redirect entre set_password e inscricao.
+        {% endcomment %}
+        {% if not user.is_in_team and not user.is_first_login and user.termo_aceito_em %}
             <script>
-                <!-- window.location.href = "x/"; -->
                 window.location.href = "/api/user/inscricao/";
             </script>
         {% endif %}

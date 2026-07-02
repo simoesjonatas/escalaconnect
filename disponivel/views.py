@@ -117,11 +117,24 @@ def registrar_por_evento(request):
     # print(eventos_indisponiveis_ids)
 
     # Filtra eventos futuros, excluindo aqueles para os quais o usuario ja registrou disponibilidade
-    eventos_futuros = Evento.objects.filter(
-        data_inicio__gte=hoje, 
+    eventos_futuros = Evento.objects.visiveis_para(user).filter(
+        data_inicio__gte=hoje,
         data_inicio__lte=daqui_a_dois_meses
     ).exclude(id__in=eventos_indisponiveis_ids).order_by('data_inicio')
-    return render(request, 'disponivel/registrar_por_evento.html', {'eventos': eventos_futuros})
+
+    # Equipes dos eventos privados (de equipe) presentes na lista. O filtro por
+    # equipe só é exibido se houver ao menos um evento de equipe aqui.
+    equipes_eventos = list(
+        eventos_futuros.filter(equipe__isnull=False)
+        .values_list('equipe_id', 'equipe__nome')
+        .distinct()
+        .order_by('equipe__nome')
+    )
+
+    return render(request, 'disponivel/registrar_por_evento.html', {
+        'eventos': eventos_futuros,
+        'equipes_eventos': equipes_eventos,
+    })
 
 @login_required
 def processar_disponibilidade_evento(request):
@@ -132,7 +145,7 @@ def processar_disponibilidade_evento(request):
         for event_id in selected_event_ids:
             # Crie aqui os registros de disponibilidade
             # print(event_id)
-            evento = get_object_or_404(Evento, pk=event_id)
+            evento = get_object_or_404(Evento.objects.visiveis_para(request.user), pk=event_id)
             # verifica se ja existe um registro de disponibilidade
             already_exists = Disponivel.objects.filter(usuario=request.user, evento=evento).exists()
             if not already_exists:

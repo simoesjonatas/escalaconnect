@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Gerar Eventos em Massa{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'evento_list' %}">Eventos</a></li>
+    <li class="breadcrumb-item">Gerar em Massa</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<style>
+    .bulk-event-card { width: 100%; margin: 0; padding: 6px 0; background: transparent; border: 0; border-radius: 0; }
+    .bulk-event-card h3 { margin-top: 0; }
+    .bulk-event-card .intro { color: var(--connect-muted); margin-bottom: 22px; }
+    .bulk-event-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .bulk-event-field { margin-bottom: 16px; }
+    .bulk-event-field label { display: block; font-weight: 800; margin-bottom: 6px; }
+    .weekday-checkboxes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .weekday-checkboxes li { margin: 0; }
+    .weekday-checkboxes label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: 58px;
+        margin: 0;
+        padding: 12px 14px;
+        border: 2px solid var(--connect-border);
+        border-radius: 9px;
+        background: var(--connect-surface-2);
+        color: var(--connect-text);
+        cursor: pointer;
+        transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+    .weekday-checkboxes label:hover { border-color: var(--connect-green); transform: translateY(-1px); }
+    .weekday-checkboxes input {
+        flex: 0 0 auto;
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        accent-color: var(--connect-green);
+        cursor: pointer;
+    }
+    .weekday-checkboxes label:has(input:checked) {
+        border-color: var(--connect-green);
+        background: rgba(34, 197, 94, .16);
+        box-shadow: inset 4px 0 0 var(--connect-green), 0 0 0 2px rgba(34, 197, 94, .12);
+        color: var(--connect-text);
+    }
+    .weekday-checkboxes label:has(input:checked)::after {
+        content: "Selecionado";
+        margin-left: auto;
+        color: var(--connect-green);
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .03em;
+        text-transform: uppercase;
+    }
+    .weekday-checkboxes label:has(input:focus-visible) { outline: 3px solid rgba(34, 197, 94, .3); outline-offset: 2px; }
+    .bulk-event-errors { padding: 12px; margin-bottom: 16px; border-radius: 7px; background: rgba(255, 77, 79, .1); }
+    .bulk-event-actions { display: flex; gap: 10px; margin-top: 20px; }
+    @media (max-width: 900px) {
+        .weekday-checkboxes { grid-template-columns: 1fr; }
+        .weekday-checkboxes label { min-height: 54px; }
+    }
+    @media (max-width: 620px) {
+        .bulk-event-card { padding: 0; }
+        .bulk-event-grid { grid-template-columns: 1fr; gap: 0; }
+        .weekday-checkboxes label:has(input:checked)::after { content: "✓"; font-size: 18px; }
+        .bulk-event-actions { flex-direction: column; }
+        .bulk-event-actions .btn { width: 100%; }
+    }
+</style>
+
+<div class="container">
+    <div class="bulk-event-card">
+        <h3>Gerar eventos em massa</h3>
+        <p class="intro">Escolha os dias da semana e gere todas as ocorrências no mês atual ou no próximo. Datas passadas e eventos repetidos serão ignorados.</p>
+
+        {% if form.errors %}<div class="bulk-event-errors">{{ form.non_field_errors }}{% for field in form %}{{ field.errors }}{% endfor %}</div>{% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="bulk-event-field"><label for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>{{ form.nome }}</div>
+            <div class="bulk-event-grid">
+                <div class="bulk-event-field"><label for="{{ form.equipe.id_for_label }}">{{ form.equipe.label }}</label>{{ form.equipe }}</div>
+                <div class="bulk-event-field"><label for="{{ form.mes.id_for_label }}">{{ form.mes.label }}</label>{{ form.mes }}</div>
+                <div class="bulk-event-field"><label for="{{ form.horario_inicio.id_for_label }}">{{ form.horario_inicio.label }}</label>{{ form.horario_inicio }}</div>
+                <div class="bulk-event-field"><label for="{{ form.horario_fim.id_for_label }}">{{ form.horario_fim.label }}</label>{{ form.horario_fim }}</div>
+            </div>
+            <div class="bulk-event-field"><label>{{ form.dias_da_semana.label }}</label>{{ form.dias_da_semana }}</div>
+            <div class="bulk-event-field"><label for="{{ form.observacao.id_for_label }}">{{ form.observacao.label }}</label>{{ form.observacao }}</div>
+            <div class="bulk-event-actions">
+                <button type="submit" class="btn btn-success">Gerar eventos</button>
+                <a href="{% url 'evento_list' %}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -14,6 +14,15 @@
     <div class="clearfix mb-3">
         <form method="GET" class="form-inline">
             <input type="text" name="q" class="form-control mr-2" placeholder="Buscar Evento..." value="{{ query }}">
+            {% if equipes_filtro %}
+            <select name="equipe" class="form-control mr-2" onchange="this.form.submit()">
+                <option value="">Todas as equipes</option>
+                <option value="publicos" {% if equipe_filtro == 'publicos' %}selected{% endif %}>Somente públicos</option>
+                {% for eq in equipes_filtro %}
+                <option value="{{ eq.id }}" {% if equipe_filtro == eq.id|stringformat:'s' %}selected{% endif %}>{{ eq.nome }}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
             <button type="submit" class="btn btn-primary mr-2">Buscar</button>
             <a class="btn btn-secondary" href="{% url 'evento_list' %}">Limpar Filtro</a>
         </form>
@@ -26,6 +35,8 @@
         <a class="btn btn-primary float-right" href="{% url 'gerar_eventos_planejamento' %}">planejamentos completo</a> -->
         {% endif %}
         {% if request.user.is_leader or request.user.is_staff or request.user.is_superuser %}
+        <a class="btn btn-success float-right" href="{% url 'evento_create' %}"><i class="fa fa-plus mr-1"></i> Criar Evento</a>
+        <a class="btn btn-primary float-right" href="{% url 'gerar_eventos_em_massa' %}"><i class="fa fa-calendar-plus mr-1"></i> Gerar em Massa</a>
         <a class="btn btn-secondary float-right" href="{% url 'aplicar_funcoes_eventos' %}">Funções em Eventos</a>
         {% endif %}
         <!-- url 'evento_create_multiple' -->
