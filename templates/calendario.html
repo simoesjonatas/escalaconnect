@@ -19,10 +19,27 @@
 </div>
 {% endif %}
 
-<div class="cal-legend">
-    <span><i class="cal-dot" style="background:#2e7d32"></i> Minha escala confirmada</span>
-    <span><i class="cal-dot" style="background:#ef6c00"></i> Minha escala — a confirmar</span>
-    <span><i class="cal-dot" style="background:#3b5bdb"></i> Evento</span>
+<div class="cal-filtro-bar">
+    <div class="cal-legend">
+        <span><i class="cal-dot" style="background:#2e7d32"></i> Minha escala confirmada</span>
+        <span><i class="cal-dot" style="background:#ef6c00"></i> Minha escala — a confirmar</span>
+        <span><i class="cal-dot" style="background:#3b5bdb"></i> Evento</span>
+    </div>
+    <div class="cal-filtro">
+        <label for="calFiltro">Mostrar:</label>
+        <select id="calFiltro" class="form-control">
+            <option value="">Todos os eventos</option>
+            <option value="escalado">Somente onde estou escalado</option>
+            <option value="publicos">Somente eventos públicos</option>
+            {% if minhas_equipes %}
+            <optgroup label="Minhas equipes">
+                {% for equipe in minhas_equipes %}
+                <option value="{{ equipe.id }}">{{ equipe.nome }}</option>
+                {% endfor %}
+            </optgroup>
+            {% endif %}
+        </select>
+    </div>
 </div>
 
 <div id="calendar"></div>
@@ -43,7 +60,16 @@
 
 <style>
     .cal-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; margin-bottom:10px; }
+    .cal-filtro-bar { display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin:4px 0 14px; }
+    .cal-filtro { display:flex; align-items:center; gap:8px; }
+    .cal-filtro label { margin:0; color:var(--connect-muted,#9aa4ad); font-size:.9rem; white-space:nowrap; }
+    .cal-filtro select { width:auto; min-width:220px; }
+    @media (max-width: 640px) {
+        .cal-filtro { width:100%; }
+        .cal-filtro select { flex:1; }
+    }
     .cal-legend { display:flex; gap:18px; flex-wrap:wrap; margin:4px 0 14px; color:var(--connect-muted,#9aa4ad); font-size:.9rem; }
+    .cal-filtro-bar .cal-legend { margin:0; }
     .cal-legend .cal-dot { display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:6px; vertical-align:middle; }
     #modalDate { color:var(--connect-muted,#9aa4ad); margin-bottom:8px; }
     #modalEscala .status-ok { color:#39ff14; font-weight:600; }
@@ -81,6 +107,19 @@ document.addEventListener('DOMContentLoaded', function () {
     var modal = document.getElementById('eventModal');
     var closeModal = document.getElementsByClassName('close')[0];
 
+    var filtroSelect = document.getElementById('calFiltro');
+    var filtroSalvo = localStorage.getItem('connect-cal-filtro');
+    if (filtroSalvo && filtroSelect.querySelector('option[value="' + filtroSalvo + '"]')) {
+        filtroSelect.value = filtroSalvo;
+    }
+
+    function filtroParams() {
+        var valor = filtroSelect.value;
+        if (valor === 'escalado') return { filtro: 'escalado' };
+        if (valor) return { equipe: valor };
+        return {};
+    }
+
     function isMobile() { return window.matchMedia('(max-width: 640px)').matches; }
     function toolbarForDevice() {
         return isMobile()
@@ -100,7 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
         handleWindowResize: true,
         nowIndicator: true,
         dayMaxEvents: true,
-        events: '/api/events/',
+        events: { url: '/api/events/', extraParams: filtroParams },
         windowResize: function () {
             calendar.setOption('headerToolbar', toolbarForDevice());
             var desiredView = initialViewForDevice();
@@ -136,6 +175,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     calendar.render();
+
+    filtroSelect.addEventListener('change', function () {
+        localStorage.setItem('connect-cal-filtro', filtroSelect.value);
+        calendar.refetchEvents();
+    });
 
     closeModal.onclick = function() { modal.style.display = 'none'; };
     window.onclick = function(e) { if (e.target == modal) modal.style.display = 'none'; };

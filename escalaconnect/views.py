@@ -60,7 +60,20 @@ def base_view(request):
 # View para renderizar o calendário
 @login_required(login_url='/login/')
 def calendario_view(request):
-    return render(request, 'calendario.html')
+    # Equipes oferecidas no filtro do calendário: as do usuário (admin vê todas).
+    if request.user.is_superuser or request.user.is_staff:
+        minhas_equipes = Equipe.objects.all().order_by('nome')
+    else:
+        from equipe.models import Lideranca
+        equipe_ids = set(
+            MembrosEquipe.objects.filter(usuario=request.user, aprovado=True)
+            .values_list('equipe_id', flat=True)
+        )
+        equipe_ids |= set(
+            Lideranca.objects.filter(usuario=request.user).values_list('equipe_id', flat=True)
+        )
+        minhas_equipes = Equipe.objects.filter(id__in=equipe_ids).order_by('nome')
+    return render(request, 'calendario.html', {'minhas_equipes': minhas_equipes})
 
 def custom_403(request, exception):
     return render(request, '403_forbidden.html', status=403)
