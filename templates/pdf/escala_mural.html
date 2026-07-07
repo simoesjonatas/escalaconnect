@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Escala {{ equipe.nome }} - {{ mes_nome }}/{{ ano }}</title>
+<style>
+    @page {
+        size: A4;
+        margin: 1.8cm 1.6cm 2.2cm;
+        @bottom-center {
+            content: "Escala Connect · Gerado em {{ gerado_em|date:'d/m/Y' }} · Página " counter(page) " de " counter(pages);
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 8pt;
+            color: #888888;
+        }
+    }
+
+    body {
+        margin: 0;
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 12pt;
+        color: #111111;
+    }
+
+    .titulo {
+        margin: 0;
+        font-size: 24pt;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .subtitulo {
+        margin: 4pt 0 0;
+        font-size: 13pt;
+        text-align: center;
+        color: #555555;
+    }
+
+    .regua {
+        height: 2.5pt;
+        margin: 14pt 0 2pt;
+        background: #111111;
+    }
+
+    .evento {
+        margin-top: 18pt;
+        page-break-inside: avoid;
+    }
+
+    .evento-data {
+        margin: 0;
+        font-size: 15pt;
+        font-weight: bold;
+    }
+
+    .evento-nome {
+        margin: 2pt 0 6pt;
+        font-size: 11.5pt;
+        color: #555555;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    td {
+        padding: 5pt 2pt;
+        border-bottom: 0.5pt solid #d5d5d5;
+        vertical-align: middle;
+    }
+
+    tr:last-child td {
+        border-bottom: none;
+    }
+
+    td.funcao {
+        width: 40%;
+        font-size: 11.5pt;
+        color: #555555;
+    }
+
+    td.nome {
+        font-size: 12.5pt;
+        font-weight: bold;
+    }
+
+    .vaga-aberta {
+        font-weight: normal;
+        font-style: italic;
+        color: #888888;
+    }
+
+    .obs {
+        font-size: 9.5pt;
+        font-weight: normal;
+        color: #888888;
+    }
+
+    .vazio {
+        margin-top: 20pt;
+        padding: 20pt;
+        border: 1pt dashed #bbbbbb;
+        text-align: center;
+        color: #555555;
+    }
+</style>
+</head>
+<body>
+    <h1 class="titulo">Escala — {{ equipe.nome }}</h1>
+    <p class="subtitulo">{{ mes_nome }} de {{ ano }}</p>
+    <div class="regua"></div>
+
+    {% if escalas %}
+    {% regroup escalas by evento as eventos %}
+    {% for grupo in eventos %}
+    <section class="evento">
+        <p class="evento-data">{{ grupo.grouper.data_inicio|date:"d/m" }} · {{ grupo.grouper.data_inicio|date:"l"|capfirst }} · {{ grupo.grouper.data_inicio|date:"H:i" }}</p>
+        <p class="evento-nome">{{ grupo.grouper.nome }}</p>
+        <table>
+            {% for escala in grupo.list %}
+            <tr>
+                <td class="funcao">{{ escala.funcao.nome }}</td>
+                <td class="nome">
+                    {% if escala.usuario %}{% firstof escala.usuario.get_full_name escala.usuario.username %}{% if not escala.confirmada %} <span class="obs">· a confirmar</span>{% endif %}{% else %}<span class="vaga-aberta">Vaga em aberto</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </section>
+    {% endfor %}
+    {% else %}
+    <div class="vazio">Nenhuma escala encontrada para {{ mes_nome }} de {{ ano }}.</div>
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Escala {{ equipe.nome }} - {{ mes_nome }}/{{ ano }}</title>
+<style>
+    @page {
+        size: A4;
+        margin: 1.5cm 1.3cm 2.1cm;
+        @bottom-left {
+            content: "Gerado em {{ gerado_em|date:'d/m/Y H:i' }}";
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 7.5pt;
+            color: #98a1aa;
+        }
+        @bottom-center {
+            content: "Escala Connect";
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 7.5pt;
+            color: #98a1aa;
+        }
+        @bottom-right {
+            content: "Página " counter(page) " de " counter(pages);
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 7.5pt;
+            color: #98a1aa;
+        }
+    }
+
+    body {
+        margin: 0;
+        font-family: Helvetica, Arial, sans-serif;
+        font-size: 10pt;
+        color: #1c2229;
+    }
+
+    .cabecalho {
+        display: table;
+        width: 100%;
+        border-bottom: 2.5pt solid #1a7f2e;
+        padding-bottom: 12pt;
+    }
+
+    .cabecalho-logo {
+        display: table-cell;
+        width: 50pt;
+        vertical-align: middle;
+    }
+
+    .cabecalho-logo img {
+        width: 42pt;
+        height: 42pt;
+        border-radius: 50%;
+    }
+
+    .cabecalho-info {
+        display: table-cell;
+        vertical-align: middle;
+    }
+
+    .cabecalho-eyebrow {
+        margin: 0;
+        font-size: 8pt;
+        font-weight: bold;
+        letter-spacing: 1.5pt;
+        text-transform: uppercase;
+        color: #1a7f2e;
+    }
+
+    .cabecalho-titulo {
+        margin: 2pt 0 0;
+        font-size: 19pt;
+        font-weight: bold;
+    }
+
+    .cabecalho-sub {
+        margin: 3pt 0 0;
+        font-size: 10.5pt;
+        color: #5c6670;
+    }
+
+    .resumo {
+        margin: 10pt 0 0;
+    }
+
+    .resumo span {
+        display: inline-block;
+        margin-right: 5pt;
+        padding: 3pt 8pt;
+        border-radius: 9pt;
+        font-size: 8pt;
+        font-weight: bold;
+    }
+
+    .resumo-total { background: #eef1f4; color: #3c454e; }
+    .resumo-ok { background: #e3f3e3; color: #175c23; }
+    .resumo-pend { background: #fdf1d8; color: #8a5b0a; }
+    .resumo-vaga { background: #fdeaea; color: #a32d2d; }
+
+    .evento {
+        margin-top: 12pt;
+        border: 0.75pt solid #dfe4e9;
+        border-radius: 6pt;
+        page-break-inside: avoid;
+        overflow: hidden;
+    }
+
+    .evento-cabecalho {
+        padding: 7pt 10pt;
+        background: #eef7ee;
+        border-bottom: 0.75pt solid #dfe4e9;
+        font-size: 10.5pt;
+    }
+
+    .evento-data {
+        font-weight: bold;
+        color: #175c23;
+    }
+
+    .evento-nome {
+        font-weight: bold;
+        color: #1c2229;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    td {
+        padding: 5pt 10pt;
+        font-size: 9.5pt;
+        vertical-align: middle;
+    }
+
+    tr + tr td {
+        border-top: 0.5pt solid #eceff2;
+    }
+
+    td.funcao {
+        width: 36%;
+        color: #5c6670;
+    }
+
+    td.nome {
+        font-weight: bold;
+    }
+
+    .vaga-aberta {
+        font-weight: normal;
+        font-style: italic;
+        color: #98a1aa;
+    }
+
+    td.status {
+        width: 20%;
+        text-align: right;
+    }
+
+    .chip {
+        display: inline-block;
+        padding: 2pt 7pt;
+        border-radius: 8pt;
+        font-size: 7.5pt;
+        font-weight: bold;
+    }
+
+    .chip-ok { background: #e3f3e3; color: #175c23; }
+    .chip-pend { background: #fdf1d8; color: #8a5b0a; }
+    .chip-vaga { background: #fdeaea; color: #a32d2d; }
+
+    .vazio {
+        margin-top: 16pt;
+        padding: 18pt;
+        border: 0.75pt dashed #c6ccd2;
+        border-radius: 6pt;
+        text-align: center;
+        color: #5c6670;
+    }
+</style>
+</head>
+<body>
+    <header class="cabecalho">
+        {% if logo_data_uri %}
+        <div class="cabecalho-logo"><img src="{{ logo_data_uri }}" alt=""></div>
+        {% endif %}
+        <div class="cabecalho-info">
+            <p class="cabecalho-eyebrow">Escala Connect</p>
+            <h1 class="cabecalho-titulo">Escala — {{ equipe.nome }}</h1>
+            <p class="cabecalho-sub">{{ mes_nome }} de {{ ano }}</p>
+        </div>
+    </header>
+
+    {% if escalas %}
+    <p class="resumo">
+        <span class="resumo-total">{{ total }} posiç{{ total|pluralize:"ão,ões" }}</span>
+        <span class="resumo-ok">{{ confirmadas }} confirmada{{ confirmadas|pluralize }}</span>
+        <span class="resumo-pend">{{ pendentes }} a confirmar</span>
+        <span class="resumo-vaga">{{ vagas }} vaga{{ vagas|pluralize }} em aberto</span>
+    </p>
+
+    {% regroup escalas by evento as eventos %}
+    {% for grupo in eventos %}
+    <section class="evento">
+        <div class="evento-cabecalho">
+            <span class="evento-data">{{ grupo.grouper.data_inicio|date:"d/m (D) · H:i" }}</span>
+            — <span class="evento-nome">{{ grupo.grouper.nome }}</span>
+        </div>
+        <table>
+            {% for escala in grupo.list %}
+            <tr>
+                <td class="funcao">{{ escala.funcao.nome }}</td>
+                <td class="nome">
+                    {% if escala.usuario %}{% firstof escala.usuario.get_full_name escala.usuario.username %}{% else %}<span class="vaga-aberta">Vaga em aberto</span>{% endif %}
+                </td>
+                <td class="status">
+                    {% if not escala.usuario %}<span class="chip chip-vaga">Vaga</span>{% elif escala.confirmada %}<span class="chip chip-ok">Confirmada</span>{% else %}<span class="chip chip-pend">A confirmar</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </section>
+    {% endfor %}
+    {% else %}
+    <div class="vazio">Nenhuma escala encontrada para {{ mes_nome }} de {{ ano }}.</div>
+    {% endif %}
+</body>
+</html>

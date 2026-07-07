@@ -1,12 +1,31 @@
+import base64
+
+from django.contrib.staticfiles import finders
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from .models import Equipe
 from escala.models import Escala
 from django.template.loader import render_to_string
 from datetime import datetime, timedelta
+from django.utils import timezone
 from django.utils.timezone import make_aware
 from equipe.decorators import require_lideranca
 from io import BytesIO
+
+# Whitelist: nunca renderizar nome de template vindo direto do POST
+PDF_TEMPLATES = {
+    'connect': 'pdf/escala_connect.html',
+    'escuro': 'pdf/escala_escuro.html',
+    'mural': 'pdf/escala_mural.html',
+}
+
+
+def _logo_data_uri():
+    caminho = finders.find('images/logo_connect.JPG')
+    if not caminho:
+        return ''
+    with open(caminho, 'rb') as arquivo:
+        return 'data:image/jpeg;base64,' + base64.b64encode(arquivo.read()).decode('ascii')
 
 
 def _pdf_com_reportlab(equipe, escalas, mes_nome, ano):
@@ -128,8 +147,8 @@ def exportar_tabela_para_pdf(request, equipe_pk):
         else:
             fim_mes = make_aware(datetime(ano, mes + 1, 1)) - timedelta(seconds=1)
 
-        # Filtrar escalas pelo mês e ano
-        escalas = (
+        # Filtrar escalas pelo mês e ano (ordenadas para o agrupamento por evento no template)
+        escalas = list(
             Escala.objects
             .filter(
                 funcao__equipe_id=equipe_pk,
@@ -137,12 +156,26 @@ def exportar_tabela_para_pdf(request, equipe_pk):
                 evento__data_inicio__lte=fim_mes,
             )
             .select_related('evento', 'funcao', 'usuario')
-            .order_by('evento__data_inicio')
+            .order_by('evento__data_inicio', 'evento_id', 'funcao__nome')
         )
+
+        template_html = PDF_TEMPLATES.get(request.POST.get('template'), PDF_TEMPLATES['connect'])
+        contexto = {
+            'escalas': escalas,
+            'equipe': equipe,
+            'mes_nome': mes_nome,
+            'ano': ano,
+            'gerado_em': timezone.localtime(),
+            'logo_data_uri': _logo_data_uri(),
+            'total': len(escalas),
+            'confirmadas': sum(1 for e in escalas if e.usuario_id and e.confirmada),
+            'pendentes': sum(1 for e in escalas if e.usuario_id and not e.confirmada),
+            'vagas': sum(1 for e in escalas if not e.usuario_id),
+        }
 
         try:
             from weasyprint import HTML
-            html_string = render_to_string('meu_template.html', {'escalas': escalas, 'equipe': equipe, 'mes_nome': mes_nome})
+            html_string = render_to_string(template_html, contexto)
             html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
             pdf = html.write_pdf()
         except (ImportError, OSError, RuntimeError):
@@ -152,9 +185,8 @@ def exportar_tabela_para_pdf(request, equipe_pk):
                 return HttpResponse(str(exc), status=503, content_type="text/plain; charset=utf-8")
 
         # Nome do arquivo personalizado com nome da equipe e mês
-        nome_mes = inicio_mes.strftime('%B').capitalize()
         response = HttpResponse(pdf, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="escala_{equipe.nome}_{nome_mes}_{ano}.pdf"'
+        response['Content-Disposition'] = f'attachment; filename="escala_{equipe.nome}_{mes_nome}_{ano}.pdf"'
 
         return response
     else:
