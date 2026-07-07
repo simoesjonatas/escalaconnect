@@ -13,6 +13,7 @@ class Usuario(AbstractUser):
     batismo = models.DateField(blank=True, null=True)
     is_first_login = models.BooleanField(default=True)
     termo_aceito_em = models.DateTimeField(blank=True, null=True)
+    ultima_atividade = models.DateTimeField(blank=True, null=True)
 
     # cpf = models.CharField(max_length=255, unique=True)
     cpf = models.CharField(
@@ -60,3 +61,30 @@ class PasswordResetRequest(models.Model):
 
     def __str__(self):
         return f"Pedido para {self.usuario.username} ({'usado' if self.is_used else 'ativo'})"
+
+
+class RegistroLogin(models.Model):
+    """Um registro por login bem-sucedido, para as métricas de uso."""
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='registros_login')
+    data_hora = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['data_hora'])]
+
+    def __str__(self):
+        return f"Login de {self.usuario.username} em {self.data_hora:%d/%m/%Y %H:%M}"
+
+
+class AtividadeDiaria(models.Model):
+    """No máximo um registro por usuário por dia com atividade autenticada."""
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='atividades_diarias')
+    data = models.DateField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['usuario', 'data'], name='atividade_unica_usuario_data'),
+        ]
+        indexes = [models.Index(fields=['data'])]
+
+    def __str__(self):
+        return f"{self.usuario.username} ativo em {self.data:%d/%m/%Y}"

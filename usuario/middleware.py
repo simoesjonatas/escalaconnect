@@ -1,6 +1,9 @@
+from django.core.cache import cache
+from django.db import IntegrityError
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.conf import settings
+from django.utils import timezone
 
 class FirstLoginMiddleware:
     def __init__(self, get_response):
@@ -46,3 +49,31 @@ class TermoVoluntarioMiddleware:
             if not isento:
                 return redirect('aceitar_termo')
         return self.get_response(request)
+
+
+class AtividadeMiddleware:
+    """Registra a última atividade e a atividade diária de usuários autenticados.
+
+    Grava no banco no máximo uma vez por minuto por usuário (throttle via cache)
+    para não adicionar escrita a cada request.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        user = getattr(request, 'user', None)
+        if user is not None and user.is_authenticated:
+            chave = f'atividade-usuario-{user.pk}'
+            if cache.get(chave) is None:
+                cache.set(chave, 1, 60)
+                from .models import AtividadeDiaria, Usuario
+                agora = timezone.now()
+                Usuario.objects.filter(pk=user.pk).update(ultima_atividade=agora)
+                try:
+                    AtividadeDiaria.objects.get_or_create(usuario_id=user.pk, data=timezone.localdate(agora))
+                except IntegrityError:
+                    # Corrida entre workers: o registro do dia já existe.
+                    pass
+        return response

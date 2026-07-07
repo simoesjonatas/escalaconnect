@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Monitoramento de Uso
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item active">Monitoramento de Uso</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<style>
+    .monitor-page {
+        display: grid;
+        gap: 16px;
+    }
+
+    .monitor-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 12px;
+    }
+
+    .monitor-card {
+        padding: 16px;
+        border: 1px solid var(--connect-border);
+        border-radius: 12px;
+        background: var(--connect-surface);
+    }
+
+    .monitor-card .monitor-rotulo {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--connect-muted);
+    }
+
+    .monitor-card .monitor-valor {
+        margin: 4px 0 0;
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--connect-text);
+        line-height: 1.1;
+    }
+
+    .monitor-card .monitor-detalhe {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: var(--connect-muted);
+    }
+
+    .monitor-card.destaque .monitor-valor {
+        color: var(--connect-green);
+    }
+
+    .monitor-painel {
+        padding: 16px;
+        border: 1px solid var(--connect-border);
+        border-radius: 12px;
+        background: var(--connect-surface);
+    }
+
+    .monitor-painel h3 {
+        margin: 0 0 12px;
+        font-size: 16px;
+        color: var(--connect-text);
+    }
+
+    .monitor-painel h3 small {
+        font-weight: 400;
+        color: var(--connect-muted);
+    }
+
+    .monitor-colunas {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    .grafico-barras {
+        display: flex;
+        align-items: flex-end;
+        gap: 6px;
+        height: 140px;
+    }
+
+    .grafico-barras .barra-grupo {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        height: 100%;
+        gap: 4px;
+    }
+
+    .grafico-barras .barra {
+        width: 100%;
+        max-width: 34px;
+        min-height: 2px;
+        border-radius: 4px 4px 0 0;
+        background: var(--connect-green);
+        opacity: 0.85;
+    }
+
+    .grafico-barras .barra-qtd {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--connect-text);
+    }
+
+    .grafico-barras .barra-dia {
+        font-size: 10px;
+        color: var(--connect-muted);
+        white-space: nowrap;
+    }
+
+    .monitor-lista {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .monitor-lista li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 2px;
+        border-bottom: 1px solid var(--connect-border);
+        color: var(--connect-text);
+        font-size: 14px;
+    }
+
+    .monitor-lista li:last-child {
+        border-bottom: none;
+    }
+
+    .monitor-lista .lista-extra {
+        color: var(--connect-muted);
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .monitor-vazio {
+        color: var(--connect-muted);
+        font-size: 14px;
+        margin: 0;
+    }
+
+    .ponto-online {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        margin-right: 6px;
+        border-radius: 50%;
+        background: var(--connect-green);
+    }
+</style>
+
+<div class="monitor-page">
+    <div class="monitor-cards">
+        <div class="monitor-card destaque">
+            <p class="monitor-rotulo">Online agora</p>
+            <p class="monitor-valor">{{ qtd_online }}</p>
+            <p class="monitor-detalhe">atividade nos últimos {{ limite_online_minutos }} min</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Logados (sessões ativas)</p>
+            <p class="monitor-valor">{{ usuarios_com_sessao }}</p>
+            <p class="monitor-detalhe">{{ sessoes_ativas }} sessõe{{ sessoes_ativas|pluralize:"s" }} não expiradas</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Ativos hoje</p>
+            <p class="monitor-valor">{{ ativos_hoje }}</p>
+            <p class="monitor-detalhe">{{ ativos_7d }} nos últimos 7 dias</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Ativos em 30 dias</p>
+            <p class="monitor-valor">{{ ativos_30d }}</p>
+            <p class="monitor-detalhe">usuários distintos</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Já usaram o sistema</p>
+            <p class="monitor-valor">{{ ja_usaram }}</p>
+            <p class="monitor-detalhe">de {{ total_usuarios }} cadastrados · {{ nunca_usaram }} nunca entraram</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Novos cadastros</p>
+            <p class="monitor-valor">{{ novos_30d }}</p>
+            <p class="monitor-detalhe">nos últimos 30 dias</p>
+        </div>
+    </div>
+
+    <div class="monitor-painel">
+        <h3>Logins por dia <small>· últimos 14 dias</small></h3>
+        <div class="grafico-barras">
+            {% for ponto in grafico_logins %}
+            <div class="barra-grupo" title="{{ ponto.dia|date:'d/m/Y' }}: {{ ponto.qtd }} login{{ ponto.qtd|pluralize:'s' }}">
+                <span class="barra-qtd">{{ ponto.qtd|default:"" }}</span>
+                <span class="barra" style="height: {{ ponto.altura }}%;"></span>
+                <span class="barra-dia">{{ ponto.dia|date:"d/m" }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="monitor-colunas">
+        <div class="monitor-painel">
+            <h3>Online agora</h3>
+            {% if usuarios_online %}
+            <ul class="monitor-lista">
+                {% for usuario in usuarios_online %}
+                <li>
+                    <span><i class="ponto-online" aria-hidden="true"></i>{{ usuario.get_full_name|default:usuario.username }}</span>
+                    <span class="lista-extra">{{ usuario.ultima_atividade|date:"H:i" }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="monitor-vazio">Ninguém ativo nos últimos {{ limite_online_minutos }} minutos.</p>
+            {% endif %}
+        </div>
+
+        <div class="monitor-painel">
+            <h3>Últimos logins</h3>
+            {% if ultimos_logins %}
+            <ul class="monitor-lista">
+                {% for registro in ultimos_logins %}
+                <li>
+                    <span>{{ registro.usuario.get_full_name|default:registro.usuario.username }}</span>
+                    <span class="lista-extra">{{ registro.data_hora|date:"d/m H:i" }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="monitor-vazio">Nenhum login registrado ainda — os registros começam a partir de agora.</p>
+            {% endif %}
+        </div>
+
+        <div class="monitor-painel">
+            <h3>Mais ativos <small>· dias com uso nos últimos 30</small></h3>
+            {% if mais_ativos_30d %}
+            <ul class="monitor-lista">
+                {% for item in mais_ativos_30d %}
+                <li>
+                    <span>{% if item.usuario__first_name %}{{ item.usuario__first_name }} {{ item.usuario__last_name }}{% else %}{{ item.usuario__username }}{% endif %}</span>
+                    <span class="lista-extra">{{ item.dias }} dia{{ item.dias|pluralize:"s" }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="monitor-vazio">Sem registros de atividade ainda — os registros começam a partir de agora.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

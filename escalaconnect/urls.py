@@ -22,6 +22,7 @@ from django.contrib.auth.views import LogoutView, LoginView
 
 from .views import base_view, calendario_view, redirect_to_home, confirmar_presenca, view_enviar_confirmacao
 from escala.views import carregar_funcoes
+from usuario.views_monitor import monitoramento_uso
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,6 +31,7 @@ urlpatterns = [
 
     path('', base_view, name='base_page'),
     path('calendario/', calendario_view, name='calendario'),
+    path('monitoramento/', monitoramento_uso, name='monitoramento_uso'),
 
     path('api/escala/', include('escala.urls')),
     path('api/equip/', include('equipe.urls')),

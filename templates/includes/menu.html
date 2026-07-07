@@ -28,6 +28,7 @@
             {% endif %}
             {% if request.user.is_superuser %}
             {% comment %} <li><a href="{% url 'painel_notificacoes' %}"><i class="fa fa-paper-plane"></i> <span>Notificações</span></a></li> {% endcomment %}
+            <li><a href="{% url 'monitoramento_uso' %}"><i class="fa fa-chart-pie"></i> <span>Monitoramento</span></a></li>
             <li><a href="{% url 'admin:index' %}"><i class="fa fa-cog"></i> <span>Admin</span></a></li>
             {% endif %}
         {% endif %}

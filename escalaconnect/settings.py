@@ -107,6 +107,7 @@ MIDDLEWARE = [
     'escalaconnect.middleware.admin_required_middleware.AdminRequiredMiddleware',
     'usuario.middleware.FirstLoginMiddleware',
     'usuario.middleware.TermoVoluntarioMiddleware',
+    'usuario.middleware.AtividadeMiddleware',
 
 ]
 
