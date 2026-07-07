@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load paginacao %}
 
 {% block page_title %}Lista de Eventos{% endblock page_title%}
 
@@ -49,7 +50,7 @@
                 <tr>
                     {% for field_display in fields %}
                     <th>
-                        <a href="?q={{ query }}&order_by={{ field_display.0 }}&direction={% if order_by == field_display.0 and direction == 'asc' %}desc{% else %}asc{% endif %}">
+                        <a href="?{% if order_by == field_display.0 and direction == 'asc' %}{% url_replace order_by=field_display.0 direction='desc' page=1 %}{% else %}{% url_replace order_by=field_display.0 direction='asc' page=1 %}{% endif %}">
                             {{ field_display.1 }}
                             {% if order_by == field_display.0 %}
                                 {% if direction == 'asc' %}
