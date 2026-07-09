@@ -4,7 +4,7 @@ from evento.models import Evento
 
 class Disponivel(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    evento = models.ForeignKey(Evento, on_delete=models.SET_NULL, null=True, blank= True)
+    evento = models.ForeignKey(Evento, on_delete=models.CASCADE, null=True, blank=True)
     data_inicio = models.DateTimeField()
     data_fim = models.DateTimeField()
     data_cadastro = models.DateTimeField(auto_now_add=True)
