@@ -3,7 +3,7 @@ from datetime import timezone as datetime_timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.urls import reverse
 from django.http import JsonResponse, HttpResponse
 from escala.models import Escala, Funcao
@@ -12,12 +12,12 @@ from escala.forms import EscalaForm, MultiEscalaForm, AplicarFuncoesEventosForm
 from escala.solicitacao_desistencia_forms import DesistenciaForm
 from equipe.decorators import require_lideranca 
 from django.contrib.auth.decorators import login_required
-from django.utils.timezone import now
+from django.utils.timezone import now, localtime
 from django.contrib import messages
 from django.conf import settings
 from usuario.models import Usuario
 from equipe.models import Lideranca, Equipe
-from escala.utils import usuarios_disponiveis_para_evento, preencher_vagas
+from escala.utils import usuarios_disponiveis_para_evento, preencher_vagas, LIMITE_ESCALAS_POR_MES
 
 
 def _user_can_manage_event_functions(user):
@@ -151,6 +151,26 @@ def escala_detail(request, pk):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Quantas vezes cada disponível (na página atual) já foi escalado neste mês
+    # nesta equipe — ajuda o líder a equilibrar quem já serviu bastante. Usa o mês
+    # no fuso local (mesma contagem do auto-escalar).
+    mes_evento = localtime(evento.data_inicio)
+    ids_pagina = [u.id for u in page_obj.object_list]
+    servicos_no_mes = dict(
+        Escala.objects
+        .filter(
+            funcao__equipe=escala.funcao.equipe,
+            usuario_id__in=ids_pagina,
+            evento__data_inicio__year=mes_evento.year,
+            evento__data_inicio__month=mes_evento.month,
+        )
+        .values('usuario_id')
+        .annotate(total=Count('id'))
+        .values_list('usuario_id', 'total')
+    )
+    for u in page_obj.object_list:
+        u.servicos_no_mes = servicos_no_mes.get(u.id, 0)
+
     usuario_fields = [
         ('username', 'Nome de Usuário'),
         ('first_name', 'Nome'),
@@ -166,7 +186,8 @@ def escala_detail(request, pk):
         'order_by': order_by.lstrip('-'),
         'direction': direction,
         'usuario_fields': usuario_fields,
-        'query': query
+        'query': query,
+        'limite_escalas_mes': getattr(settings, 'ESCALA_LIMITE_POR_MES', LIMITE_ESCALAS_POR_MES),
     })
 
 

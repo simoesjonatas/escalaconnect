@@ -577,6 +577,30 @@ html[data-theme="light"] .escala-tabs .nav-link.active {
 .pessoa-row .pessoa-info { display: flex; flex-direction: column; min-width: 0; }
 .pessoa-row .pessoa-info small { color: var(--connect-muted); }
 .pessoa-row .pessoa-acoes { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Contador sutil: quantas vezes o voluntário já serviu no mês nesta equipe */
+.servico-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .3em;
+    font-size: .68rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: .2em .55em;
+    margin-left: .45rem;
+    border-radius: 999px;
+    border: 1px solid var(--connect-border);
+    color: var(--connect-muted);
+    vertical-align: middle;
+    white-space: nowrap;
+}
+.servico-badge i { font-size: .9em; opacity: .85; }
+/* Já atingiu o teto do mês: destaque em âmbar (legível em tema claro e escuro) */
+.servico-badge--cheio {
+    color: #e0a100;
+    border-color: color-mix(in srgb, #e0a100 55%, var(--connect-border));
+    background: color-mix(in srgb, #e0a100 12%, transparent);
+}
 .pessoa-vazio {
     border: 1px dashed var(--connect-border);
     border-radius: 10px;

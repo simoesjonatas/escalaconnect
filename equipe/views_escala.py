@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from .models import Equipe, Lideranca
 from escala.models import Escala, Desistencia
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.utils import timezone
 from ocupado.models import Ocupado
 from disponivel.models import Disponivel
@@ -13,7 +13,7 @@ from django.utils.datastructures import MultiValueDictKeyError
 from django.conf import settings
 
 from escalaconnect.tasks_availability import disparar_pedido_disponibilidades
-from escala.utils import preencher_vagas
+from escala.utils import preencher_vagas, LIMITE_ESCALAS_POR_MES
 
 def get_unapproved_desistencias(equipe_id):
     equipe = get_object_or_404(Equipe, pk=equipe_id)
@@ -117,11 +117,11 @@ def escala_detail_equipe(request, equipe_pk, pk):
     ]
 
     # Usuários já escalados para o evento
-    usuarios_ja_escalados = (
+    usuarios_ja_escalados = list(
         Escala.objects
         .filter(usuario__in=usuarios_sem_indisponibilidade, evento=evento)
         .exclude(pk=escala.pk)
-        .select_related('funcao', 'funcao__equipe')
+        .select_related('funcao', 'funcao__equipe', 'usuario')
     )
 
     # Usuários disponíveis e não escalados
@@ -130,6 +130,30 @@ def escala_detail_equipe(request, equipe_pk, pk):
         if not Escala.objects.filter(usuario=usuario, evento=evento).exclude(pk=escala.pk).exists()
     ]
 
+    # Quantas vezes cada pessoa (disponível OU já escalada no evento) já foi
+    # escalada NESTE mês NESTA equipe — dá ao líder a base para equilibrar quem
+    # já serviu bastante. Usa o mês no fuso local (mesma contagem do auto-escalar);
+    # uma query só, anexada em cada usuário.
+    mes_evento = timezone.localtime(evento.data_inicio)
+    ids_relevantes = {u.id for u in usuarios_disponiveis}
+    ids_relevantes.update(e.usuario_id for e in usuarios_ja_escalados)
+    servicos_no_mes = dict(
+        Escala.objects
+        .filter(
+            funcao__equipe=equipe,
+            usuario_id__in=ids_relevantes,
+            evento__data_inicio__year=mes_evento.year,
+            evento__data_inicio__month=mes_evento.month,
+        )
+        .values('usuario_id')
+        .annotate(total=Count('id'))
+        .values_list('usuario_id', 'total')
+    )
+    for usuario in usuarios_disponiveis:
+        usuario.servicos_no_mes = servicos_no_mes.get(usuario.id, 0)
+    for esc in usuarios_ja_escalados:
+        esc.usuario.servicos_no_mes = servicos_no_mes.get(esc.usuario_id, 0)
+
     return render(request, 'equipe/equipe_escala_detail.html', {
         'escala': escala,
         'equipe': equipe,
@@ -137,6 +161,7 @@ def escala_detail_equipe(request, equipe_pk, pk):
         'usuarios_escalados': usuarios_ja_escalados,
         'usuarios_equipe': usuarios_equipe,  # <<< AQUI
         'is_leader': is_leader,
+        'limite_escalas_mes': getattr(settings, 'ESCALA_LIMITE_POR_MES', LIMITE_ESCALAS_POR_MES),
     })
 
 @require_lideranca

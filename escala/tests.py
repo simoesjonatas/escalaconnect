@@ -356,6 +356,120 @@ class PreencherVagasRegrasTests(TestCase):
         self.assertIsNone(vaga.usuario)
 
 
+class ContadorServicosNoMesTests(TestCase):
+    """A tela de detalhe da escala mostra quantas vezes cada disponível já
+    serviu no mês na equipe, destacando quem atingiu o teto."""
+
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Louvor CT")
+        self.funcao = Funcao.objects.create(nome="Vocal", equipe=self.equipe)
+        self.base = (timezone.now() + timedelta(days=40)).replace(
+            day=15, hour=10, minute=0, second=0, microsecond=0
+        )
+        self.evento = Evento.objects.create(
+            nome="Culto CT", data_inicio=self.base, data_fim=self.base + timedelta(hours=2)
+        )
+        self.lider = criar_usuario("lider_ct")
+        self.lider.is_first_login = False
+        self.lider.termo_aceito_em = timezone.now()
+        self.lider.save()
+        Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+
+    def _membro_disponivel(self, username):
+        user = criar_usuario(username)
+        MembrosEquipe.objects.create(equipe=self.equipe, usuario=user, aprovado=True)
+        Disponivel.objects.create(
+            usuario=user,
+            data_inicio=self.base - timedelta(hours=1),
+            data_fim=self.base + timedelta(hours=3),
+        )
+        return user
+
+    def test_conta_servicos_do_mes_e_destaca_quem_atingiu_o_teto(self):
+        ana = self._membro_disponivel("ana_ct")     # servirá 2x no mês -> teto
+        bia = self._membro_disponivel("bia_ct")     # 0x no mês
+        for offset in (2, 4):
+            ini = self.base + timedelta(days=offset)
+            ev = Evento.objects.create(
+                nome=f"Outro {offset}", data_inicio=ini, data_fim=ini + timedelta(hours=1)
+            )
+            Escala.objects.create(usuario=ana, funcao=self.funcao, evento=ev)
+
+        vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+        self.client.force_login(self.lider)
+        resp = self.client.get(
+            reverse('escala_detail_equipe', args=[self.equipe.pk, vaga.pk])
+        )
+        self.assertEqual(resp.status_code, 200)
+
+        contagem = {u.username: u.servicos_no_mes for u in resp.context['usuarios_disponiveis']}
+        self.assertEqual(contagem.get("ana_ct"), 2)
+        self.assertEqual(contagem.get("bia_ct"), 0)
+        # 'ana' bateu o teto padrão (2) -> badge destacado aparece no HTML.
+        self.assertContains(resp, "servico-badge--cheio")
+
+    def test_nao_conta_servicos_de_outra_equipe(self):
+        ana = self._membro_disponivel("ana_ct2")
+        outra_equipe = Equipe.objects.create(nome="Outra CT")
+        outra_funcao = Funcao.objects.create(nome="Som", equipe=outra_equipe)
+        ini = self.base + timedelta(days=2)
+        ev = Evento.objects.create(
+            nome="Evento outra equipe", data_inicio=ini, data_fim=ini + timedelta(hours=1)
+        )
+        Escala.objects.create(usuario=ana, funcao=outra_funcao, evento=ev)
+
+        vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+        self.client.force_login(self.lider)
+        resp = self.client.get(
+            reverse('escala_detail_equipe', args=[self.equipe.pk, vaga.pk])
+        )
+        contagem = {u.username: u.servicos_no_mes for u in resp.context['usuarios_disponiveis']}
+        self.assertEqual(contagem.get("ana_ct2"), 0)  # escala é de outra equipe
+
+    def test_conta_servicos_tambem_para_escalados_no_evento(self):
+        outra_funcao = Funcao.objects.create(nome="Guitarra", equipe=self.equipe)
+        carla = criar_usuario("carla_ct")
+        MembrosEquipe.objects.create(equipe=self.equipe, usuario=carla, aprovado=True)
+        # carla já escalada em outra função DESTE evento -> aparece em "escalados"
+        Escala.objects.create(usuario=carla, funcao=outra_funcao, evento=self.evento)
+        # e mais uma escala no mesmo mês -> total 2 (inclui a deste evento)
+        ini = self.base + timedelta(days=3)
+        ev = Evento.objects.create(
+            nome="Outro C", data_inicio=ini, data_fim=ini + timedelta(hours=1)
+        )
+        Escala.objects.create(usuario=carla, funcao=self.funcao, evento=ev)
+
+        vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+        self.client.force_login(self.lider)
+        resp = self.client.get(
+            reverse('escala_detail_equipe', args=[self.equipe.pk, vaga.pk])
+        )
+        self.assertEqual(resp.status_code, 200)
+        escalados = {
+            e.usuario.username: e.usuario.servicos_no_mes
+            for e in resp.context['usuarios_escalados']
+        }
+        self.assertEqual(escalados.get("carla_ct"), 2)
+
+    def test_conta_servicos_na_pagina_de_escala_por_evento(self):
+        # Mesma informação na tela /api/events/<pk>/detail (view escala_detail).
+        ana = self._membro_disponivel("ana_ev")
+        for offset in (2, 4):
+            ini = self.base + timedelta(days=offset)
+            ev = Evento.objects.create(
+                nome=f"O {offset}", data_inicio=ini, data_fim=ini + timedelta(hours=1)
+            )
+            Escala.objects.create(usuario=ana, funcao=self.funcao, evento=ev)
+
+        vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+        self.client.force_login(self.lider)
+        resp = self.client.get(reverse('escala_detail', args=[vaga.pk]))
+        self.assertEqual(resp.status_code, 200)
+        contagem = {u.username: u.servicos_no_mes for u in resp.context['page_obj'].object_list}
+        self.assertEqual(contagem.get("ana_ev"), 2)
+        self.assertContains(resp, "servico-badge--cheio")
+
+
 class AplicarFuncoesEventosTests(TestCase):
     def setUp(self):
         self.equipe = Equipe.objects.create(nome="Recepção")

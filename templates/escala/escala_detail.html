@@ -109,7 +109,13 @@
                 <div class="pessoa-row">
                     <div class="resumo-avatar">{{ usuario.get_full_name|default:usuario.username|first|upper }}</div>
                     <div class="pessoa-info">
-                        <strong>{{ usuario.get_full_name|default:usuario.username }}</strong>
+                        <strong>
+                            {{ usuario.get_full_name|default:usuario.username }}
+                            <span class="servico-badge{% if usuario.servicos_no_mes >= limite_escalas_mes %} servico-badge--cheio{% endif %}"
+                                  title="Escalado {{ usuario.servicos_no_mes }} vez(es) neste mês na equipe {{ escala.funcao.equipe.nome }}{% if usuario.servicos_no_mes >= limite_escalas_mes %} — já atingiu o limite de {{ limite_escalas_mes }}/mês{% endif %}">
+                                <i class="fa fa-calendar-check"></i>{{ usuario.servicos_no_mes }} no mês
+                            </span>
+                        </strong>
                         <small>{{ usuario.username }}{% if usuario.email %} · {{ usuario.email }}{% endif %}</small>
                     </div>
                     {% if request.user.is_staff or request.user.is_superuser or is_leader %}
