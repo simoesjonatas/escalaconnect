@@ -11,114 +11,259 @@
 
 {% block content %}
 <style>
-    .dash-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; margin-bottom:24px; }
-    .dash-card { background:var(--connect-surface,#1b2230); border:1px solid var(--connect-border,#232a35); border-radius:12px; padding:16px; text-align:center; }
-    .dash-num { font-size:2rem; font-weight:700; line-height:1.1; }
-    .dash-num.alerta { color:#ff6b6b; }
-    .dash-num.ok { color:#39ff14; }
-    .dash-label { color:var(--connect-muted,#9aa4ad); font-size:.85rem; margin-top:6px; }
-    .dash-section-title { margin:20px 0 10px; }
+    /* ===== Painel do Líder ===== */
+    .dash-wrap { padding-bottom: 30px; }
+    .dash-head { display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:14px; margin-bottom:20px; }
+    .dash-head h2 { margin:0; font-size:1.5rem; display:flex; align-items:center; gap:10px; }
+    .dash-head .dash-sub { color:var(--connect-muted); font-size:.9rem; margin-top:4px; text-transform:capitalize; }
+    .dash-equipes { display:flex; flex-wrap:wrap; gap:8px; }
+    .dash-team-chip { display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:999px;
+        background:var(--connect-surface-2); border:1px solid var(--connect-border); color:var(--connect-text);
+        font-size:.85rem; font-weight:600; text-decoration:none; transition:.15s ease; }
+    .dash-team-chip:hover { border-color:var(--connect-green); color:var(--connect-green); transform:translateY(-1px); }
+
+    /* KPIs */
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(158px,1fr)); gap:14px; margin-bottom:24px; }
+    .kpi { position:relative; background:var(--connect-surface); border:1px solid var(--connect-border);
+        border-radius:14px; padding:15px 16px; overflow:hidden; transition:.15s ease; }
+    .kpi:hover { transform:translateY(-2px); border-color:color-mix(in srgb, var(--kpi-accent, var(--connect-green)) 45%, var(--connect-border)); }
+    .kpi::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--kpi-accent, var(--connect-border)); }
+    .kpi-ico { width:36px; height:36px; border-radius:10px; display:grid; place-items:center; font-size:1rem;
+        background:color-mix(in srgb, var(--kpi-accent, var(--connect-muted)) 16%, transparent); color:var(--kpi-accent, var(--connect-text)); }
+    .kpi-num { font-size:2rem; font-weight:800; line-height:1.05; margin-top:12px; }
+    .kpi-label { color:var(--connect-muted); font-size:.82rem; margin-top:3px; }
+    .kpi--info { --kpi-accent:#3aa0ff; }
+    .kpi--green { --kpi-accent:var(--connect-green); }
+    .kpi--danger { --kpi-accent:var(--connect-danger); }
+    .kpi--warning { --kpi-accent:var(--connect-warning); }
+    .kpi-bar { height:6px; border-radius:4px; background:var(--connect-surface-3); margin-top:11px; overflow:hidden; }
+    .kpi-bar > span { display:block; height:100%; background:var(--kpi-accent, var(--connect-green)); border-radius:4px; transition:width .4s ease; }
+
+    /* Painéis de seção */
+    .panel { background:var(--connect-surface); border:1px solid var(--connect-border); border-radius:14px; padding:18px; margin-bottom:20px; }
+    .panel-title { display:flex; align-items:center; gap:9px; font-size:1.02rem; font-weight:700; margin:0; }
+    .panel-title .count-pill { margin-left:auto; font-size:.78rem; font-weight:700; padding:2px 11px; border-radius:999px;
+        background:var(--connect-surface-2); border:1px solid var(--connect-border); color:var(--connect-muted); }
+    .panel-sub { color:var(--connect-muted); font-size:.85rem; margin:5px 0 15px; }
+
+    /* Destaque: disponíveis ainda não escalados */
+    .panel--highlight { border-color:color-mix(in srgb, var(--connect-warning) 50%, var(--connect-border));
+        background:color-mix(in srgb, var(--connect-warning) 7%, var(--connect-surface)); }
+    .panel--highlight .panel-title { color:color-mix(in srgb, var(--connect-warning) 70%, var(--connect-text)); }
+    .idle-team { border:1px solid var(--connect-border); border-radius:12px; padding:12px 14px; margin-bottom:12px; background:var(--connect-surface); }
+    .idle-team:last-child { margin-bottom:0; }
+    .idle-team-name { font-weight:700; font-size:.9rem; margin-bottom:9px; display:flex; align-items:center; gap:7px; }
+    .idle-team-name .mini-count { font-weight:600; color:var(--connect-muted); font-size:.8rem; }
+    .idle-chips { display:flex; flex-wrap:wrap; gap:8px; }
+    .person-chip { display:inline-flex; align-items:center; gap:8px; padding:5px 13px 5px 5px; border-radius:999px;
+        background:var(--connect-surface-2); border:1px solid var(--connect-border); font-size:.86rem; font-weight:600; }
+    .person-chip .avatar { width:24px; height:24px; border-radius:50%; display:grid; place-items:center;
+        background:var(--connect-green); color:#04210a; font-size:.72rem; font-weight:800; }
+
+    /* Tabelas do painel */
+    .dash-table { width:100%; border-collapse:separate; border-spacing:0; font-size:.9rem; }
+    .dash-table th { text-align:left; color:var(--connect-muted); font-weight:600; font-size:.74rem; text-transform:uppercase;
+        letter-spacing:.04em; padding:8px 10px; border-bottom:1px solid var(--connect-border); white-space:nowrap; }
+    .dash-table td { padding:11px 10px; border-bottom:1px solid var(--connect-border); vertical-align:middle; }
+    .dash-table tbody tr:last-child td { border-bottom:0; }
+    .dash-table tbody tr:hover td { background:color-mix(in srgb, var(--connect-green) 5%, transparent); }
+    .cell-sub { color:var(--connect-muted); font-size:.8rem; }
+    .disp-badge { display:inline-grid; place-items:center; min-width:28px; height:26px; padding:0 8px; border-radius:8px; font-weight:800; font-size:.82rem; }
+    .disp-badge.red { background:color-mix(in srgb, var(--connect-danger) 18%, transparent); color:var(--connect-danger); }
+    .disp-badge.yellow { background:color-mix(in srgb, var(--connect-warning) 22%, transparent); color:var(--connect-warning); }
+    .disp-badge.green { background:color-mix(in srgb, var(--connect-green) 18%, transparent); color:var(--connect-green); }
+    .pill-tag { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.76rem; font-weight:700; }
+    .pill-tag.danger { background:color-mix(in srgb, var(--connect-danger) 16%, transparent); color:var(--connect-danger); }
+    .pill-tag.warning { background:color-mix(in srgb, var(--connect-warning) 20%, transparent); color:var(--connect-warning); }
+    .rank-pos { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%;
+        background:var(--connect-surface-2); border:1px solid var(--connect-border); font-weight:800; font-size:.8rem; }
+    .rank-pos.top { background:var(--connect-green); color:#04210a; border-color:transparent; }
+    .empty-state { text-align:center; color:var(--connect-muted); padding:22px 10px; }
+    .empty-state i { font-size:1.4rem; display:block; margin-bottom:6px; opacity:.7; }
+    .btn-xs { padding:4px 12px; font-size:.8rem; border-radius:8px; }
 </style>
 
-<div class="container">
-    <div class="dash-equipes mb-3">
-        {% for equipe in equipes %}
-        <a class="btn btn-info btn-sm mr-2 mb-2" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">
-            <i class="fa fa-list-ul mr-1"></i> Escalas — {{ equipe.nome }}
-        </a>
-        {% empty %}
-        <span class="text-muted">Você não lidera nenhuma equipe.</span>
+<div class="container dash-wrap">
+
+    <div class="dash-head">
+        <div>
+            <h2><i class="fa fa-chart-line" style="color:var(--connect-green)"></i> Painel do Líder</h2>
+            <div class="dash-sub">{{ mes_referencia|date:"F / Y" }}</div>
+        </div>
+        <div class="dash-equipes">
+            {% for equipe in equipes %}
+            <a class="dash-team-chip" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">
+                <i class="fa fa-list-ul"></i> {{ equipe.nome }}
+            </a>
+            {% empty %}
+            <span class="text-muted">Você não lidera nenhuma equipe.</span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+        <div class="kpi kpi--info">
+            <div class="kpi-ico"><i class="fa fa-calendar-alt"></i></div>
+            <div class="kpi-num">{{ total_futuras }}</div>
+            <div class="kpi-label">Escalas futuras</div>
+        </div>
+        <div class="kpi {% if buracos_total %}kpi--danger{% else %}kpi--green{% endif %}">
+            <div class="kpi-ico"><i class="fa fa-user-slash"></i></div>
+            <div class="kpi-num">{{ buracos_total }}</div>
+            <div class="kpi-label">Vagas sem voluntário</div>
+        </div>
+        <div class="kpi kpi--green">
+            <div class="kpi-ico"><i class="fa fa-user-check"></i></div>
+            <div class="kpi-num">{{ confirmadas }}</div>
+            <div class="kpi-label">Confirmadas</div>
+        </div>
+        <div class="kpi kpi--warning">
+            <div class="kpi-ico"><i class="fa fa-hourglass-half"></i></div>
+            <div class="kpi-num">{{ a_confirmar }}</div>
+            <div class="kpi-label">A confirmar</div>
+        </div>
+        <div class="kpi {% if pendencias_total %}kpi--danger{% else %}kpi--green{% endif %}">
+            <div class="kpi-ico"><i class="fa fa-exclamation-triangle"></i></div>
+            <div class="kpi-num">{{ pendencias_total }}</div>
+            <div class="kpi-label">Pendências</div>
+        </div>
+        <div class="kpi kpi--green">
+            <div class="kpi-ico"><i class="fa fa-percent"></i></div>
+            <div class="kpi-num">{{ taxa_confirmacao }}%</div>
+            <div class="kpi-label">Taxa de confirmação</div>
+            <div class="kpi-bar"><span style="width:{{ taxa_confirmacao }}%"></span></div>
+        </div>
+    </div>
+
+    <!-- Disponíveis ainda não escalados este mês -->
+    {% if disponiveis_ociosos %}
+    <div class="panel panel--highlight">
+        <div class="panel-title">
+            <i class="fa fa-bolt"></i> Disponíveis ainda não escalados este mês
+            <span class="count-pill">{{ ociosos_total }}</span>
+        </div>
+        <div class="panel-sub">
+            Cadastraram disponibilidade em {{ mes_referencia|date:"F" }} e ainda não entraram em nenhuma escala da equipe — vale aproveitar antes de repetir quem já serviu.
+        </div>
+        {% for grupo in disponiveis_ociosos %}
+        <div class="idle-team">
+            <div class="idle-team-name">
+                <i class="fa fa-users" style="color:var(--connect-green)"></i> {{ grupo.equipe.nome }}
+                <span class="mini-count">· {{ grupo.pessoas|length }} pessoa{{ grupo.pessoas|length|pluralize }}</span>
+            </div>
+            <div class="idle-chips">
+                {% for p in grupo.pessoas %}
+                <span class="person-chip" title="{{ p.get_full_name|default:p.username }}">
+                    <span class="avatar">{{ p.get_full_name|default:p.username|first|upper }}</span>
+                    {{ p.get_full_name|default:p.username }}
+                </span>
+                {% endfor %}
+            </div>
+        </div>
         {% endfor %}
-    </div>
-
-    <div class="dash-grid">
-        <div class="dash-card"><div class="dash-num">{{ total_futuras }}</div><div class="dash-label">Escalas futuras</div></div>
-        <div class="dash-card"><div class="dash-num alerta">{{ buracos_total }}</div><div class="dash-label">Sem voluntário</div></div>
-        <div class="dash-card"><div class="dash-num">{{ designadas_total }}</div><div class="dash-label">Designadas</div></div>
-        <div class="dash-card"><div class="dash-num ok">{{ confirmadas }}</div><div class="dash-label">Confirmadas</div></div>
-        <div class="dash-card"><div class="dash-num">{{ a_confirmar }}</div><div class="dash-label">A confirmar</div></div>
-        <div class="dash-card"><div class="dash-num">{{ taxa_confirmacao }}%</div><div class="dash-label">Taxa de confirmação</div></div>
-        <div class="dash-card"><div class="dash-num {% if pendencias_total %}alerta{% endif %}">{{ pendencias_total }}</div><div class="dash-label">Pendências</div></div>
-    </div>
-
-    {% if impedimentos or trocas_abertas %}
-    <h4 class="dash-section-title">Pendências aguardando você <small class="text-muted">(impedimentos e trocas)</small></h4>
-    <div class="table-responsive">
-        <table class="table table-bordered">
-            <thead>
-                <tr><th>Tipo</th><th>Evento</th><th>Equipe / Função</th><th>Voluntário</th><th>Ação</th></tr>
-            </thead>
-            <tbody>
-                {% for d in impedimentos %}
-                <tr>
-                    <td><span class="badge badge-danger">Impedimento</span></td>
-                    <td>{{ d.escala.evento.nome }}<br><small>{{ d.escala.evento.data_inicio|date:"d/m/Y H:i" }}</small></td>
-                    <td>{{ d.escala.funcao.equipe.nome }} — {{ d.escala.funcao.nome }}</td>
-                    <td>{{ d.usuario.get_full_name|default:d.usuario.username }}</td>
-                    <td><a class="btn btn-sm btn-danger" href="{% url 'detalhes_desistencia_escala' d.escala.pk %}">Analisar</a></td>
-                </tr>
-                {% endfor %}
-                {% for t in trocas_abertas %}
-                <tr>
-                    <td><span class="badge badge-warning">Troca</span></td>
-                    <td>{{ t.escala_origem.evento.nome }}<br><small>{{ t.escala_origem.evento.data_inicio|date:"d/m/Y H:i" }}</small></td>
-                    <td>{{ t.escala_origem.funcao.equipe.nome }} — {{ t.escala_origem.funcao.nome }}</td>
-                    <td>{{ t.solicitante.get_full_name|default:t.solicitante.username }}</td>
-                    <td><a class="btn btn-sm btn-warning" href="{% url 'detalhes_solicitacao_troca' t.pk %}">Analisar</a></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
     </div>
     {% endif %}
 
-    <h4 class="dash-section-title">Buracos na escala <small class="text-muted">(próximos eventos sem voluntário)</small></h4>
-    <div class="table-responsive">
-        <table class="table table-bordered">
-            <thead>
-                <tr><th>Evento</th><th>Equipe</th><th>Função</th><th class="disp-col">Disponíveis</th><th>Ação</th></tr>
-            </thead>
-            <tbody>
-                {% for b in buracos %}
-                {% with c=b.disponiveis_count names=b.disponiveis_names %}
-                <tr class="{% if c == 0 %}table-danger{% elif c == 1 %}table-warning{% else %}table-success{% endif %}">
-                    <td>{{ b.evento.nome }}<br><small>{{ b.evento.data_inicio_com_dia_da_semana|safe }}</small></td>
-                    <td>{{ b.funcao.equipe.nome }}</td>
-                    <td>{{ b.funcao.nome }}</td>
-                    <td class="disp-col">
-                        <span class="badge-disp {% if c == 0 %}red{% elif c == 1 %}yellow{% else %}green{% endif %}">{{ c }}</span>
-                        <small class="disp-names d-block mt-1">
-                        {% if names %}{% for n in names|slice:":3" %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if names|length > 3 %} +{{ names|length|add:"-3" }}{% endif %}{% endif %}
-                        </small>
-                    </td>
-                    <td><a class="btn btn-sm btn-primary" href="{% url 'escala_detail' b.pk %}">Escalar</a></td>
-                </tr>
-                {% endwith %}
-                {% empty %}
-                <tr><td colspan="5" class="text-center">Nenhum buraco — todas as escalas futuras têm voluntário. 🎉</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Pendências -->
+    {% if impedimentos or trocas_abertas %}
+    <div class="panel">
+        <div class="panel-title">
+            <i class="fa fa-exclamation-triangle" style="color:var(--connect-danger)"></i> Pendências aguardando você
+            <span class="count-pill">{{ pendencias_total }}</span>
+        </div>
+        <div class="panel-sub">Impedimentos e trocas que travam a escala.</div>
+        <div class="table-responsive">
+            <table class="dash-table">
+                <thead>
+                    <tr><th>Tipo</th><th>Evento</th><th>Equipe / Função</th><th>Voluntário</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for d in impedimentos %}
+                    <tr>
+                        <td><span class="pill-tag danger"><i class="fa fa-ban"></i> Impedimento</span></td>
+                        <td>{{ d.escala.evento.nome }}<br><span class="cell-sub">{{ d.escala.evento.data_inicio|date:"d/m/Y H:i" }}</span></td>
+                        <td>{{ d.escala.funcao.equipe.nome }} — {{ d.escala.funcao.nome }}</td>
+                        <td>{{ d.usuario.get_full_name|default:d.usuario.username }}</td>
+                        <td><a class="btn btn-danger btn-xs" href="{% url 'detalhes_desistencia_escala' d.escala.pk %}">Analisar</a></td>
+                    </tr>
+                    {% endfor %}
+                    {% for t in trocas_abertas %}
+                    <tr>
+                        <td><span class="pill-tag warning"><i class="fa fa-exchange-alt"></i> Troca</span></td>
+                        <td>{{ t.escala_origem.evento.nome }}<br><span class="cell-sub">{{ t.escala_origem.evento.data_inicio|date:"d/m/Y H:i" }}</span></td>
+                        <td>{{ t.escala_origem.funcao.equipe.nome }} — {{ t.escala_origem.funcao.nome }}</td>
+                        <td>{{ t.solicitante.get_full_name|default:t.solicitante.username }}</td>
+                        <td><a class="btn btn-warning btn-xs" href="{% url 'detalhes_solicitacao_troca' t.pk %}">Analisar</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Buracos na escala -->
+    <div class="panel">
+        <div class="panel-title">
+            <i class="fa fa-user-slash" style="color:var(--connect-danger)"></i> Buracos na escala
+            <span class="count-pill">{{ buracos_total }}</span>
+        </div>
+        <div class="panel-sub">Próximos eventos sem voluntário — a cor mostra quantos estão disponíveis para preencher.</div>
+        <div class="table-responsive">
+            <table class="dash-table">
+                <thead>
+                    <tr><th>Evento</th><th>Equipe</th><th>Função</th><th>Disponíveis</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for b in buracos %}
+                    {% with c=b.disponiveis_count names=b.disponiveis_names %}
+                    <tr>
+                        <td>{{ b.evento.nome }}<br><span class="cell-sub">{{ b.evento.data_inicio_com_dia_da_semana|safe }}</span></td>
+                        <td>{{ b.funcao.equipe.nome }}</td>
+                        <td>{{ b.funcao.nome }}</td>
+                        <td>
+                            <span class="disp-badge {% if c == 0 %}red{% elif c == 1 %}yellow{% else %}green{% endif %}">{{ c }}</span>
+                            {% if names %}
+                            <span class="cell-sub">
+                                {% for n in names|slice:":3" %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if names|length > 3 %} +{{ names|length|add:"-3" }}{% endif %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td><a class="btn btn-primary btn-xs" href="{% url 'escala_detail' b.pk %}"><i class="fa fa-user-plus"></i> Escalar</a></td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr><td colspan="5" class="empty-state"><i class="fa fa-check-circle" style="color:var(--connect-green)"></i> Nenhum buraco — todas as escalas futuras têm voluntário. 🎉</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <h4 class="dash-section-title">Quem mais serviu</h4>
-    <div class="table-responsive">
-        <table class="table table-bordered">
-            <thead>
-                <tr><th>#</th><th>Voluntário</th><th>Escalas</th></tr>
-            </thead>
-            <tbody>
-                {% for r in ranking %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ r.usuario__first_name|default:r.usuario__username }} {{ r.usuario__last_name }}</td>
-                    <td>{{ r.total }}</td>
-                </tr>
-                {% empty %}
-                <tr><td colspan="3" class="text-center">Ainda não há escalas designadas.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Ranking -->
+    <div class="panel">
+        <div class="panel-title"><i class="fa fa-trophy" style="color:var(--connect-warning)"></i> Quem mais serviu</div>
+        <div class="panel-sub">Top 10 por número de escalas.</div>
+        <div class="table-responsive">
+            <table class="dash-table">
+                <thead>
+                    <tr><th style="width:60px">#</th><th>Voluntário</th><th style="width:100px">Escalas</th></tr>
+                </thead>
+                <tbody>
+                    {% for r in ranking %}
+                    <tr>
+                        <td><span class="rank-pos {% if forloop.counter <= 3 %}top{% endif %}">{{ forloop.counter }}</span></td>
+                        <td>{{ r.usuario__first_name|default:r.usuario__username }} {{ r.usuario__last_name }}</td>
+                        <td><strong>{{ r.total }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="3" class="empty-state"><i class="fa fa-users"></i> Ainda não há escalas designadas.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
+
 </div>
 {% endblock %}

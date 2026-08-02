@@ -101,6 +101,60 @@ class DashboardLiderTests(TestCase):
         self.assertContains(resp, "Culto Futuro")        # pendência futura aparece
         self.assertNotContains(resp, "Culto Passado")    # pendência passada NÃO aparece
 
+    def test_dashboard_lista_disponiveis_ociosos_do_mes(self):
+        equipe = Equipe.objects.create(nome="Louvor Ocioso")
+        funcao = Funcao.objects.create(nome="Vocal", equipe=equipe)
+        lider = User.objects.create_user(
+            username="lider_o", password="x", cpf="10000009001",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+
+        agora = now()
+
+        def add_disp(u):
+            Disponivel.objects.create(
+                usuario=u, data_inicio=agora - timedelta(days=1), data_fim=agora + timedelta(days=1)
+            )
+
+        # ocioso: tem disponibilidade no mês, mas nenhuma escala.
+        ocioso = User.objects.create_user(
+            username="ocioso_vol", password="x", cpf="10000009002",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=ocioso, aprovado=True)
+        add_disp(ocioso)
+
+        # servido: tem disponibilidade E já foi escalado neste mês -> não é ocioso.
+        servido = User.objects.create_user(
+            username="servido_vol", password="x", cpf="10000009003",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=servido, aprovado=True)
+        add_disp(servido)
+        ev = Evento.objects.create(
+            nome="Culto do mês", data_inicio=agora, data_fim=agora + timedelta(hours=2)
+        )
+        Escala.objects.create(usuario=servido, funcao=funcao, evento=ev)
+
+        # sem_disp: membro sem disponibilidade -> não deve aparecer.
+        sem_disp = User.objects.create_user(
+            username="sem_disp_vol", password="x", cpf="10000009004",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=sem_disp, aprovado=True)
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['ociosos_total'], 1)
+        nomes = [p.username for g in resp.context['disponiveis_ociosos'] for p in g['pessoas']]
+        self.assertIn('ocioso_vol', nomes)
+        self.assertNotIn('servido_vol', nomes)
+        self.assertNotIn('sem_disp_vol', nomes)
+        self.assertContains(resp, "Disponíveis ainda não escalados")
+
 
 class HomeAvisoMembrosPendentesTests(TestCase):
     def test_lider_ve_aviso_de_pedido_de_entrada(self):

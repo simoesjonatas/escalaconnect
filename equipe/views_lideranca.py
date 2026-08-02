@@ -1,15 +1,21 @@
+import calendar
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
+from django.contrib.auth import get_user_model
 from equipe.models import Equipe, Lideranca, MembrosEquipe
 from escala.models import Escala, Desistencia, SolicitacaoTroca
-from django.utils.timezone import now
+from disponivel.models import Disponivel
+from django.utils.timezone import now, localtime
 from equipe.lideranca_forms import LiderancaForm
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from escalaconnect.utils import admin_required
 from equipe.decorators import require_lideranca  # Importando o decorador personalizado
+
+User = get_user_model()
 
 
 def verificar_permissao_lideranca(request, equipe):
@@ -131,9 +137,9 @@ def dashboard_lider(request):
     Considera as equipes que o usuário lidera (todas, se for staff/superuser).
     """
     if request.user.is_superuser or request.user.is_staff:
-        equipes = Equipe.objects.all()
+        equipes = list(Equipe.objects.all())
     else:
-        equipes = Equipe.objects.filter(lideranca__usuario=request.user).distinct()
+        equipes = list(Equipe.objects.filter(lideranca__usuario=request.user).distinct())
 
     escalas = Escala.objects.filter(funcao__equipe__in=equipes)
     futuras = escalas.filter(evento__data_inicio__gte=now())
@@ -181,6 +187,58 @@ def dashboard_lider(request):
         .order_by('escala_origem__evento__data_inicio')
     )
 
+    # Voluntários "ociosos": cadastraram disponibilidade neste mês mas ainda não
+    # entraram em nenhuma escala da equipe no mês — o líder pode aproveitá-los.
+    agora_local = localtime(now())
+    inicio_mes = agora_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    ultimo_dia = calendar.monthrange(agora_local.year, agora_local.month)[1]
+    fim_mes = agora_local.replace(
+        day=ultimo_dia, hour=23, minute=59, second=59, microsecond=999999
+    )
+
+    disponiveis_ociosos = []
+    ociosos_total = 0
+    for equipe in equipes:
+        membros_ids = list(
+            MembrosEquipe.objects
+            .filter(equipe=equipe, aprovado=True)
+            .values_list('usuario_id', flat=True)
+        )
+        if not membros_ids:
+            continue
+        # Quem tem disponibilidade que cobre qualquer parte deste mês.
+        com_disponibilidade = set(
+            Disponivel.objects
+            .filter(
+                usuario_id__in=membros_ids,
+                data_inicio__lte=fim_mes,
+                data_fim__gte=inicio_mes,
+            )
+            .values_list('usuario_id', flat=True)
+        )
+        if not com_disponibilidade:
+            continue
+        # Quem já foi escalado na equipe em algum evento do mês.
+        ja_escalados = set(
+            Escala.objects
+            .filter(
+                funcao__equipe=equipe,
+                usuario_id__in=com_disponibilidade,
+                evento__data_inicio__gte=inicio_mes,
+                evento__data_inicio__lte=fim_mes,
+            )
+            .values_list('usuario_id', flat=True)
+        )
+        ociosos_ids = com_disponibilidade - ja_escalados
+        if ociosos_ids:
+            pessoas = list(
+                User.objects
+                .filter(id__in=ociosos_ids)
+                .order_by('first_name', 'username')
+            )
+            disponiveis_ociosos.append({'equipe': equipe, 'pessoas': pessoas})
+            ociosos_total += len(pessoas)
+
     contexto = {
         'equipes': equipes,
         'total_futuras': futuras.count(),
@@ -194,5 +252,8 @@ def dashboard_lider(request):
         'impedimentos': impedimentos[:25],
         'trocas_abertas': trocas_abertas[:25],
         'pendencias_total': impedimentos.count() + trocas_abertas.count(),
+        'disponiveis_ociosos': disponiveis_ociosos,
+        'ociosos_total': ociosos_total,
+        'mes_referencia': agora_local,
     }
     return render(request, 'equipe/dashboard_lider.html', contexto)
