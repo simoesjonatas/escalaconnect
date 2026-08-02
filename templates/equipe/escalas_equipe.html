@@ -285,7 +285,7 @@ Escalas da Equipe {{ equipe.nome }}
             <form method="post" action="{% url 'auto_escalar_equipe' equipe_pk=equipe.pk %}" class="d-inline"
                   onsubmit="return confirm('Preencher automaticamente as vagas futuras em aberto desta equipe com voluntários disponíveis?');">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-warning" title="Preenche as vagas em aberto com voluntários disponíveis, priorizando quem serviu menos">
+                <button type="submit" class="btn btn-warning" title="Preenche as vagas em aberto priorizando quem tem menos disponibilidade no mês, respeitando um limite de escalas por mês e o rodízio de quem serviu menos">
                     <i class="fa fa-magic"></i> Auto-escalar
                 </button>
             </form>

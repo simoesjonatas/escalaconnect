@@ -1,5 +1,6 @@
+import calendar
 import itertools
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.test import TestCase
 from django.urls import reverse
@@ -12,7 +13,7 @@ from escala.models import Funcao, Escala
 from planejamento.models import Planejamento, PlanejamentoFuncao
 from disponivel.models import Disponivel
 from ocupado.models import Ocupado
-from escala.utils import usuarios_disponiveis_para_evento
+from escala.utils import usuarios_disponiveis_para_evento, preencher_vagas
 
 User = get_user_model()
 
@@ -204,6 +205,155 @@ class AutoEscalarEventoTests(TestCase):
         self.assertEqual(resp.status_code, 302)
         self.vaga.refresh_from_db()
         self.assertEqual(self.vaga.usuario, self.bia)
+
+
+class PreencherVagasRegrasTests(TestCase):
+    """Regras de justiça da auto-escala: teto mensal e prioridade por escassez."""
+
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Louvor Regras")
+        self.funcao = Funcao.objects.create(nome="Vocal", equipe=self.equipe)
+        # Dia 15 de um mês futuro: garante folga para criar datas vizinhas
+        # (dias 5, 8, 20, 25) dentro do MESMO mês do evento alvo.
+        self.base = (timezone.now() + timedelta(days=40)).replace(
+            day=15, hour=10, minute=0, second=0, microsecond=0
+        )
+        self.evento = Evento.objects.create(
+            nome="Culto Regras",
+            data_inicio=self.base,
+            data_fim=self.base + timedelta(hours=2),
+        )
+
+    def _membro(self, username):
+        user = criar_usuario(username)
+        MembrosEquipe.objects.create(equipe=self.equipe, usuario=user, aprovado=True)
+        return user
+
+    def _disp_cobrindo_evento(self, user):
+        return Disponivel.objects.create(
+            usuario=user,
+            data_inicio=self.base - timedelta(hours=1),
+            data_fim=self.base + timedelta(hours=3),
+        )
+
+    def _disp_avulsa_no_mes(self, user, dia):
+        inicio = self.base.replace(day=dia)
+        Disponivel.objects.create(
+            usuario=user, data_inicio=inicio, data_fim=inicio + timedelta(hours=2)
+        )
+
+    def _escala_no_mes(self, user, dia):
+        inicio = self.base.replace(day=dia)
+        ev = Evento.objects.create(
+            nome=f"Ev {dia}", data_inicio=inicio, data_fim=inicio + timedelta(hours=1)
+        )
+        return Escala.objects.create(usuario=user, funcao=self.funcao, evento=ev)
+
+    def test_regra2_prioriza_quem_tem_menos_disponibilidade_no_mes(self):
+        # so_um marcou apenas o dia do evento; flexivel marcou vários dias.
+        # Ambos com carga 0 -> deve vencer quem tem menos disponibilidade.
+        so_um = self._membro("so_um")
+        self._disp_cobrindo_evento(so_um)
+
+        flexivel = self._membro("flexivel")
+        self._disp_cobrindo_evento(flexivel)
+        for dia in (5, 8, 20, 25):
+            self._disp_avulsa_no_mes(flexivel, dia)
+
+        vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+        preenchidas = preencher_vagas([vaga])
+
+        self.assertEqual(preenchidas, 1)
+        vaga.refresh_from_db()
+        self.assertEqual(vaga.usuario, so_um)
+
+    def test_regra1_teto_mensal_exclui_mesmo_com_disponibilidade(self):
+        # cheio já tem 2 escalas no mês e MENOS disponibilidade -> sem o teto ele
+        # venceria; com o teto é excluído e a vaga vai para livre.
+        cheio = self._membro("cheio")
+        self._disp_cobrindo_evento(cheio)
+        self._escala_no_mes(cheio, 5)
+        self._escala_no_mes(cheio, 8)
+
+        livre = self._membro("livre")
+        self._disp_cobrindo_evento(livre)
+        for dia in (5, 8, 20, 25):
+            self._disp_avulsa_no_mes(livre, dia)
+
+        vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+        preenchidas = preencher_vagas([vaga])
+
+        self.assertEqual(preenchidas, 1)
+        vaga.refresh_from_db()
+        self.assertEqual(vaga.usuario, livre)
+
+    def test_regra1_deixa_vaga_vazia_quando_todos_no_teto(self):
+        pessoa = self._membro("no_teto")
+        self._disp_cobrindo_evento(pessoa)
+        self._escala_no_mes(pessoa, 5)
+        self._escala_no_mes(pessoa, 8)
+
+        vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+        preenchidas = preencher_vagas([vaga])
+
+        self.assertEqual(preenchidas, 0)
+        vaga.refresh_from_db()
+        self.assertIsNone(vaga.usuario)
+
+    def test_limite_por_mes_configuravel(self):
+        # Com teto = 1, quem já tem 1 escala no mês é barrado.
+        um = self._membro("uma_escala")
+        self._disp_cobrindo_evento(um)
+        self._escala_no_mes(um, 5)
+
+        vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+        preenchidas = preencher_vagas([vaga], limite_por_mes=1)
+
+        self.assertEqual(preenchidas, 0)
+        vaga.refresh_from_db()
+        self.assertIsNone(vaga.usuario)
+
+    def test_teto_conta_mes_no_fuso_local_para_evento_de_fim_de_mes(self):
+        # Culto no último dia do mês, à noite: em UTC já é dia 1 do mês seguinte.
+        # O teto mensal precisa contar pelo mês LOCAL, senão as escalas do mês
+        # não seriam vistas e o voluntário seria escalado além do teto.
+        tz = timezone.get_current_timezone()
+        futuro = timezone.localtime() + timedelta(days=60)
+        ano, mes = futuro.year, futuro.month
+        ultimo_dia = calendar.monthrange(ano, mes)[1]
+        inicio_local = timezone.make_aware(datetime(ano, mes, ultimo_dia, 23, 30), tz)
+        evento_fim = Evento.objects.create(
+            nome="Culto fim de mês",
+            data_inicio=inicio_local,
+            data_fim=inicio_local + timedelta(hours=1),
+        )
+
+        cheio = self._membro("cheio_fim_mes")
+        Disponivel.objects.create(
+            usuario=cheio,
+            data_inicio=inicio_local - timedelta(hours=1),
+            data_fim=inicio_local + timedelta(hours=2),
+        )
+        # Duas escalas no começo do MESMO mês local -> teto já atingido.
+        for dia in (3, 5):
+            ini = timezone.make_aware(datetime(ano, mes, dia, 10, 0), tz)
+            ev = Evento.objects.create(
+                nome=f"Ev {dia}", data_inicio=ini, data_fim=ini + timedelta(hours=1)
+            )
+            Escala.objects.create(usuario=cheio, funcao=self.funcao, evento=ev)
+
+        vaga = Escala.objects.create(funcao=self.funcao, evento=evento_fim)
+        # Recarrega do banco (como a view faz): o datetime volta em UTC, é aí que
+        # o mês divergiria se não convertêssemos para o fuso local.
+        vagas = list(
+            Escala.objects.filter(pk=vaga.pk)
+            .select_related('evento', 'funcao', 'funcao__equipe')
+        )
+        preenchidas = preencher_vagas(vagas)
+
+        self.assertEqual(preenchidas, 0)
+        vaga.refresh_from_db()
+        self.assertIsNone(vaga.usuario)
 
 
 class AplicarFuncoesEventosTests(TestCase):
