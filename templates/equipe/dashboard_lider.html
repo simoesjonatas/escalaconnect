@@ -63,6 +63,12 @@
     .person-chip--link:hover { border-color:var(--connect-green); transform:translateY(-1px); }
     .person-chip .chip-cta { display:inline-flex; align-items:center; gap:4px; margin-left:2px; padding:2px 9px; border-radius:999px;
         background:color-mix(in srgb, var(--connect-green) 18%, transparent); color:var(--connect-green); font-size:.72rem; font-weight:700; white-space:nowrap; }
+    /* Troca: encaixar no lugar de quem já serviu (escala não confirmada) */
+    .person-chip .chip-cta--swap { background:color-mix(in srgb, var(--connect-warning) 20%, transparent); color:var(--connect-warning); }
+    .idle-legenda { display:flex; flex-wrap:wrap; gap:8px 18px; margin-bottom:14px; font-size:.8rem; color:var(--connect-muted); }
+    .idle-legenda > span { display:inline-flex; align-items:center; gap:7px; }
+    .idle-legenda .chip-cta { margin-left:0; }
+    .idle-legenda small { opacity:.8; }
 
     /* Tabelas do painel */
     .dash-table { width:100%; border-collapse:separate; border-spacing:0; font-size:.9rem; }
@@ -148,7 +154,11 @@
             <span class="count-pill">{{ ociosos_total }}</span>
         </div>
         <div class="panel-sub">
-            Ainda não entraram em nenhuma escala da equipe este mês e há vaga em aberto que podem cobrir — clique numa pessoa para ir direto à próxima vaga dela.
+            Ainda não serviram este mês e dá para aproveitar — clique numa pessoa para ir direto à ação.
+        </div>
+        <div class="idle-legenda">
+            <span><span class="chip-cta"><i class="fa fa-user-plus"></i></span> entra numa vaga em aberto</span>
+            <span><span class="chip-cta chip-cta--swap"><i class="fa fa-exchange-alt"></i></span> assume o lugar de quem já serviu <small>(escala ainda não confirmada)</small></span>
         </div>
         {% for grupo in disponiveis_ociosos %}
         <div class="idle-team">
@@ -158,12 +168,18 @@
             </div>
             <div class="idle-chips">
                 {% for p in grupo.pessoas %}
-                <a class="person-chip person-chip--link" href="{% url 'escala_detail' p.proxima_vaga.pk %}"
-                   title="Escalar {{ p.get_full_name|default:p.username }} em {{ p.proxima_vaga.evento.nome }} — {{ p.proxima_vaga.evento.data_inicio|date:'d/m/Y H:i' }} ({{ p.proxima_vaga.funcao.nome }})">
+                {% with vaga=p.proxima_vaga %}
+                <a class="person-chip person-chip--link" href="{% url 'escala_detail' vaga.pk %}"
+                   title="{% if vaga.usuario %}Colocar {{ p.get_full_name|default:p.username }} no lugar de {{ vaga.usuario.get_full_name|default:vaga.usuario.username }} em {{ vaga.evento.nome }} — {{ vaga.evento.data_inicio|date:'d/m/Y H:i' }} ({{ vaga.funcao.nome }}). Escala ainda não confirmada.{% else %}Escalar {{ p.get_full_name|default:p.username }} em {{ vaga.evento.nome }} — {{ vaga.evento.data_inicio|date:'d/m/Y H:i' }} ({{ vaga.funcao.nome }}){% endif %}">
                     <span class="avatar">{{ p.get_full_name|default:p.username|first|upper }}</span>
                     {{ p.get_full_name|default:p.username }}
-                    <span class="chip-cta"><i class="fa fa-user-plus"></i> {{ p.proxima_vaga.evento.data_inicio|date:"d/m" }}</span>
+                    {% if vaga.usuario %}
+                    <span class="chip-cta chip-cta--swap"><i class="fa fa-exchange-alt"></i> {{ vaga.evento.data_inicio|date:"d/m" }}</span>
+                    {% else %}
+                    <span class="chip-cta"><i class="fa fa-user-plus"></i> {{ vaga.evento.data_inicio|date:"d/m" }}</span>
+                    {% endif %}
                 </a>
+                {% endwith %}
                 {% endfor %}
             </div>
         </div>

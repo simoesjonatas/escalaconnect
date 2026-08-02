@@ -189,11 +189,12 @@ def dashboard_lider(request):
     )
 
     # Voluntários que ainda dá para aproveitar: membros aprovados que NÃO foram
-    # escalados na equipe neste mês E que conseguem cobrir alguma vaga em aberto
-    # FUTURA da equipe. Basear na vaga futura (e não em "tem disponibilidade no
-    # mês") evita dois enganos: apontar quem só se disponibilizou para datas já
-    # passadas, e apontar gente numa equipe que não tem nenhum evento/função em
-    # aberto para preencher daqui em diante.
+    # escalados na equipe neste mês E que conseguem cobrir alguma OPORTUNIDADE
+    # futura da equipe — seja uma vaga em aberto, seja uma escala ainda NÃO
+    # CONFIRMADA ocupada por quem já atuou no mês (dá para passar a vez a quem
+    # ainda não serviu). Basear na oportunidade futura (e não em "tem
+    # disponibilidade no mês") evita apontar quem só se disponibilizou para datas
+    # passadas ou quem está numa equipe sem nada em aberto daqui em diante.
     agora_local = localtime(now())
     inicio_mes = agora_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     ultimo_dia = calendar.monthrange(agora_local.year, agora_local.month)[1]
@@ -231,35 +232,41 @@ def dashboard_lider(request):
         if not candidatos:
             continue
 
-        # Vagas em aberto FUTURAS da equipe (qualquer função). Sem elas, não há
-        # como aproveitar ninguém desta equipe daqui para frente.
-        vagas_abertas = list(
+        # Oportunidades futuras da equipe: vagas em aberto OU escalas ainda não
+        # confirmadas ocupadas por quem já atuou neste mês. Escala confirmada
+        # nunca entra (não sugerimos desfazer algo que a pessoa já confirmou).
+        oportunidades = list(
             Escala.objects
             .filter(
                 funcao__equipe=equipe,
-                usuario__isnull=True,
+                confirmada=False,
                 evento__data_inicio__gte=agora_local,
                 evento__data_inicio__lte=horizonte,
             )
-            .select_related('evento', 'funcao')
+            .filter(Q(usuario__isnull=True) | Q(usuario_id__in=ja_escalados))
+            .select_related('evento', 'funcao', 'usuario')
             .order_by('evento__data_inicio')
         )
-        if not vagas_abertas:
+        if not oportunidades:
             continue
 
-        # Para cada candidato, a primeira vaga que ele consegue cobrir (disponível
-        # no horário, sem conflito). Só entra na lista quem cobre ao menos uma —
-        # é isso que garante que a pessoa realmente pode ser reaproveitada.
+        # Para cada candidato, a próxima oportunidade que ele cobre (disponível no
+        # horário, sem conflito). Preenchemos primeiro as vagas VAZIAS (menos
+        # disruptivo) e só então sugerimos a troca com quem já serviu. As duas
+        # listas já vêm ordenadas por data. Quem não cobre nada não entra.
+        vazias = [o for o in oportunidades if o.usuario_id is None]
+        trocas = [o for o in oportunidades if o.usuario_id is not None]
         proxima_vaga = {}
         disp_cache = {}
-        for vaga in vagas_abertas:
-            if len(proxima_vaga) == len(candidatos):
-                break
-            ev = vaga.evento
-            if ev.id not in disp_cache:
-                disp_cache[ev.id] = set(usuarios_disponiveis_para_evento(equipe, ev)) & candidatos
-            for uid in disp_cache[ev.id]:
-                proxima_vaga.setdefault(uid, vaga)
+        for lista in (vazias, trocas):
+            for opp in lista:
+                if len(proxima_vaga) == len(candidatos):
+                    break
+                ev = opp.evento
+                if ev.id not in disp_cache:
+                    disp_cache[ev.id] = set(usuarios_disponiveis_para_evento(equipe, ev)) & candidatos
+                for uid in disp_cache[ev.id]:
+                    proxima_vaga.setdefault(uid, opp)
 
         if proxima_vaga:
             pessoas = list(

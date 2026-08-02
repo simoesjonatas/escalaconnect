@@ -290,6 +290,101 @@ class DashboardLiderTests(TestCase):
         self.assertEqual(resp.context['ociosos_total'], 0)
         self.assertNotContains(resp, "foto_vol")
 
+    def test_lista_ocioso_que_pode_substituir_escala_nao_confirmada(self):
+        # Y já atuou este mês e ainda ocupa uma escala futura NÃO confirmada;
+        # X está ocioso e disponível -> X deve ser sugerido para o lugar de Y.
+        equipe = Equipe.objects.create(nome="Louvor Troca")
+        funcao = Funcao.objects.create(nome="Vocal", equipe=equipe)
+        lider = User.objects.create_user(
+            username="lider_troca", password="x", cpf="10000009051",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+
+        agora = now()
+        y = User.objects.create_user(
+            username="y_serviu", password="x", cpf="10000009052",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=y, aprovado=True)
+        # Y já atuou este mês.
+        ev_mes = Evento.objects.create(
+            nome="Culto Y no mes", data_inicio=agora, data_fim=agora + timedelta(hours=1)
+        )
+        Escala.objects.create(usuario=y, funcao=funcao, evento=ev_mes)
+        # Y também ocupa uma escala futura, ainda não confirmada.
+        ev_futuro = Evento.objects.create(
+            nome="Culto Futuro Troca", data_inicio=agora + timedelta(days=2),
+            data_fim=agora + timedelta(days=2, hours=2),
+        )
+        escala_y_futura = Escala.objects.create(
+            usuario=y, funcao=funcao, evento=ev_futuro, confirmada=False
+        )
+
+        # X ocioso, disponível para o evento futuro.
+        x = User.objects.create_user(
+            username="x_disponivel", password="x", cpf="10000009053",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=x, aprovado=True)
+        Disponivel.objects.create(
+            usuario=x, data_inicio=agora - timedelta(days=1), data_fim=agora + timedelta(days=3)
+        )
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+        self.assertEqual(resp.status_code, 200)
+        pessoas = {p.username: p for g in resp.context['disponiveis_ociosos'] for p in g['pessoas']}
+        self.assertIn('x_disponivel', pessoas)
+        self.assertEqual(pessoas['x_disponivel'].proxima_vaga.pk, escala_y_futura.pk)
+        # a oportunidade é uma troca (a vaga tem ocupante)
+        self.assertIsNotNone(pessoas['x_disponivel'].proxima_vaga.usuario)
+        self.assertNotIn('y_serviu', pessoas)  # Y já serviu -> não é ocioso
+
+    def test_nao_sugere_substituir_escala_confirmada(self):
+        equipe = Equipe.objects.create(nome="Louvor Confirmada")
+        funcao = Funcao.objects.create(nome="Vocal", equipe=equipe)
+        lider = User.objects.create_user(
+            username="lider_conf", password="x", cpf="10000009061",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+
+        agora = now()
+        y = User.objects.create_user(
+            username="y_confirmou", password="x", cpf="10000009062",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=y, aprovado=True)
+        ev_mes = Evento.objects.create(
+            nome="Culto Y conf mes", data_inicio=agora, data_fim=agora + timedelta(hours=1)
+        )
+        Escala.objects.create(usuario=y, funcao=funcao, evento=ev_mes)
+        ev_futuro = Evento.objects.create(
+            nome="Culto Futuro Conf", data_inicio=agora + timedelta(days=2),
+            data_fim=agora + timedelta(days=2, hours=2),
+        )
+        # Escala futura de Y JÁ CONFIRMADA -> não deve virar sugestão de troca.
+        Escala.objects.create(
+            usuario=y, funcao=funcao, evento=ev_futuro,
+            confirmada=True, data_confirmacao=agora,
+        )
+
+        x = User.objects.create_user(
+            username="x_conf", password="x", cpf="10000009063",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=x, aprovado=True)
+        Disponivel.objects.create(
+            usuario=x, data_inicio=agora - timedelta(days=1), data_fim=agora + timedelta(days=3)
+        )
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['ociosos_total'], 0)
+        self.assertNotContains(resp, "x_conf")
+
 
 class HomeAvisoMembrosPendentesTests(TestCase):
     def test_lider_ve_aviso_de_pedido_de_entrada(self):
