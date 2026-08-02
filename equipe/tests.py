@@ -113,11 +113,19 @@ class DashboardLiderTests(TestCase):
         agora = now()
 
         def add_disp(u):
+            # Cobre o mês atual e o evento futuro abaixo (para poder cobrir a vaga).
             Disponivel.objects.create(
-                usuario=u, data_inicio=agora - timedelta(days=1), data_fim=agora + timedelta(days=1)
+                usuario=u, data_inicio=agora - timedelta(days=1), data_fim=agora + timedelta(days=3)
             )
 
-        # ocioso: tem disponibilidade no mês, mas nenhuma escala.
+        # Evento futuro com uma vaga em aberto — é o que dá "o que aproveitar".
+        ev_futuro = Evento.objects.create(
+            nome="Culto Futuro", data_inicio=agora + timedelta(days=2),
+            data_fim=agora + timedelta(days=2, hours=2),
+        )
+        Escala.objects.create(funcao=funcao, evento=ev_futuro)  # vaga em aberto
+
+        # ocioso: disponível, cobre a vaga futura e sem escala no mês.
         ocioso = User.objects.create_user(
             username="ocioso_vol", password="x", cpf="10000009002",
             is_first_login=False, termo_aceito_em=now(),
@@ -125,7 +133,7 @@ class DashboardLiderTests(TestCase):
         MembrosEquipe.objects.create(equipe=equipe, usuario=ocioso, aprovado=True)
         add_disp(ocioso)
 
-        # servido: tem disponibilidade E já foi escalado neste mês -> não é ocioso.
+        # servido: disponível E já escalado neste mês -> não é ocioso.
         servido = User.objects.create_user(
             username="servido_vol", password="x", cpf="10000009003",
             is_first_login=False, termo_aceito_em=now(),
@@ -137,7 +145,7 @@ class DashboardLiderTests(TestCase):
         )
         Escala.objects.create(usuario=servido, funcao=funcao, evento=ev)
 
-        # sem_disp: membro sem disponibilidade -> não deve aparecer.
+        # sem_disp: membro sem disponibilidade -> não cobre a vaga -> não aparece.
         sem_disp = User.objects.create_user(
             username="sem_disp_vol", password="x", cpf="10000009004",
             is_first_login=False, termo_aceito_em=now(),
@@ -217,8 +225,70 @@ class DashboardLiderTests(TestCase):
         resp = self.client.get(reverse('dashboard_lider'))
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context['ociosos_total'], 0)
-        self.assertTrue(resp.context['houve_disponibilidade'])
+        self.assertTrue(resp.context['alguem_escalado_no_mes'])
         self.assertContains(resp, "já foram escalados este mês")
+
+    def test_nao_lista_quem_so_tem_disponibilidade_passada(self):
+        # Regressão: hoje é dia X, a pessoa só se disponibilizou para dias já
+        # passados — não dá mais para aproveitá-la, então não deve aparecer.
+        equipe = Equipe.objects.create(nome="Louvor Passado")
+        funcao = Funcao.objects.create(nome="Vocal", equipe=equipe)
+        lider = User.objects.create_user(
+            username="lider_pass", password="x", cpf="10000009031",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+        vol = User.objects.create_user(
+            username="vol_passado", password="x", cpf="10000009032",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=vol, aprovado=True)
+
+        agora = now()
+        # Disponibilidade só no passado.
+        Disponivel.objects.create(
+            usuario=vol, data_inicio=agora - timedelta(days=5), data_fim=agora - timedelta(days=3)
+        )
+        # Existe vaga futura em aberto, mas ele não cobre (disponibilidade passada).
+        ev_futuro = Evento.objects.create(
+            nome="Culto Futuro P", data_inicio=agora + timedelta(days=2),
+            data_fim=agora + timedelta(days=2, hours=2),
+        )
+        Escala.objects.create(funcao=funcao, evento=ev_futuro)
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['ociosos_total'], 0)
+        self.assertNotContains(resp, "vol_passado")
+
+    def test_nao_lista_equipe_sem_vaga_futura_em_aberto(self):
+        # Regressão: a pessoa é de uma equipe (ex.: Fotografia) que não tem
+        # nenhum evento/função em aberto daqui pra frente — não há como usá-la.
+        equipe = Equipe.objects.create(nome="Fotografia")
+        Funcao.objects.create(nome="Foto", equipe=equipe)
+        lider = User.objects.create_user(
+            username="lider_foto", password="x", cpf="10000009041",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+        foto_vol = User.objects.create_user(
+            username="foto_vol", password="x", cpf="10000009042",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=foto_vol, aprovado=True)
+
+        agora = now()
+        # Disponibilidade ampla e futura, mas não há NENHUMA vaga de fotografia.
+        Disponivel.objects.create(
+            usuario=foto_vol, data_inicio=agora - timedelta(days=1), data_fim=agora + timedelta(days=10)
+        )
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['ociosos_total'], 0)
+        self.assertNotContains(resp, "foto_vol")
 
 
 class HomeAvisoMembrosPendentesTests(TestCase):

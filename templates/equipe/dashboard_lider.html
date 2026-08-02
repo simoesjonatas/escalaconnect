@@ -63,7 +63,6 @@
     .person-chip--link:hover { border-color:var(--connect-green); transform:translateY(-1px); }
     .person-chip .chip-cta { display:inline-flex; align-items:center; gap:4px; margin-left:2px; padding:2px 9px; border-radius:999px;
         background:color-mix(in srgb, var(--connect-green) 18%, transparent); color:var(--connect-green); font-size:.72rem; font-weight:700; white-space:nowrap; }
-    .person-chip--muted { opacity:.55; }
 
     /* Tabelas do painel */
     .dash-table { width:100%; border-collapse:separate; border-spacing:0; font-size:.9rem; }
@@ -149,7 +148,7 @@
             <span class="count-pill">{{ ociosos_total }}</span>
         </div>
         <div class="panel-sub">
-            Cadastraram disponibilidade em {{ mes_referencia|date:"F" }} e ainda não entraram em nenhuma escala da equipe — clique numa pessoa para ir direto à próxima vaga que ela pode cobrir.
+            Ainda não entraram em nenhuma escala da equipe este mês e há vaga em aberto que podem cobrir — clique numa pessoa para ir direto à próxima vaga dela.
         </div>
         {% for grupo in disponiveis_ociosos %}
         <div class="idle-team">
@@ -159,29 +158,22 @@
             </div>
             <div class="idle-chips">
                 {% for p in grupo.pessoas %}
-                {% if p.proxima_vaga %}
                 <a class="person-chip person-chip--link" href="{% url 'escala_detail' p.proxima_vaga.pk %}"
                    title="Escalar {{ p.get_full_name|default:p.username }} em {{ p.proxima_vaga.evento.nome }} — {{ p.proxima_vaga.evento.data_inicio|date:'d/m/Y H:i' }} ({{ p.proxima_vaga.funcao.nome }})">
                     <span class="avatar">{{ p.get_full_name|default:p.username|first|upper }}</span>
                     {{ p.get_full_name|default:p.username }}
                     <span class="chip-cta"><i class="fa fa-user-plus"></i> {{ p.proxima_vaga.evento.data_inicio|date:"d/m" }}</span>
                 </a>
-                {% else %}
-                <span class="person-chip person-chip--muted" title="Sem vaga futura em aberto que {{ p.get_full_name|default:p.username }} possa cobrir">
-                    <span class="avatar">{{ p.get_full_name|default:p.username|first|upper }}</span>
-                    {{ p.get_full_name|default:p.username }}
-                </span>
-                {% endif %}
                 {% endfor %}
             </div>
         </div>
         {% endfor %}
     </div>
-    {% elif houve_disponibilidade %}
+    {% elif alguem_escalado_no_mes %}
     <div class="panel">
         <div class="empty-state" style="padding:16px">
             <i class="fa fa-check-circle" style="color:var(--connect-green)"></i>
-            Todos os voluntários que se disponibilizaram já foram escalados este mês. 🎉
+            Tudo certo por aqui — os voluntários disponíveis já foram escalados este mês. 🎉
         </div>
     </div>
     {% endif %}

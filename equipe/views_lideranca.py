@@ -8,7 +8,6 @@ from django.db.models import Q, Count
 from django.contrib.auth import get_user_model
 from equipe.models import Equipe, Lideranca, MembrosEquipe
 from escala.models import Escala, Desistencia, SolicitacaoTroca
-from disponivel.models import Disponivel
 from escala.utils import usuarios_disponiveis_para_evento
 from django.utils.timezone import now, localtime
 from equipe.lideranca_forms import LiderancaForm
@@ -189,21 +188,24 @@ def dashboard_lider(request):
         .order_by('escala_origem__evento__data_inicio')
     )
 
-    # Voluntários "ociosos": cadastraram disponibilidade neste mês mas ainda não
-    # entraram em nenhuma escala da equipe no mês. Para cada um, tentamos apontar
-    # a próxima vaga em aberto que ele pode cobrir, dando um atalho de ação.
+    # Voluntários que ainda dá para aproveitar: membros aprovados que NÃO foram
+    # escalados na equipe neste mês E que conseguem cobrir alguma vaga em aberto
+    # FUTURA da equipe. Basear na vaga futura (e não em "tem disponibilidade no
+    # mês") evita dois enganos: apontar quem só se disponibilizou para datas já
+    # passadas, e apontar gente numa equipe que não tem nenhum evento/função em
+    # aberto para preencher daqui em diante.
     agora_local = localtime(now())
     inicio_mes = agora_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     ultimo_dia = calendar.monthrange(agora_local.year, agora_local.month)[1]
     fim_mes = agora_local.replace(
         day=ultimo_dia, hour=23, minute=59, second=59, microsecond=999999
     )
-    # Horizonte para sugerir vagas (alinhado ao período de disponibilidade).
+    # Horizonte para procurar vagas (alinhado ao período de disponibilidade).
     horizonte = agora_local + timedelta(days=60)
 
     disponiveis_ociosos = []
     ociosos_total = 0
-    houve_disponibilidade = False
+    alguem_escalado_no_mes = False
     for equipe in equipes:
         membros_ids = list(
             MembrosEquipe.objects
@@ -212,36 +214,25 @@ def dashboard_lider(request):
         )
         if not membros_ids:
             continue
-        # Quem tem disponibilidade que cobre qualquer parte deste mês.
-        com_disponibilidade = set(
-            Disponivel.objects
-            .filter(
-                usuario_id__in=membros_ids,
-                data_inicio__lte=fim_mes,
-                data_fim__gte=inicio_mes,
-            )
-            .values_list('usuario_id', flat=True)
-        )
-        if not com_disponibilidade:
-            continue
-        houve_disponibilidade = True
-        # Quem já foi escalado na equipe em algum evento do mês.
+        # Quem já foi escalado na equipe em algum evento deste mês.
         ja_escalados = set(
             Escala.objects
             .filter(
                 funcao__equipe=equipe,
-                usuario_id__in=com_disponibilidade,
+                usuario_id__in=membros_ids,
                 evento__data_inicio__gte=inicio_mes,
                 evento__data_inicio__lte=fim_mes,
             )
             .values_list('usuario_id', flat=True)
         )
-        ociosos_ids = com_disponibilidade - ja_escalados
-        if not ociosos_ids:
+        if ja_escalados:
+            alguem_escalado_no_mes = True
+        candidatos = set(membros_ids) - ja_escalados
+        if not candidatos:
             continue
 
-        # Próxima vaga em aberto (por pessoa) que ela consegue cobrir — a lista de
-        # vagas vem ordenada por data, então a primeira encontrada é a mais próxima.
+        # Vagas em aberto FUTURAS da equipe (qualquer função). Sem elas, não há
+        # como aproveitar ninguém desta equipe daqui para frente.
         vagas_abertas = list(
             Escala.objects
             .filter(
@@ -253,28 +244,33 @@ def dashboard_lider(request):
             .select_related('evento', 'funcao')
             .order_by('evento__data_inicio')
         )
+        if not vagas_abertas:
+            continue
+
+        # Para cada candidato, a primeira vaga que ele consegue cobrir (disponível
+        # no horário, sem conflito). Só entra na lista quem cobre ao menos uma —
+        # é isso que garante que a pessoa realmente pode ser reaproveitada.
         proxima_vaga = {}
         disp_cache = {}
         for vaga in vagas_abertas:
-            if len(proxima_vaga) == len(ociosos_ids):
+            if len(proxima_vaga) == len(candidatos):
                 break
             ev = vaga.evento
             if ev.id not in disp_cache:
-                disp_cache[ev.id] = set(usuarios_disponiveis_para_evento(equipe, ev))
-            cobrem = disp_cache[ev.id]
-            for uid in ociosos_ids:
-                if uid not in proxima_vaga and uid in cobrem:
-                    proxima_vaga[uid] = vaga
+                disp_cache[ev.id] = set(usuarios_disponiveis_para_evento(equipe, ev)) & candidatos
+            for uid in disp_cache[ev.id]:
+                proxima_vaga.setdefault(uid, vaga)
 
-        pessoas = list(
-            User.objects
-            .filter(id__in=ociosos_ids)
-            .order_by('first_name', 'username')
-        )
-        for p in pessoas:
-            p.proxima_vaga = proxima_vaga.get(p.id)
-        disponiveis_ociosos.append({'equipe': equipe, 'pessoas': pessoas})
-        ociosos_total += len(pessoas)
+        if proxima_vaga:
+            pessoas = list(
+                User.objects
+                .filter(id__in=proxima_vaga.keys())
+                .order_by('first_name', 'username')
+            )
+            for p in pessoas:
+                p.proxima_vaga = proxima_vaga[p.id]
+            disponiveis_ociosos.append({'equipe': equipe, 'pessoas': pessoas})
+            ociosos_total += len(pessoas)
 
     contexto = {
         'equipes': equipes,
@@ -291,7 +287,7 @@ def dashboard_lider(request):
         'pendencias_total': impedimentos.count() + trocas_abertas.count(),
         'disponiveis_ociosos': disponiveis_ociosos,
         'ociosos_total': ociosos_total,
-        'houve_disponibilidade': houve_disponibilidade,
+        'alguem_escalado_no_mes': alguem_escalado_no_mes,
         'mes_referencia': agora_local,
     }
     return render(request, 'equipe/dashboard_lider.html', contexto)
