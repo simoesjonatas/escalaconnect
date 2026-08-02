@@ -1,4 +1,5 @@
 import calendar
+from datetime import timedelta
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
@@ -8,6 +9,7 @@ from django.contrib.auth import get_user_model
 from equipe.models import Equipe, Lideranca, MembrosEquipe
 from escala.models import Escala, Desistencia, SolicitacaoTroca
 from disponivel.models import Disponivel
+from escala.utils import usuarios_disponiveis_para_evento
 from django.utils.timezone import now, localtime
 from equipe.lideranca_forms import LiderancaForm
 from django.contrib.auth.decorators import login_required
@@ -188,16 +190,20 @@ def dashboard_lider(request):
     )
 
     # Voluntários "ociosos": cadastraram disponibilidade neste mês mas ainda não
-    # entraram em nenhuma escala da equipe no mês — o líder pode aproveitá-los.
+    # entraram em nenhuma escala da equipe no mês. Para cada um, tentamos apontar
+    # a próxima vaga em aberto que ele pode cobrir, dando um atalho de ação.
     agora_local = localtime(now())
     inicio_mes = agora_local.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     ultimo_dia = calendar.monthrange(agora_local.year, agora_local.month)[1]
     fim_mes = agora_local.replace(
         day=ultimo_dia, hour=23, minute=59, second=59, microsecond=999999
     )
+    # Horizonte para sugerir vagas (alinhado ao período de disponibilidade).
+    horizonte = agora_local + timedelta(days=60)
 
     disponiveis_ociosos = []
     ociosos_total = 0
+    houve_disponibilidade = False
     for equipe in equipes:
         membros_ids = list(
             MembrosEquipe.objects
@@ -218,6 +224,7 @@ def dashboard_lider(request):
         )
         if not com_disponibilidade:
             continue
+        houve_disponibilidade = True
         # Quem já foi escalado na equipe em algum evento do mês.
         ja_escalados = set(
             Escala.objects
@@ -230,14 +237,44 @@ def dashboard_lider(request):
             .values_list('usuario_id', flat=True)
         )
         ociosos_ids = com_disponibilidade - ja_escalados
-        if ociosos_ids:
-            pessoas = list(
-                User.objects
-                .filter(id__in=ociosos_ids)
-                .order_by('first_name', 'username')
+        if not ociosos_ids:
+            continue
+
+        # Próxima vaga em aberto (por pessoa) que ela consegue cobrir — a lista de
+        # vagas vem ordenada por data, então a primeira encontrada é a mais próxima.
+        vagas_abertas = list(
+            Escala.objects
+            .filter(
+                funcao__equipe=equipe,
+                usuario__isnull=True,
+                evento__data_inicio__gte=agora_local,
+                evento__data_inicio__lte=horizonte,
             )
-            disponiveis_ociosos.append({'equipe': equipe, 'pessoas': pessoas})
-            ociosos_total += len(pessoas)
+            .select_related('evento', 'funcao')
+            .order_by('evento__data_inicio')
+        )
+        proxima_vaga = {}
+        disp_cache = {}
+        for vaga in vagas_abertas:
+            if len(proxima_vaga) == len(ociosos_ids):
+                break
+            ev = vaga.evento
+            if ev.id not in disp_cache:
+                disp_cache[ev.id] = set(usuarios_disponiveis_para_evento(equipe, ev))
+            cobrem = disp_cache[ev.id]
+            for uid in ociosos_ids:
+                if uid not in proxima_vaga and uid in cobrem:
+                    proxima_vaga[uid] = vaga
+
+        pessoas = list(
+            User.objects
+            .filter(id__in=ociosos_ids)
+            .order_by('first_name', 'username')
+        )
+        for p in pessoas:
+            p.proxima_vaga = proxima_vaga.get(p.id)
+        disponiveis_ociosos.append({'equipe': equipe, 'pessoas': pessoas})
+        ociosos_total += len(pessoas)
 
     contexto = {
         'equipes': equipes,
@@ -254,6 +291,7 @@ def dashboard_lider(request):
         'pendencias_total': impedimentos.count() + trocas_abertas.count(),
         'disponiveis_ociosos': disponiveis_ociosos,
         'ociosos_total': ociosos_total,
+        'houve_disponibilidade': houve_disponibilidade,
         'mes_referencia': agora_local,
     }
     return render(request, 'equipe/dashboard_lider.html', contexto)

@@ -155,6 +155,71 @@ class DashboardLiderTests(TestCase):
         self.assertNotIn('sem_disp_vol', nomes)
         self.assertContains(resp, "Disponíveis ainda não escalados")
 
+    def test_ocioso_recebe_atalho_para_proxima_vaga_em_aberto(self):
+        equipe = Equipe.objects.create(nome="Louvor Atalho")
+        funcao = Funcao.objects.create(nome="Vocal", equipe=equipe)
+        lider = User.objects.create_user(
+            username="lider_at", password="x", cpf="10000009011",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+        ocioso = User.objects.create_user(
+            username="ocioso_at", password="x", cpf="10000009012",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=ocioso, aprovado=True)
+
+        agora = now()
+        # Disponibilidade ampla: cobre o mês atual e o evento futuro abaixo.
+        Disponivel.objects.create(
+            usuario=ocioso, data_inicio=agora - timedelta(days=1), data_fim=agora + timedelta(days=3)
+        )
+        evento = Evento.objects.create(
+            nome="Culto Atalho",
+            data_inicio=agora + timedelta(days=2),
+            data_fim=agora + timedelta(days=2, hours=2),
+        )
+        vaga = Escala.objects.create(funcao=funcao, evento=evento)  # em aberto
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+        self.assertEqual(resp.status_code, 200)
+        pessoas = [p for g in resp.context['disponiveis_ociosos'] for p in g['pessoas']]
+        alvo = next(p for p in pessoas if p.username == 'ocioso_at')
+        self.assertIsNotNone(alvo.proxima_vaga)
+        self.assertEqual(alvo.proxima_vaga.pk, vaga.pk)
+        self.assertContains(resp, reverse('escala_detail', args=[vaga.pk]))
+
+    def test_estado_positivo_quando_todos_disponiveis_ja_escalados(self):
+        equipe = Equipe.objects.create(nome="Louvor Ok")
+        funcao = Funcao.objects.create(nome="Vocal", equipe=equipe)
+        lider = User.objects.create_user(
+            username="lider_ok", password="x", cpf="10000009021",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+        vol = User.objects.create_user(
+            username="vol_ok", password="x", cpf="10000009022",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=equipe, usuario=vol, aprovado=True)
+
+        agora = now()
+        Disponivel.objects.create(
+            usuario=vol, data_inicio=agora - timedelta(days=1), data_fim=agora + timedelta(days=1)
+        )
+        ev = Evento.objects.create(
+            nome="Culto OK", data_inicio=agora, data_fim=agora + timedelta(hours=2)
+        )
+        Escala.objects.create(usuario=vol, funcao=funcao, evento=ev)  # já escalado este mês
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['ociosos_total'], 0)
+        self.assertTrue(resp.context['houve_disponibilidade'])
+        self.assertContains(resp, "já foram escalados este mês")
+
 
 class HomeAvisoMembrosPendentesTests(TestCase):
     def test_lider_ve_aviso_de_pedido_de_entrada(self):
