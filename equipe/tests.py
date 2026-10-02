@@ -563,3 +563,13 @@ class EscalasEquipeGradeTests(TestCase):
         resp = self.client.get(self.url, {'view': 'grade', 'mes': 'abc'})
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.context['mes_ref'], timezone.localdate().replace(day=1))
+
+
+class SessaoExpiradaTests(TestCase):
+    def test_equipe_detail_anonimo_redireciona_para_login(self):
+        equipe = Equipe.objects.create(nome="Recepção")
+        url = reverse('equipe_detail', args=[equipe.pk])
+
+        resp = self.client.get(url)
+
+        self.assertRedirects(resp, f'/login/?next={url}', fetch_redirect_response=False)

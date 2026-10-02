@@ -1,6 +1,12 @@
 from functools import wraps
+from django.contrib.auth.views import redirect_to_login
 from django.shortcuts import render
 from equipe.models import Lideranca
+
+
+def _redirecionar_para_login(request):
+    # Sessão expirada/usuário anônimo: manda para o login e volta à página depois.
+    return redirect_to_login(request.get_full_path(), login_url='/login/')
 
 def require_lideranca(view_func):
     """
@@ -11,6 +17,9 @@ def require_lideranca(view_func):
     def _wrapped_view(request, *args, **kwargs):
         # O ID da equipe pode vir como equipe_pk, equipe_id ou pk dependendo da rota.
         equipe_id = kwargs.get('equipe_pk') or kwargs.get('equipe_id') or kwargs.get('pk')
+
+        if not request.user.is_authenticated:
+            return _redirecionar_para_login(request)
 
         # print("super user")
         # Permite acesso se for superusuário ou staff
@@ -39,6 +48,8 @@ def require_lider(view_func):
     def _wrapped_view(request, *args, **kwargs):
         # print("super user")
         # print(request.user.is_leader())
+        if not request.user.is_authenticated:
+            return _redirecionar_para_login(request)
         # Permite acesso se for superusuário ou staff
         if request.user.is_superuser or request.user.is_staff or request.user.is_leader():
             return view_func(request, *args, **kwargs)
@@ -58,7 +69,9 @@ def require_lider_ou_staff(view_func):
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
         user = request.user
-        if user.is_authenticated and (user.is_superuser or user.is_staff or user.is_leader()):
+        if not user.is_authenticated:
+            return _redirecionar_para_login(request)
+        if user.is_superuser or user.is_staff or user.is_leader():
             return view_func(request, *args, **kwargs)
         return render(request, '403_forbidden.html', status=403)
 
