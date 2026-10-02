@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from .models import Equipe, Lideranca
-from escala.models import Escala, Desistencia
+from escala.models import Escala, Desistencia, Funcao
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from django.utils import timezone
@@ -11,9 +11,13 @@ from django.contrib import messages
 from django.shortcuts import redirect
 from django.utils.datastructures import MultiValueDictKeyError
 from django.conf import settings
+from datetime import datetime
 
 from escalaconnect.tasks_availability import disparar_pedido_disponibilidades
-from escala.utils import preencher_vagas, LIMITE_ESCALAS_POR_MES
+from escala.utils import preencher_vagas, usuarios_disponiveis_para_evento, LIMITE_ESCALAS_POR_MES
+
+VISOES_ESCALA = ('lista', 'grade')
+COOKIE_VISAO_ESCALA = 'connect-escalas-view'
 
 def get_unapproved_desistencias(equipe_id):
     equipe = get_object_or_404(Equipe, pk=equipe_id)
@@ -29,7 +33,19 @@ def get_unapproved_desistencias(equipe_id):
 @require_lideranca
 def listar_escalas(request, equipe_pk):
     equipe = get_object_or_404(Equipe, pk=equipe_pk)
-    
+
+    # Visão escolhida: a da URL vence; sem ela, vale a última usada (cookie).
+    visao = request.GET.get('view')
+    if visao not in VISOES_ESCALA:
+        visao = request.COOKIES.get(COOKIE_VISAO_ESCALA)
+    if visao not in VISOES_ESCALA:
+        visao = 'lista'
+
+    if visao == 'grade':
+        response = render(request, 'equipe/escalas_equipe.html', _contexto_grade(request, equipe))
+        response.set_cookie(COOKIE_VISAO_ESCALA, visao, max_age=60 * 60 * 24 * 365, samesite='Lax')
+        return response
+
     order_by = request.GET.get('order_by', 'evento__data_inicio')
     direction = request.GET.get('direction', 'asc')
     query = request.GET.get('q', '')
@@ -59,8 +75,9 @@ def listar_escalas(request, equipe_pk):
     
     # desistencias =get_unapproved_desistencias(equipe.pk)
 
-    return render(request, 'equipe/escalas_equipe.html', {
+    response = render(request, 'equipe/escalas_equipe.html', {
         'equipe': equipe,
+        'visao': visao,
         'page_obj': page_obj,
         'order_by': order_by.strip('-'),
         'direction': direction,
@@ -75,6 +92,75 @@ def listar_escalas(request, equipe_pk):
             ('confirmada', 'Confirmada'),
         ]
     })
+    response.set_cookie(COOKIE_VISAO_ESCALA, visao, max_age=60 * 60 * 24 * 365, samesite='Lax')
+    return response
+
+
+def _contexto_grade(request, equipe):
+    """Monta a grade mensal: uma linha por evento, uma coluna por função."""
+    hoje = timezone.localdate()
+    try:
+        mes_ref = datetime.strptime(request.GET.get('mes', ''), '%Y-%m').date()
+    except ValueError:
+        mes_ref = hoje.replace(day=1)
+
+    def _virar_mes(data, delta):
+        indice = data.year * 12 + (data.month - 1) + delta
+        return data.replace(year=indice // 12, month=indice % 12 + 1, day=1)
+
+    mes_anterior = _virar_mes(mes_ref, -1)
+    mes_seguinte = _virar_mes(mes_ref, 1)
+    inicio = timezone.make_aware(datetime(mes_ref.year, mes_ref.month, 1))
+    fim = timezone.make_aware(datetime(mes_seguinte.year, mes_seguinte.month, 1))
+
+    funcoes = list(Funcao.objects.filter(equipe=equipe).order_by('nome'))
+    coluna_por_funcao = {funcao.id: i for i, funcao in enumerate(funcoes)}
+
+    escalas = (Escala.objects
+        .filter(funcao__equipe=equipe, evento__data_inicio__gte=inicio, evento__data_inicio__lt=fim)
+        .select_related('funcao', 'evento', 'usuario')
+        .order_by('evento__data_inicio', 'evento_id', 'funcao__nome', 'pk')
+    )
+
+    linhas = []
+    linha_por_evento = {}
+    total = preenchidas = 0
+    for escala in escalas:
+        linha = linha_por_evento.get(escala.evento_id)
+        if linha is None:
+            linha = {
+                'evento': escala.evento,
+                'passado': timezone.localtime(escala.evento.data_inicio).date() < hoje,
+                'celulas': [[] for _ in funcoes],
+                'disponiveis': None,
+            }
+            linha_por_evento[escala.evento_id] = linha
+            linhas.append(linha)
+
+        total += 1
+        if escala.usuario_id:
+            preenchidas += 1
+        elif not linha['passado']:
+            # Vaga em aberto: quantos da equipe ainda podem assumir (uma conta por evento).
+            if linha['disponiveis'] is None:
+                linha['disponiveis'] = len(usuarios_disponiveis_para_evento(equipe, escala.evento))
+            escala.vaga_disponiveis = linha['disponiveis']
+        linha['celulas'][coluna_por_funcao[escala.funcao_id]].append(escala)
+
+    return {
+        'equipe': equipe,
+        'visao': 'grade',
+        'query': '',
+        'mes_ref': mes_ref,
+        'mes_anterior': mes_anterior,
+        'mes_seguinte': mes_seguinte,
+        'mes_atual': hoje.replace(day=1),
+        'funcoes': funcoes,
+        'linhas': linhas,
+        'total_vagas': total,
+        'vagas_preenchidas': preenchidas,
+        'vagas_abertas': total - preenchidas,
+    }
 
 
 def escala_detail_equipe(request, equipe_pk, pk):

@@ -493,3 +493,73 @@ class DispararPedidoDisponibilidadesTaskTests(TestCase):
         self.assertIn("pendente@example.com", destinatarios)
         self.assertNotIn("emdia@example.com", destinatarios)
         self.assertEqual(resultado.get("emails_enviados"), 1)
+
+
+class EscalasEquipeGradeTests(TestCase):
+    """Visão em grade (evento × função) da lista de escalas da equipe."""
+
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Mídia Grade")
+        self.som = Funcao.objects.create(nome="Som", equipe=self.equipe)
+        self.projecao = Funcao.objects.create(nome="Projeção", equipe=self.equipe)
+        self.lider = User.objects.create_user(
+            username="lider_grade", password="x", cpf="10000009101",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+        self.vol = User.objects.create_user(
+            username="vol_grade", password="x", cpf="10000009102",
+            first_name="Ana", last_name="Grade",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        MembrosEquipe.objects.create(equipe=self.equipe, usuario=self.vol, aprovado=True)
+        self.url = reverse('listar_escalas', kwargs={'equipe_pk': self.equipe.pk})
+        self.client.force_login(self.lider)
+
+    def _evento(self, nome, inicio):
+        return Evento.objects.create(nome=nome, data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
+
+    def test_grade_monta_linha_por_evento_e_coluna_por_funcao(self):
+        hoje = timezone.localtime()
+        inicio = hoje.replace(hour=23, minute=0, second=0, microsecond=0)
+        evento = self._evento("Culto Grade", inicio)
+        Escala.objects.create(funcao=self.som, evento=evento, usuario=self.vol, confirmada=True)
+        Escala.objects.create(funcao=self.projecao, evento=evento)  # vaga em aberto
+
+        resp = self.client.get(self.url, {'view': 'grade'})
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual([f.nome for f in resp.context['funcoes']], ["Projeção", "Som"])
+        self.assertEqual(len(resp.context['linhas']), 1)
+        projecao, som = resp.context['linhas'][0]['celulas']
+        self.assertEqual(som[0].usuario, self.vol)
+        self.assertIsNone(projecao[0].usuario)
+        self.assertEqual(projecao[0].vaga_disponiveis, 0)
+        self.assertEqual(resp.context['vagas_abertas'], 1)
+        self.assertContains(resp, "Ana Grade")
+        self.assertContains(resp, "Vaga em aberto")
+
+    def test_grade_navega_por_mes(self):
+        proximo = (timezone.localtime().replace(day=1) + timedelta(days=32)).replace(
+            day=10, hour=10, minute=0, second=0, microsecond=0
+        )
+        evento = self._evento("Culto Mês Que Vem", proximo)
+        Escala.objects.create(funcao=self.som, evento=evento)
+
+        atual = self.client.get(self.url, {'view': 'grade'})
+        seguinte = self.client.get(self.url, {'view': 'grade', 'mes': proximo.strftime('%Y-%m')})
+
+        self.assertNotContains(atual, "Culto Mês Que Vem")
+        self.assertContains(seguinte, "Culto Mês Que Vem")
+
+    def test_visao_escolhida_fica_lembrada(self):
+        self.client.get(self.url, {'view': 'grade'})
+        self.assertEqual(self.client.get(self.url).context['visao'], 'grade')
+
+        self.client.get(self.url, {'view': 'lista'})
+        self.assertEqual(self.client.get(self.url).context['visao'], 'lista')
+
+    def test_mes_invalido_cai_no_mes_atual(self):
+        resp = self.client.get(self.url, {'view': 'grade', 'mes': 'abc'})
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.context['mes_ref'], timezone.localdate().replace(day=1))

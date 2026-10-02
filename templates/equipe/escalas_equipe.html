@@ -263,17 +263,162 @@ Escalas da Equipe {{ equipe.nome }}
         line-height: 1.3;
         color: var(--connect-muted);
     }
+
+    /* ── Seletor de visão (Lista | Grade) ── */
+    .equipe-escalas-page .visao-switch {
+        display: inline-flex;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 14px;
+    }
+
+    .equipe-escalas-page .visao-switch a {
+        padding: 7px 16px;
+        font-weight: 700;
+        font-size: 14px;
+        color: var(--connect-muted);
+        background: var(--connect-surface-2);
+        text-decoration: none;
+    }
+
+    .equipe-escalas-page .visao-switch a.ativo {
+        color: var(--connect-black);
+        background: var(--connect-green);
+    }
+
+    /* ── Grade mensal (evento × função) ── */
+    .equipe-escalas-page .grade-mes-nav {
+        flex: 1 1 320px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .equipe-escalas-page .grade-mes-nav strong {
+        min-width: 150px;
+        text-align: center;
+        font-size: 1.05rem;
+    }
+
+    .equipe-escalas-page .grade-resumo {
+        color: var(--connect-muted);
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .equipe-escalas-page .grade-wrap {
+        overflow-x: auto;
+        border: 1px solid var(--connect-border);
+        border-radius: 8px;
+    }
+
+    .equipe-escalas-page .grade-escalas {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 14px;
+    }
+
+    .equipe-escalas-page .grade-escalas th,
+    .equipe-escalas-page .grade-escalas td {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--connect-border);
+        border-right: 1px solid var(--connect-border);
+        vertical-align: top;
+        text-align: left;
+    }
+
+    .equipe-escalas-page .grade-escalas tr > :last-child { border-right: 0; }
+    .equipe-escalas-page .grade-escalas tbody tr:last-child > * { border-bottom: 0; }
+
+    .equipe-escalas-page .grade-escalas thead th {
+        background: var(--connect-surface-3);
+        color: var(--connect-muted);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        white-space: nowrap;
+    }
+
+    .equipe-escalas-page .grade-escalas td { min-width: 140px; background: var(--connect-surface); }
+
+    /* Coluna do evento fica fixa enquanto as funções rolam na horizontal */
+    .equipe-escalas-page .grade-escalas .gc-evento {
+        position: sticky;
+        left: 0;
+        z-index: 1;
+        min-width: 170px;
+        max-width: 220px;
+        background: var(--connect-surface-2);
+        font-weight: 400;
+    }
+
+    .equipe-escalas-page .grade-escalas thead .gc-evento { background: var(--connect-surface-3); z-index: 2; }
+    .equipe-escalas-page .gc-evento strong { display: block; overflow-wrap: anywhere; }
+    .equipe-escalas-page .gc-evento small { color: var(--connect-muted); }
+    .equipe-escalas-page .grade-escalas tr.passado td,
+    .equipe-escalas-page .grade-escalas tr.passado .gc-evento > * { opacity: .55; }
+
+    .equipe-escalas-page .gc-chip {
+        display: block;
+        padding: 5px 8px;
+        border-radius: 6px;
+        border-left: 3px solid var(--connect-border);
+        background: var(--connect-surface-2);
+        color: var(--connect-text);
+        text-decoration: none;
+        line-height: 1.25;
+    }
+
+    .equipe-escalas-page .gc-chip + .gc-chip { margin-top: 6px; }
+    .equipe-escalas-page .gc-chip:hover { box-shadow: 0 0 0 2px var(--connect-focus); }
+    .equipe-escalas-page .gc-chip strong { display: block; overflow-wrap: anywhere; }
+    .equipe-escalas-page .gc-chip small { color: var(--connect-muted); }
+    .equipe-escalas-page .gc-chip.gc-confirmada { border-left-color: var(--connect-green); }
+    .equipe-escalas-page .gc-chip.gc-pendente { border-left-color: var(--connect-info); }
+    .equipe-escalas-page .gc-chip.gc-vaga { border-left-color: var(--connect-muted); border-style: dashed; border-left-style: solid; border-width: 1px 1px 1px 3px; }
+    .equipe-escalas-page .gc-chip.gc-vaga.disp-0 { border-left-color: var(--connect-danger); }
+    .equipe-escalas-page .gc-chip.gc-vaga.disp-1 { border-left-color: var(--connect-warning); }
+    .equipe-escalas-page .gc-chip.gc-vaga.disp-ok { border-left-color: var(--connect-green); }
+    .equipe-escalas-page .gc-vazio { color: var(--connect-muted); }
+
+    @media (max-width: 720px) {
+        .equipe-escalas-page .visao-switch { display: flex; }
+        .equipe-escalas-page .visao-switch a { flex: 1; text-align: center; }
+        .equipe-escalas-page .grade-mes-nav { justify-content: space-between; }
+        .equipe-escalas-page .grade-escalas .gc-evento { min-width: 118px; max-width: 118px; }
+        .equipe-escalas-page .grade-escalas td { min-width: 128px; }
+    }
 </style>
 
 <div class="container equipe-escalas-page">
+    <div class="visao-switch" role="group" aria-label="Forma de visualizar as escalas">
+        <a href="?view=lista" class="{% if visao == 'lista' %}ativo{% endif %}"><i class="fa fa-list mr-1"></i> Lista</a>
+        <a href="?view=grade" class="{% if visao == 'grade' %}ativo{% endif %}"><i class="fa fa-table mr-1"></i> Grade do mês</a>
+    </div>
+
     <div class="escala-toolbar">
+        {% if visao == 'grade' %}
+        <div class="grade-mes-nav">
+            <a class="btn btn-secondary" href="?view=grade&mes={{ mes_anterior|date:'Y-m' }}" aria-label="Mês anterior"><i class="fa fa-chevron-left"></i></a>
+            <strong>{{ mes_ref|date:"F \d\e Y" }}</strong>
+            <a class="btn btn-secondary" href="?view=grade&mes={{ mes_seguinte|date:'Y-m' }}" aria-label="Próximo mês"><i class="fa fa-chevron-right"></i></a>
+            {% if mes_ref != mes_atual %}
+            <a class="btn btn-secondary" href="?view=grade">Mês atual</a>
+            {% endif %}
+        </div>
+        {% else %}
         <form method="GET" class="escala-search-form">
+            <input type="hidden" name="view" value="lista">
             <input type="text" name="q" class="form-control mr-2" placeholder="Buscar por evento, função ou voluntário..." value="{{ query }}">
             <button type="submit" class="btn btn-primary mr-2">Buscar</button>
             {% if query %}
             <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe_pk=equipe.pk %}">Limpar</a>
             {% endif %}
         </form>
+        {% endif %}
         <div class="escala-toolbar-actions">
             <a href="#" class="btn btn-info" data-toggle="modal" data-target="#exportModal">
                 <i class="fa fa-file-pdf mr-1"></i> Exportar PDF
@@ -293,6 +438,77 @@ Escalas da Equipe {{ equipe.nome }}
         </div>
     </div>
 
+    {% if visao == 'grade' %}
+    <div class="grade-resumo">
+        {{ total_vagas }} vaga{{ total_vagas|pluralize }} no mês ·
+        {{ vagas_preenchidas }} preenchida{{ vagas_preenchidas|pluralize }} ·
+        {{ vagas_abertas }} em aberto
+    </div>
+
+    {% if linhas %}
+    <div class="grade-wrap">
+        <table class="grade-escalas">
+            <thead>
+                <tr>
+                    <th class="gc-evento" scope="col">Evento</th>
+                    {% for funcao in funcoes %}
+                    <th scope="col">{{ funcao.nome }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for linha in linhas %}
+                <tr class="{% if linha.passado %}passado{% endif %}">
+                    <th class="gc-evento" scope="row">
+                        <strong>{{ linha.evento.nome }}</strong>
+                        <small>{{ linha.evento.data_inicio|date:"D, d/m · H:i" }}</small>
+                    </th>
+                    {% for celula in linha.celulas %}
+                    <td>
+                        {% for escala in celula %}
+                        {% if escala.usuario %}
+                        <a class="gc-chip {% if escala.confirmada %}gc-confirmada{% else %}gc-pendente{% endif %}"
+                           href="{% url 'escala_detail_equipe' equipe.pk escala.pk %}">
+                            <strong>{{ escala.usuario.get_full_name|default:escala.usuario.username }}</strong>
+                            <small>{% if escala.confirmada %}Confirmada{% else %}A confirmar{% endif %}</small>
+                        </a>
+                        {% elif linha.passado %}
+                        <a class="gc-chip gc-vaga" href="{% url 'escala_detail_equipe' equipe.pk escala.pk %}">
+                            <strong>Vaga não preenchida</strong>
+                        </a>
+                        {% else %}
+                        {% with c=escala.vaga_disponiveis %}
+                        <a class="gc-chip gc-vaga {% if c == 0 %}disp-0{% elif c == 1 %}disp-1{% else %}disp-ok{% endif %}"
+                           href="{% url 'escala_detail_equipe' equipe.pk escala.pk %}">
+                            <strong>Vaga em aberto</strong>
+                            <small>{{ c }} disponíve{{ c|pluralize:"l,is" }}</small>
+                        </a>
+                        {% endwith %}
+                        {% endif %}
+                        {% empty %}
+                        <span class="gc-vazio">—</span>
+                        {% endfor %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="cal-legend mt-2">
+        <span><i class="cal-dot" style="background:var(--connect-green)"></i> Confirmada / vaga com vários disponíveis</span>
+        <span><i class="cal-dot" style="background:var(--connect-info)"></i> A confirmar</span>
+        <span><i class="cal-dot" style="background:var(--connect-warning)"></i> Vaga com só 1 disponível</span>
+        <span><i class="cal-dot" style="background:var(--connect-danger)"></i> Vaga sem ninguém disponível</span>
+    </div>
+    {% else %}
+    <div class="pessoa-vazio">
+        <i class="fa fa-calendar d-block mb-1"></i>
+        Nenhuma escala em {{ mes_ref|date:"F \d\e Y" }} para esta equipe.
+    </div>
+    {% endif %}
+    {% else %}
     <div class="cal-legend mb-2">
         <span><i class="cal-dot" style="background:var(--connect-danger)"></i> Ninguém disponível</span>
         <span><i class="cal-dot" style="background:var(--connect-warning)"></i> Só 1 disponível</span>
@@ -388,6 +604,7 @@ Escalas da Equipe {{ equipe.nome }}
     </div>
 
     {% include 'includes/pagination.html' %}
+    {% endif %}
 
     <!-- Modal para exportação -->
     <div class="modal fade" id="exportModal" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
