@@ -8,6 +8,15 @@ def _redirecionar_para_login(request):
     # Sessão expirada/usuário anônimo: manda para o login e volta à página depois.
     return redirect_to_login(request.get_full_path(), login_url='/login/')
 
+def pode_gerenciar_equipe(user, equipe):
+    """Staff/superuser sempre podem; os demais só se forem líderes da equipe informada."""
+    if user.is_superuser or user.is_staff:
+        return True
+    if equipe is None:
+        return False
+    return Lideranca.objects.filter(usuario=user, equipe=equipe).exists()
+
+
 def require_lideranca(view_func):
     """
     Decorador que verifica se o usuário faz parte da liderança da equipe.
@@ -41,19 +50,18 @@ def require_lideranca(view_func):
 
 def require_lider(view_func):
     """
-    Decorador que verifica se o usuário faz parte da liderança da equipe.
+    Decorador que verifica se o usuário é líder de pelo menos uma equipe.
     Se for superusuário ou staff, tem acesso automaticamente.
+    Caso contrário, retorna 403.
     """
     @wraps(view_func)
     def _wrapped_view(request, *args, **kwargs):
-        # print("super user")
-        # print(request.user.is_leader())
         if not request.user.is_authenticated:
             return _redirecionar_para_login(request)
-        # Permite acesso se for superusuário ou staff
+        # Permite acesso se for superusuário, staff ou líder
         if request.user.is_superuser or request.user.is_staff or request.user.is_leader():
             return view_func(request, *args, **kwargs)
-        return view_func(request, *args, **kwargs)
+        return render(request, '403_forbidden.html', status=403)
 
     return _wrapped_view
 

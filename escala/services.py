@@ -95,8 +95,13 @@ def cancelar_troca(escala, usuario):
 
 
 def aprovar_troca(troca, lider):
+    """Aprova a troca e libera a vaga. Devolve False se já estava aprovada."""
+    if troca.aprovada:
+        # Não limpa a escala de novo: a vaga pode já ter sido repassada a outro voluntário.
+        return False
     troca.lider_aprovador = lider
     troca.aprovada = True
     troca.data_aprovacao = timezone.now()
     troca.save()
     troca.escala_origem.clear_escala()
+    return True

@@ -102,7 +102,7 @@ class FluxosDoVoluntarioNoSiteTests(TestCase):
         self.client.post(pedir, {'tipo_solicitacao': 'desistencia'})
         troca = SolicitacaoTroca.objects.get()
         self.client.force_login(self.lider)
-        self.client.get(reverse('aprovar_solicitacao_troca', args=[troca.pk]))
+        self.client.post(reverse('aprovar_solicitacao_troca', args=[troca.pk]))
         troca.refresh_from_db()
         self.escala.refresh_from_db()
         self.assertTrue(troca.aprovada)

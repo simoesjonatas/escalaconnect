@@ -5,7 +5,7 @@ from .models import Escala, SolicitacaoTroca
 from . import services
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
-from equipe.decorators import require_lider
+from equipe.decorators import require_lider, pode_gerenciar_equipe
 
 
 @login_required
@@ -41,19 +41,29 @@ def cancelar_solicitacao_troca(request, escala_id):
     return redirect('minha_escala_detail', pk=escala_id)
 
 
-# @login_required
 @require_lider
 def detalhes_solicitacao_troca(request, troca_id):
     troca = get_object_or_404(SolicitacaoTroca, id=troca_id)
+    # Só a liderança da equipe da escala (ou staff/superuser) pode ver.
+    if not pode_gerenciar_equipe(request.user, troca.escala_origem.equipe):
+        return render(request, '403_forbidden.html', status=403)
     return render(request, 'desistencia/detalhes_solicitacao_troca.html', {'troca': troca})
 
 @login_required
 @require_lider
 def aprovar_solicitacao_troca(request, troca_id):
     troca = get_object_or_404(SolicitacaoTroca, id=troca_id)
-    escala  = get_object_or_404(Escala, id=troca.escala_origem.pk)
+    escala = troca.escala_origem
 
-    # Aprova e limpa a escala, liberando a vaga.
-    services.aprovar_troca(troca, request.user)
-    messages.success(request, "Solicitação de troca aprovada com sucesso.")
+    # Só a liderança da equipe da escala (ou staff/superuser) pode aprovar.
+    if not pode_gerenciar_equipe(request.user, escala.equipe):
+        return render(request, '403_forbidden.html', status=403)
+
+    # Aprovação altera estado: só por POST (o botão do template já envia POST).
+    if request.method != "POST":
+        return redirect('detalhes_solicitacao_troca', troca_id=troca.pk)
+
+    # Aprova e limpa a escala, liberando a vaga (não faz nada se já aprovada).
+    if services.aprovar_troca(troca, request.user):
+        messages.success(request, "Solicitação de troca aprovada com sucesso.")
     return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)
