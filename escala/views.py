@@ -18,6 +18,7 @@ from django.conf import settings
 from usuario.models import Usuario
 from equipe.models import Lideranca, Equipe
 from escala.utils import usuarios_disponiveis_para_evento, preencher_vagas, LIMITE_ESCALAS_POR_MES
+from escala.services import RegraDeNegocio, confirmar_escala, escalas_futuras, validar_confirmacao
 
 
 def _user_can_manage_event_functions(user):
@@ -201,12 +202,8 @@ def minhas_escalas(request):
     if direction == 'desc':
         order_by = f'-{order_by}'
 
-    today = now().date()
-
-    escalas = Escala.objects.filter(
-        usuario=request.user,  # filtra apenas escalas do usuario autenticado
-        evento__data_inicio__date__gte=today  # filtra eventos que começam hoje ou no futuro
-    ).filter(
+    # Apenas escalas do usuário autenticado em eventos de hoje em diante.
+    escalas = escalas_futuras(request.user).filter(
         Q(evento__nome__icontains=query) |
         Q(funcao__equipe__nome__icontains=query) |
         Q(funcao__nome__icontains=query)
@@ -325,27 +322,23 @@ def cancelar_escala(request, escala_id):
 def confirmar_minha_escala(request, pk):
     escala = get_object_or_404(Escala, pk=pk)
 
-    # Verifica se o usuário logado é o dono da escala
-    if escala.usuario != request.user:
-        messages.error(request, "Você só pode confirmar sua própria escala.")
-        return redirect('minhas_escalas')
-
-    # Verifica se o evento já foi encerrado
-    if escala.evento.data_fim < now():
-        messages.error(request, "Você não pode confirmar uma escala de um evento já encerrado.")
-        return redirect('minha_escala_detail', pk=escala.pk)
-
-    # Verifica se a escala já foi confirmada
-    if escala.confirmada:
-        messages.warning(request, "Esta escala já foi confirmada anteriormente.")
-        return redirect('minha_escala_detail', pk=escala.pk)
-
-    # Confirma a escala apenas se for uma requisição POST
-    if request.method == 'POST':
-        escala.confirmada = True
-        escala.data_confirmacao = now()
-        escala.save()
-        messages.success(request, "Escala confirmada com sucesso!")
+    # As regras (dono, evento encerrado, já confirmada) ficam em escala/services.py,
+    # compartilhadas com a API do app.
+    try:
+        # Confirma a escala apenas se for uma requisição POST
+        if request.method == 'POST':
+            confirmar_escala(escala, request.user)
+            messages.success(request, "Escala confirmada com sucesso!")
+        else:
+            validar_confirmacao(escala, request.user)
+    except RegraDeNegocio as erro:
+        if erro.code == 'escala_de_outro_usuario':
+            messages.error(request, str(erro))
+            return redirect('minhas_escalas')
+        if erro.code == 'ja_confirmada':
+            messages.warning(request, str(erro))
+        else:
+            messages.error(request, str(erro))
 
     return redirect('minha_escala_detail', pk=escala.pk)
 

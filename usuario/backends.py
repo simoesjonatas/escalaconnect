@@ -11,5 +11,7 @@ class CustomBackend(ModelBackend):
             # user = User.objects.get(username=username)
             if user.check_password(password) and self.user_can_authenticate(user):
                 return user
-        except User.DoesNotExist:
+        except (User.DoesNotExist, User.MultipleObjectsReturned):
+            # Mais de um usuário com o mesmo e-mail: deixa o ModelBackend tentar
+            # pelo nome de usuário exato em vez de estourar erro 500.
             return None

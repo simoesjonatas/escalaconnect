@@ -3,6 +3,8 @@ from django.contrib.auth import login
 from .forms_signup import SignupForm
 from .models import Usuario
 from equipe.models import Equipe, MembrosEquipe
+from equipe.services import candidatar
+from .services import aceitar_termo
 from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
 
@@ -33,8 +35,7 @@ def aceitar_termo(request):
         return redirect('base_page')
 
     if request.method == 'POST':
-        request.user.termo_aceito_em = now()
-        request.user.save(update_fields=['termo_aceito_em'])
+        aceitar_termo(request.user)
         return redirect('base_page')
 
     return render(request, 'usuario/aceitar_termo.html')
@@ -49,18 +50,9 @@ def inscricao(request):
 @login_required
 def candidatar_equipe(request, pk):
     equipe = get_object_or_404(Equipe, pk=pk)
-    MembrosEquipe.objects.create(usuario=request.user, equipe=equipe)
+    # Cria a inscrição só se o usuário ainda não estiver inscrito nesta equipe.
+    candidatar(request.user, equipe)
     return inscricao(request)
-
-def candidatar_equipe(request, pk):
-    equipe = get_object_or_404(Equipe, pk=pk)
-    # Verifica se o usuário já está inscrito nesta equipe
-    if MembrosEquipe.objects.filter(usuario=request.user, equipe=equipe).exists():
-        return inscricao(request)
-    else:
-        # Se nao estiver inscrito, cria a nova inscricao
-        MembrosEquipe.objects.create(usuario=request.user, equipe=equipe)
-        return inscricao(request)
 
 
 @login_required

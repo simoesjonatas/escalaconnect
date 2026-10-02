@@ -7,19 +7,19 @@ from django.contrib import messages
 from datetime import timedelta
 from evento.models import Evento
 from django.utils import timezone
+from escalaconnect.regras import RegraDeNegocio
+from .services import disponibilidades
 
 from django.core.paginator import Paginator
 
 @login_required
 def lista_disponivel(request):
-    hoje = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-
     query = request.GET.get('q', '')
     order_by = request.GET.get('order_by', 'data_inicio')
     direction = request.GET.get('direction', 'asc')
 
     # Filtrar disponibilidades pelo usuário logado e com datas a partir de hoje
-    disponiveis = Disponivel.objects.filter(usuario=request.user, data_inicio__gte=hoje, data_fim__gte=hoje)
+    disponiveis = disponibilidades.futuros(request.user)
 
     if query:
         disponiveis = disponiveis.filter(data_inicio__icontains=query)
@@ -57,13 +57,10 @@ def adicionar_disponivel(request):
             nova_disponivel.usuario = request.user
             
             # Verificar se existe alguma indisponibilidade no mesmo horário
-            conflitos = Ocupado.objects.filter(
-                usuario=request.user,
-                data_inicio__lt=nova_disponivel.data_fim,
-                data_fim__gt=nova_disponivel.data_inicio
-            )
-            if conflitos.exists():
-                messages.error(request, "Existe uma indisponibilidade registrada que conflita com este período de disponibilidade.")
+            try:
+                disponibilidades.validar(request.user, nova_disponivel.data_inicio, nova_disponivel.data_fim)
+            except RegraDeNegocio as erro:
+                messages.error(request, str(erro))
                 return render(request, 'disponivel/adicionar.html', {'form': form})
             
             nova_disponivel.save()
@@ -81,13 +78,10 @@ def editar_disponivel(request, pk):
             disponivel_atualizada = form.save(commit=False)
             
             # Verificar conflitos com indisponibilidades
-            conflitos = Ocupado.objects.filter(
-                usuario=request.user,
-                data_inicio__lt=disponivel_atualizada.data_fim,
-                data_fim__gt=disponivel_atualizada.data_inicio
-            )
-            if conflitos.exists():
-                messages.error(request, "Existe uma indisponibilidade registrada que conflita com este período de disponibilidade.")
+            try:
+                disponibilidades.validar(request.user, disponivel_atualizada.data_inicio, disponivel_atualizada.data_fim)
+            except RegraDeNegocio as erro:
+                messages.error(request, str(erro))
                 return render(request, 'disponivel/editar.html', {'form': form})
 
             disponivel_atualizada.save()
@@ -107,20 +101,8 @@ def excluir_disponivel(request, pk):
 
 @login_required
 def registrar_por_evento(request):
-    # hoje = datetime.now()
-    hoje = timezone.now()
-    daqui_a_dois_meses = hoje + timedelta(days=60)  # Ajusta para dois meses a frente
-    user = request.user
-
-    # Pega os IDs dos eventos para os quais o usuário ja registrou uma disponibilidade
-    eventos_indisponiveis_ids = Disponivel.objects.filter(usuario=user,evento__isnull=False).values_list('evento_id', flat=True)
-    # print(eventos_indisponiveis_ids)
-
-    # Filtra eventos futuros, excluindo aqueles para os quais o usuario ja registrou disponibilidade
-    eventos_futuros = Evento.objects.visiveis_para(user).filter(
-        data_inicio__gte=hoje,
-        data_inicio__lte=daqui_a_dois_meses
-    ).exclude(id__in=eventos_indisponiveis_ids).order_by('data_inicio')
+    # Eventos dos próximos dois meses, visíveis ao usuário, ainda sem disponibilidade dele.
+    eventos_futuros = disponibilidades.eventos_elegiveis(request.user)
 
     # Equipes dos eventos privados (de equipe) presentes na lista. O filtro por
     # equipe só é exibido se houver ao menos um evento de equipe aqui.
@@ -139,24 +121,9 @@ def registrar_por_evento(request):
 @login_required
 def processar_disponibilidade_evento(request):
     if request.method == 'POST':
-        selected_event_ids = request.POST.getlist('event_ids')
-        criadas = 0
-        # print(selected_event_ids)
-        for event_id in selected_event_ids:
-            # Crie aqui os registros de disponibilidade
-            # print(event_id)
-            evento = get_object_or_404(Evento.objects.visiveis_para(request.user), pk=event_id)
-            # verifica se ja existe um registro de disponibilidade
-            already_exists = Disponivel.objects.filter(usuario=request.user, evento=evento).exists()
-            if not already_exists:
-
-                Disponivel.objects.create(
-                    usuario=request.user,
-                    evento=evento,
-                    data_inicio=evento.data_inicio,
-                    data_fim=evento.data_fim
-                )
-                criadas += 1
+        selected_event_ids = [i for i in request.POST.getlist('event_ids') if i.isdigit()]
+        # Cria uma disponibilidade por evento visível que ainda não tenha registro.
+        criadas = disponibilidades.registrar_por_eventos(request.user, selected_event_ids)
         if criadas:
             messages.success(request, f"{criadas} disponibilidade(s) registrada(s) com sucesso.")
         return redirect('lista_disponivel') #certo

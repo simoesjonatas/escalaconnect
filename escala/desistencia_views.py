@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from .desistencia_forms import DesistenciaForm
 from .models import Desistencia, Escala
+from . import services
 from django.contrib.auth.decorators import login_required
 from django.views.generic.detail import DetailView
 from django.utils.decorators import method_decorator
@@ -20,26 +21,9 @@ def aprovar_desistencia(request, desistencia_id):
     escala = desistencia.escala  # Obtenha a escala relacionada à desistência
 
     if request.method == "POST":
-        if not desistencia.aprovada:
-            desistencia.aprovada = True
-            desistencia.data_aprovacao = timezone.now()
-            desistencia.save()
-            
-            # tirar a data de confirmacao da escala 
-            escala.data_confirmacao = None
-            # tirar a a confirmacao
-            escala.confirmada = False
-            # tirar o usuario para add outro
-            escala.usuario = None
-            escala.save()
-            
-            return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)
-        else:
-            # A desistência já foi aprovada, talvez mostrar uma mensagem
-            return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)
-    else:
-        # Método não é POST, redirecione de volta à página de detalhes
-        return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)
+        # Aprova e libera a vaga para outro voluntário (não faz nada se já aprovada).
+        services.aprovar_desistencia(desistencia)
+    return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)
 
 
 @method_decorator(require_lider, name='dispatch')
@@ -78,7 +62,8 @@ class DetalhesDesistenciaPorEscalaView(DetailView):
 @login_required
 def create_desistencia(request, escala_id):
     usuario = request.user  # Usuário logado
-    escala = Escala.objects.get(id=escala_id)  # Obter a escala pelo ID passado, ajuste conforme necessário
+    # Só o dono da escala pode sinalizar impedimento nela.
+    escala = get_object_or_404(Escala, id=escala_id, usuario=usuario)
 
     if request.method == 'POST':
         form = DesistenciaForm(request.POST, user=request.user, escala=escala)

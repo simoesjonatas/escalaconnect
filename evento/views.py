@@ -1,5 +1,6 @@
 from django.http import JsonResponse
 from .models import Evento
+from .services import feed_calendario
 from django.views.decorators.csrf import csrf_exempt
 import json
 from escala.models import Escala
@@ -22,33 +23,15 @@ import calendar
 
 
 def eventos_api(request):
-    eventos = Evento.objects.visiveis_para(request.user).order_by('data_inicio')
-
-    # Filtros do calendário: só minhas escalas, só públicos ou uma equipe específica.
-    # A equipe é aplicada sobre visiveis_para, então não expõe eventos de equipes alheias.
-    filtro = request.GET.get('filtro', '')
-    equipe_filtro = request.GET.get('equipe', '')
-    if filtro == 'escalado' and request.user.is_authenticated:
-        eventos = eventos.filter(escala__usuario=request.user).distinct()
-    elif equipe_filtro == 'publicos':
-        eventos = eventos.filter(equipe__isnull=True)
-    elif equipe_filtro.isdigit():
-        eventos = eventos.filter(equipe_id=equipe_filtro)
-
-    # Escalas do usuário logado, para colorir o calendário com as próprias escalas.
-    minhas = {}
-    if request.user.is_authenticated:
-        escalas = Escala.objects.filter(usuario=request.user).select_related('funcao')
-        for esc in escalas:
-            info = minhas.setdefault(esc.evento_id, {'confirmada': True, 'funcoes': []})
-            if esc.funcao:
-                info['funcoes'].append(esc.funcao.nome)
-            if not esc.confirmada:
-                info['confirmada'] = False
+    # Eventos visíveis, filtros e escalas do usuário: evento/services.py (compartilhado com a API do app).
+    eventos = feed_calendario(
+        request.user,
+        filtro=request.GET.get('filtro', ''),
+        equipe=request.GET.get('equipe', ''),
+    )
 
     data = []
-    for evento in eventos:
-        mine = minhas.get(evento.id)
+    for evento, mine in eventos:
         if mine and mine['confirmada']:
             cor, status = '#2e7d32', 'Confirmada'   # verde
         elif mine:

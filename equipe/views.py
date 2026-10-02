@@ -5,6 +5,7 @@ from equipe.decorators import require_lideranca  # Importando o decorador person
 from escalaconnect.utils import admin_required
 from django.contrib.auth.decorators import login_required
 from .models import Equipe, MembrosEquipe
+from .services import equipes_do_usuario
 from django.contrib import messages
 from django.db.models import Q, Exists, OuterRef
 from django.http import HttpResponseForbidden
@@ -134,14 +135,7 @@ def candidatura_equipe(request):
 @login_required
 def minhas_equipes(request):
     # equipes em que o usuario ja participa (aprovado) ou aguarda aprovacao (pendente)
-    membros = (
-        MembrosEquipe.objects
-        .filter(usuario=request.user)
-        .select_related('equipe')
-        .order_by('equipe__nome')
-    )
-    aprovadas = [m.equipe for m in membros if m.aprovado]
-    pendentes = [m.equipe for m in membros if not m.aprovado]
+    aprovadas, pendentes = equipes_do_usuario(request.user)
 
     context = {
         'aprovadas': aprovadas,

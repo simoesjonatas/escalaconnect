@@ -9,27 +9,13 @@ from disponivel.models import Disponivel
 from equipe.models import Equipe, MembrosEquipe
 from django.db.models import Count
 from escalaconnect.tasks import enviar_email_confirmacao_task
+from escalaconnect.services import pendencias_home
 from django.utils import timezone
 from django.urls import reverse
 
 # View para renderizar a página base
 @login_required(login_url='/login/')
 def base_view(request):
-    tem_disponibilidade = Disponivel.objects.filter(usuario=request.user).exists()
-    # Só escalas futuras: a agenda (.ics) e o botão de baixar consideram de hoje pra frente.
-    tem_escalas = Escala.objects.filter(
-        usuario=request.user, evento__data_inicio__gte=timezone.now()
-    ).exists()
-
-    # Contato incompleto: sem e-mail, ou telefone vazio/sem DDD (menos de 10 dígitos).
-    falta_email = not request.user.email
-    falta_telefone = len(request.user.telefone or '') < 10
-    escalas_pendentes = Escala.objects.filter(
-        usuario=request.user,
-        confirmada=False,
-        evento__data_inicio__gte=timezone.now(),
-    ).count()
-
     # Pedidos de entrada pendentes nas equipes que o usuário lidera (todas, se admin).
     if request.user.is_superuser or request.user.is_staff:
         equipes_lideradas = Equipe.objects.all()
@@ -49,12 +35,9 @@ def base_view(request):
     ]
 
     return render(request, 'home/home.html', {
-        'tem_disponibilidade': tem_disponibilidade,
-        'tem_escalas': tem_escalas,
-        'escalas_pendentes': escalas_pendentes,
+        # Pendências do voluntário (as mesmas que a API do app devolve em /home/).
+        **pendencias_home(request.user),
         'equipes_com_pendentes': equipes_com_pendentes,
-        'falta_email': falta_email,
-        'falta_telefone': falta_telefone,
     })
 
 # View para renderizar o calendário

@@ -10,18 +10,18 @@ from disponivel.models import  Disponivel
 from datetime import datetime, timedelta
 from evento.models import Evento
 from django.utils import timezone
+from escalaconnect.regras import RegraDeNegocio
+from .services import indisponibilidades
 
 # validar se o usuario ja foi escalado em algum evento no horario da indisponibilidade
 @login_required
 def lista_ocupado(request):
-    hoje = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
-
     query = request.GET.get('q', '')
     order_by = request.GET.get('order_by', 'data_inicio')
     direction = request.GET.get('direction', 'asc')
 
     # Filtrar ocupados pelo usuário logado e com datas a partir de hoje
-    ocupados = Ocupado.objects.filter(usuario=request.user, data_inicio__gte=hoje, data_fim__gte=hoje)
+    ocupados = indisponibilidades.futuros(request.user)
 
     if query:
         ocupados = ocupados.filter(data_inicio__icontains=query)
@@ -50,13 +50,10 @@ def adicionar_ocupado(request):
             novo_ocupado.usuario = request.user
 
             # Verificar se existe alguma disponibilidade no mesmo horário
-            conflitos = Disponivel.objects.filter(
-                usuario=request.user,
-                data_inicio__lt=novo_ocupado.data_fim,
-                data_fim__gt=novo_ocupado.data_inicio
-            )
-            if conflitos.exists():
-                messages.error(request, "Existe uma disponibilidade registrada que conflita com este período de indisponibilidade.")
+            try:
+                indisponibilidades.validar(request.user, novo_ocupado.data_inicio, novo_ocupado.data_fim)
+            except RegraDeNegocio as erro:
+                messages.error(request, str(erro))
                 return render(request, 'ocupado/adicionar.html', {'form': form})
             
             novo_ocupado.save()
@@ -67,7 +64,7 @@ def adicionar_ocupado(request):
 
 @login_required
 def detalhes_ocupado(request, pk):
-    ocupado = get_object_or_404(Ocupado, pk=pk)
+    ocupado = get_object_or_404(Ocupado, pk=pk, usuario=request.user)  # Restringe ao dono
     return render(request, 'ocupado/detalhes.html', {'ocupado': ocupado})
 
 @login_required
@@ -83,13 +80,10 @@ def atualizar_ocupado(request, pk):
             ocupado_atualizado = form.save(commit=False)
 
             # Verificar conflitos com disponibilidades
-            conflitos = Disponivel.objects.filter(
-                usuario=request.user,
-                data_inicio__lt=ocupado_atualizado.data_fim,
-                data_fim__gt=ocupado_atualizado.data_inicio
-            )
-            if conflitos.exists():
-                messages.error(request, "Existe uma disponibilidade registrada que conflita com este período de indisponibilidade.")
+            try:
+                indisponibilidades.validar(request.user, ocupado_atualizado.data_inicio, ocupado_atualizado.data_fim)
+            except RegraDeNegocio as erro:
+                messages.error(request, str(erro))
                 return render(request, 'ocupado/atualizar.html', {'form': form})
 
             ocupado_atualizado.save()
@@ -101,7 +95,7 @@ def atualizar_ocupado(request, pk):
 
 @login_required
 def excluir_ocupado(request, pk):
-    ocupado = get_object_or_404(Ocupado, pk=pk)
+    ocupado = get_object_or_404(Ocupado, pk=pk, usuario=request.user)  # Restringe ao dono
     if request.method == 'POST':
         ocupado.delete()
         return redirect('lista_ocupado')
@@ -114,40 +108,16 @@ def registrar_indisponibilidade_view(request):
 @login_required
 def processar_indisponibilidade_evento(request):
     if request.method == 'POST':
-        selected_event_ids = request.POST.getlist('event_ids')
-        # print(selected_event_ids)
-        for event_id in selected_event_ids:
-            # Crie aqui os registros de indisponibilidade...
-            # print(event_id)
-            evento = get_object_or_404(Evento, pk=event_id)
-            # verifica se ja existe um registro de indisponibilidade
-            already_exists = Ocupado.objects.filter(usuario=request.user, evento=evento).exists()
-            if not already_exists:
-
-                Ocupado.objects.create(
-                    usuario=request.user,
-                    evento=evento,
-                    data_inicio=evento.data_inicio,
-                    data_fim=evento.data_fim
-                )
+        selected_event_ids = [i for i in request.POST.getlist('event_ids') if i.isdigit()]
+        # Cria uma indisponibilidade por evento visível que ainda não tenha registro.
+        indisponibilidades.registrar_por_eventos(request.user, selected_event_ids)
         return redirect('lista_ocupado') #certo
     return redirect('lista_ocupado') #errado
 # HttpResponseRedirect('/caminho-de-erro/')
 
 
+@login_required
 def registrar_por_evento(request):
-    # hoje = datetime.now()
-    hoje = timezone.now()
-    daqui_a_dois_meses = hoje + timedelta(days=60)  # Ajusta para dois meses a frente
-    user = request.user
-
-    # Pega os IDs dos eventos para os quais o usuário ja registrou uma indisponibilidade
-    eventos_indisponiveis_ids = Ocupado.objects.filter(usuario=user,evento__isnull=False).values_list('evento_id', flat=True)
-    # print(eventos_indisponiveis_ids)
-
-    # Filtra eventos futuros, excluindo aqueles para os quais o usuario ja registrou indisponibilidade
-    eventos_futuros = Evento.objects.filter(
-        data_inicio__gte=hoje, 
-        data_inicio__lte=daqui_a_dois_meses
-    ).exclude(id__in=eventos_indisponiveis_ids).order_by('data_inicio')
+    # Eventos dos próximos dois meses, visíveis ao usuário, ainda sem indisponibilidade dele.
+    eventos_futuros = indisponibilidades.eventos_elegiveis(request.user)
     return render(request, 'ocupado/registrar_por_evento.html', {'eventos': eventos_futuros})

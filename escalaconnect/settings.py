@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+from datetime import timedelta
 from decouple import config, Csv
 from pathlib import Path
 import os
@@ -87,7 +88,10 @@ INSTALLED_APPS = [
     'ocupado',
     'disponivel',
 
-
+    # API do app mobile (/api/v1/)
+    'rest_framework',
+    'knox',
+    'api',
 ]
 
 AUTHENTICATION_BACKENDS = [
@@ -232,6 +236,52 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_AGE = 1800  # 30 minutos em segundos
+
+
+# === Cache ===
+# Com CACHE_URL (ex.: redis://redis:6379/2) o cache é compartilhado entre os workers
+# do gunicorn, o que o throttle de login da API precisa. Sem ela, cai no cache em
+# memória do processo (suficiente para desenvolvimento e testes).
+CACHE_URL = config('CACHE_URL', default='')
+if CACHE_URL:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': CACHE_URL,
+        }
+    }
+
+# === API do app mobile (/api/v1/) ===
+# Só token (knox): sem sessão, logo sem CSRF e sem CORS.
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': ['api.authentication.TokenAuthentication'],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+        'api.permissions.ContaLiberada',
+    ],
+    'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
+    'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser'],
+    'EXCEPTION_HANDLER': 'api.exceptions.exception_handler',
+    'DEFAULT_THROTTLE_RATES': {
+        # Por IP é folgado: vários voluntários compartilham o Wi-Fi da igreja.
+        'login_ip': '30/min',
+        'login_usuario': '5/min',
+    },
+    # Quantos proxies ficam na frente do gunicorn (Cloudflare, nginx...), para o
+    # throttle por IP ler o cliente certo no X-Forwarded-For. Vazio = não confiar.
+    'NUM_PROXIES': config('API_NUM_PROXIES', default=None, cast=lambda v: int(v) if v else None),
+}
+
+REST_KNOX = {
+    # Login persistente: o token vale 90 dias e é renovado enquanto o app for usado.
+    'TOKEN_TTL': timedelta(days=90),
+    'AUTO_REFRESH': True,
+    'MIN_REFRESH_INTERVAL': 60 * 60,
+}
+
+# Menor build do app aceito pela API e onde baixar o APK atual (GET /api/v1/meta/).
+APP_MIN_BUILD = config('APP_MIN_BUILD', default=1, cast=int)
+APP_APK_URL = config('APP_APK_URL', default='')
 
 
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')

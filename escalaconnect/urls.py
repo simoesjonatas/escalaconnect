@@ -33,6 +33,9 @@ urlpatterns = [
     path('calendario/', calendario_view, name='calendario'),
     path('monitoramento/', monitoramento_uso, name='monitoramento_uso'),
 
+    # API JSON do app mobile (as demais rotas api/... abaixo devolvem HTML).
+    path('api/v1/', include('api.urls')),
+
     path('api/escala/', include('escala.urls')),
     path('api/equip/', include('equipe.urls')),
     path('api/events/', include('evento.urls')),
