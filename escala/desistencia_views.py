@@ -7,7 +7,7 @@ from django.utils.decorators import method_decorator
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.contrib.auth import get_user_model
-from equipe.decorators import require_lider
+from equipe.decorators import require_lider, pode_gerenciar_equipe
 from escala.utils import usuarios_disponiveis_para_evento
 
 User = get_user_model()
@@ -18,6 +18,10 @@ User = get_user_model()
 def aprovar_desistencia(request, desistencia_id):
     desistencia = get_object_or_404(Desistencia, pk=desistencia_id)
     escala = desistencia.escala  # Obtenha a escala relacionada à desistência
+
+    # Só a liderança da equipe da escala (ou staff/superuser) pode aprovar.
+    if not pode_gerenciar_equipe(request.user, escala.equipe):
+        return render(request, '403_forbidden.html', status=403)
 
     if request.method == "POST":
         if not desistencia.aprovada:
@@ -47,7 +51,14 @@ class DetalhesDesistenciaPorEscalaView(DetailView):
     model = Desistencia
     template_name = 'desistencia/desistencia_detalhes.html'
     context_object_name = 'desistencia'
-    
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        # Só a liderança da equipe da escala (ou staff/superuser) pode ver.
+        if not pode_gerenciar_equipe(request.user, self.object.escala.equipe):
+            return render(request, '403_forbidden.html', status=403)
+        return self.render_to_response(self.get_context_data(object=self.object))
+
     def get_object(self):
         # Obtenha a escala pelo ID fornecido na URL
         escala_id = self.kwargs.get('escala_id')

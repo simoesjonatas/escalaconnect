@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from equipe.models import Equipe, MembrosEquipe, Lideranca
 from evento.models import Evento
-from escala.models import Funcao, Escala
+from escala.models import Funcao, Escala, Desistencia, SolicitacaoTroca
 from planejamento.models import Planejamento, PlanejamentoFuncao
 from disponivel.models import Disponivel
 from ocupado.models import Ocupado
@@ -698,3 +698,137 @@ class MinhaAgendaIcsTests(TestCase):
         body = resp.content.decode('utf-8')
         self.assertIn('Evento Futuro ICS', body)
         self.assertNotIn('Evento Passado ICS', body)
+
+
+class AprovacaoDesistenciaETrocaPermissaoTests(TestCase):
+    """Só a liderança da equipe da escala (ou staff) analisa/aprova desistências e trocas."""
+
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Recepção AP")
+        self.outra_equipe = Equipe.objects.create(nome="Som AP")
+        self.funcao = Funcao.objects.create(nome="Porta", equipe=self.equipe)
+        base = (timezone.now() + timedelta(days=4)).replace(
+            hour=19, minute=0, second=0, microsecond=0
+        )
+        self.evento = Evento.objects.create(
+            nome="Culto AP", data_inicio=base, data_fim=base + timedelta(hours=2)
+        )
+        self.voluntario = self._usuario("vol_ap")
+        self.intruso = self._usuario("intruso_ap")
+        self.lider = self._usuario("lider_ap")
+        self.lider_outra = self._usuario("lider_outra_ap")
+        Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+        Lideranca.objects.create(usuario=self.lider_outra, equipe=self.outra_equipe)
+
+        self.escala = Escala.objects.create(
+            usuario=self.voluntario, funcao=self.funcao, evento=self.evento,
+            confirmada=True, data_confirmacao=timezone.now(),
+        )
+        self.desistencia = Desistencia.objects.create(
+            escala=self.escala, usuario=self.voluntario, motivo="Viagem"
+        )
+        self.troca = SolicitacaoTroca.objects.create(
+            escala_origem=self.escala, solicitante=self.voluntario,
+            tipo_solicitacao="troca", data_solicitacao=timezone.now(),
+        )
+
+    def _usuario(self, username, **extra):
+        user = criar_usuario(username)
+        user.is_first_login = False
+        user.termo_aceito_em = timezone.now()
+        for campo, valor in extra.items():
+            setattr(user, campo, valor)
+        user.save()
+        return user
+
+    def _assert_nada_aprovado(self):
+        self.desistencia.refresh_from_db()
+        self.troca.refresh_from_db()
+        self.escala.refresh_from_db()
+        self.assertFalse(self.desistencia.aprovada)
+        self.assertFalse(self.troca.aprovada)
+        self.assertEqual(self.escala.usuario, self.voluntario)
+        self.assertTrue(self.escala.confirmada)
+
+    def _urls(self):
+        return {
+            'aprovar_desistencia': reverse('aprovar_desistencia', args=[self.desistencia.pk]),
+            'aprovar_troca': reverse('aprovar_solicitacao_troca', args=[self.troca.pk]),
+            'detalhes_desistencia': reverse('detalhes_desistencia_escala', args=[self.escala.pk]),
+            'detalhes_troca': reverse('detalhes_solicitacao_troca', args=[self.troca.pk]),
+        }
+
+    def _assert_tudo_403(self, user):
+        self.client.force_login(user)
+        urls = self._urls()
+        for nome in ('aprovar_desistencia', 'aprovar_troca'):
+            resp = self.client.post(urls[nome])
+            self.assertEqual(resp.status_code, 403, nome)
+        for nome, url in urls.items():
+            resp = self.client.get(url)
+            self.assertEqual(resp.status_code, 403, nome)
+        self._assert_nada_aprovado()
+
+    def test_voluntario_comum_recebe_403_e_nada_e_aprovado(self):
+        self._assert_tudo_403(self.intruso)
+
+    def test_lider_de_outra_equipe_recebe_403_e_nada_e_aprovado(self):
+        self._assert_tudo_403(self.lider_outra)
+
+    def test_anonimo_e_redirecionado_para_login(self):
+        for nome, url in self._urls().items():
+            resp = self.client.post(url)
+            self.assertEqual(resp.status_code, 302, nome)
+            self.assertIn('?next=', resp['Location'], nome)
+        self._assert_nada_aprovado()
+
+    def test_lider_da_equipe_ve_detalhes(self):
+        self.client.force_login(self.lider)
+        urls = self._urls()
+        self.assertEqual(self.client.get(urls['detalhes_desistencia']).status_code, 200)
+        self.assertEqual(self.client.get(urls['detalhes_troca']).status_code, 200)
+
+    def test_lider_da_equipe_aprova_desistencia(self):
+        self.client.force_login(self.lider)
+        resp = self.client.post(self._urls()['aprovar_desistencia'])
+        self.assertEqual(resp.status_code, 302)
+        self.desistencia.refresh_from_db()
+        self.escala.refresh_from_db()
+        self.assertTrue(self.desistencia.aprovada)
+        self.assertIsNone(self.escala.usuario)
+        self.assertFalse(self.escala.confirmada)
+
+    def test_lider_da_equipe_aprova_troca(self):
+        self.client.force_login(self.lider)
+        resp = self.client.post(self._urls()['aprovar_troca'])
+        self.assertEqual(resp.status_code, 302)
+        self.troca.refresh_from_db()
+        self.escala.refresh_from_db()
+        self.assertTrue(self.troca.aprovada)
+        self.assertEqual(self.troca.lider_aprovador, self.lider)
+        self.assertIsNone(self.escala.usuario)
+        self.assertFalse(self.escala.confirmada)
+
+    def test_aprovar_troca_por_get_nao_aprova(self):
+        self.client.force_login(self.lider)
+        resp = self.client.get(self._urls()['aprovar_troca'])
+        self.assertEqual(resp.status_code, 302)
+        self._assert_nada_aprovado()
+
+    def test_reaprovar_troca_nao_limpa_escala_novamente(self):
+        self.client.force_login(self.lider)
+        url = self._urls()['aprovar_troca']
+        self.client.post(url)
+        self.escala.usuario = self.intruso  # vaga já foi repassada a outro voluntário
+        self.escala.save()
+        self.client.post(url)
+        self.escala.refresh_from_db()
+        self.assertEqual(self.escala.usuario, self.intruso)
+
+    def test_staff_aprova_troca_sem_ser_lider(self):
+        staff = self._usuario("staff_ap", is_staff=True)
+        self.client.force_login(staff)
+        resp = self.client.post(self._urls()['aprovar_troca'])
+        self.assertEqual(resp.status_code, 302)
+        self.troca.refresh_from_db()
+        self.assertTrue(self.troca.aprovada)
