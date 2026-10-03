@@ -14,6 +14,7 @@ from equipe.models import Equipe
 from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
 from escalaconnect.tasks import enviar_email_confirmacao_task
+from escalaconnect.notificacoes import pedir_confirmacao
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
@@ -249,20 +250,14 @@ def evento_detail(request, pk):
         'pode_gerenciar': pode_gerenciar,
     })
 
+@login_required(login_url='/login/')
 def view_enviar_confirmacao(request, evento_id):
     evento = get_object_or_404(Evento, pk=evento_id)
+    if not evento.pode_ser_gerenciada_por(request.user):
+        return render(request, '403_forbidden.html', status=403)
 
-    escalas_nao_confirmadas = (
-        Escala.objects
-        .filter(evento=evento, confirmada=False)
-        .select_related("usuario", "funcao", "funcao__equipe")
-        .exclude(usuario__email__isnull=True)
-        .exclude(usuario__email__exact="")
-    )
-
-    total = escalas_nao_confirmadas.count()
-    for escala in escalas_nao_confirmadas:
-        enviar_email_confirmacao_task.delay(escala.id)
+    # E-mail para quem tem e-mail e push para quem tem o app.
+    total = pedir_confirmacao(evento)
 
     if total:
         messages.success(request, f"{total} e-mail(s) de confirmação publicado(s) para envio.")
@@ -271,20 +266,13 @@ def view_enviar_confirmacao(request, evento_id):
 
     return redirect('evento_detail', pk=evento_id)
 
+@login_required(login_url='/login/')
 def view_enviar_lembrete(request, evento_id):
     evento = get_object_or_404(Evento, pk=evento_id)
+    if not evento.pode_ser_gerenciada_por(request.user):
+        return render(request, '403_forbidden.html', status=403)
 
-    escalas_pendentes = (
-        Escala.objects
-        .filter(evento=evento, confirmada=False)
-        .select_related("usuario", "funcao", "funcao__equipe")
-        .exclude(usuario__email__isnull=True)
-        .exclude(usuario__email__exact="")
-    )
-
-    total = escalas_pendentes.count()
-    for escala in escalas_pendentes:
-        enviar_email_confirmacao_task.delay(escala.id)
+    total = pedir_confirmacao(evento, lembrete=True)
 
     if total:
         messages.success(request, f"{total} lembrete(s) de escala publicado(s) para envio.")

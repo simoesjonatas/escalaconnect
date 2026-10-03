@@ -8,6 +8,7 @@ import calendar
 
 from django.apps import apps
 from django.conf import settings
+from escalaconnect.push import notificar_push
 from django.db.models import Q
 from django.template.loader import render_to_string
 from django.urls import reverse, NoReverseMatch
@@ -120,6 +121,14 @@ def disparar_pedido_disponibilidades(ano: int, mes: int, equipe_id: int | None =
 
     # print("DEBUG eventos_mes:", list(eventos_mes))
     # print("DEBUG usuarios_com_disp_ids:", list(usuarios_com_disp_ids))
+
+    # Push para quem tem o app, mesmo sem e-mail cadastrado (no máximo 1 por dia).
+    for usuario_id in usuarios_qs.exclude(id__in=usuarios_com_disp_ids).values_list("id", flat=True):
+        notificar_push(
+            usuario_id, "Informe sua disponibilidade",
+            f"A liderança precisa saber quando você pode servir em {mes_legivel}.",
+            tipo="disponibilidade", purpose=Notification.PURPOSE_AVAILABILITY, throttle_horas=24,
+        )
 
     # --- faltantes: sem disponibilidade e com e-mail válido ---
     faltantes_qs = (

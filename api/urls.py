@@ -4,7 +4,7 @@ from django.urls import path, re_path
 from disponivel.services import disponibilidades
 from ocupado.services import indisponibilidades
 
-from .views import conta, equipes, escalas, eventos, periodos
+from .views import conta, devices, equipes, escalas, eventos, periodos
 from .views.auth import LoginView, LogoutAllView, LogoutView
 from .views.conta import MeView, MetaView
 
@@ -50,6 +50,9 @@ urlpatterns = [
 
     path('equipes/', equipes.EquipeListView.as_view(), name='api_equipes'),
     path('equipes/<int:pk>/candidatura/', equipes.CandidaturaView.as_view(), name='api_candidatura'),
+
+    path('devices/', devices.DeviceView.as_view(), name='api_devices'),
+    path('devices/<str:token>/', devices.DeviceDetailView.as_view(), name='api_device'),
 
     re_path(r'^.*$', nao_encontrado),
 ]

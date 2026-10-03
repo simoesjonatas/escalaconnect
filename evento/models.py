@@ -92,20 +92,30 @@ class Notification(models.Model):
     CHANNEL_EMAIL = "email"
     CHANNEL_WPP = "whatsapp"
     CHANNEL_TG = "telegram"
+    CHANNEL_PUSH = "push"  # notificação no app mobile
     CHANNEL_CHOICES = [
         (CHANNEL_EMAIL, "Email"),
         (CHANNEL_WPP, "WhatsApp"),
         (CHANNEL_TG, "Telegram"),
+        (CHANNEL_PUSH, "Push (app)"),
     ]
 
     PURPOSE_CONFIRM = "confirmacao_escala"
     PURPOSE_REMINDER = "lembrete_escala"
     PURPOSE_AVAILABILITY = "availability_reminder"
+    PURPOSE_ASSIGNED = "escalado"
+    PURPOSE_SWAP_APPROVED = "troca_aprovada"
+    PURPOSE_WITHDRAWAL_APPROVED = "desistencia_aprovada"
+    PURPOSE_MEMBER_APPROVED = "membro_aprovado"
 
     PURPOSE_CHOICES = [
         (PURPOSE_CONFIRM, "Confirmação de Escala"),
         (PURPOSE_AVAILABILITY, "Lembrar disponibilidades"),
         (PURPOSE_REMINDER, "Lembrete de Escala"),
+        (PURPOSE_ASSIGNED, "Escalado"),
+        (PURPOSE_SWAP_APPROVED, "Troca aprovada"),
+        (PURPOSE_WITHDRAWAL_APPROVED, "Desistência aprovada"),
+        (PURPOSE_MEMBER_APPROVED, "Entrada na equipe aprovada"),
     ]
 
     escala = models.ForeignKey("escala.Escala", on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)

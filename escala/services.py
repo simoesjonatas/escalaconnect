@@ -1,7 +1,9 @@
 """Regras das escalas do voluntário, compartilhadas entre o site e a API do app."""
 from django.utils import timezone
 
+from escalaconnect.push import notificar_push, quando
 from escalaconnect.regras import RegraDeNegocio
+from evento.models import Notification
 
 from .models import Desistencia, Escala, SolicitacaoTroca
 
@@ -13,6 +15,14 @@ def escalas_futuras(usuario):
         # "Hoje" no fuso local: com a data em UTC, depois das 21h os eventos
         # do próprio dia sumiam da lista.
         evento__data_inicio__date__gte=timezone.localdate(),
+    )
+
+
+def _avisar_saida_da_escala(usuario_id, escala, titulo, purpose):
+    evento = escala.evento
+    notificar_push(
+        usuario_id, titulo, f'Você não está mais escalado em {evento.nome} ({quando(evento)}).',
+        tipo='saiu_da_escala', purpose=purpose, escala_id=escala.pk,
     )
 
 
@@ -64,6 +74,8 @@ def aprovar_desistencia(desistencia):
     desistencia.data_aprovacao = timezone.now()
     desistencia.save()
     desistencia.escala.clear_escala()
+    _avisar_saida_da_escala(
+        desistencia.usuario_id, desistencia.escala, 'Impedimento aceito', Notification.PURPOSE_WITHDRAWAL_APPROVED)
     return True
 
 
@@ -104,4 +116,6 @@ def aprovar_troca(troca, lider):
     troca.data_aprovacao = timezone.now()
     troca.save()
     troca.escala_origem.clear_escala()
+    _avisar_saida_da_escala(
+        troca.solicitante_id, troca.escala_origem, 'Troca aprovada', Notification.PURPOSE_SWAP_APPROVED)
     return True

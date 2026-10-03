@@ -10,6 +10,11 @@ from equipe.models import Equipe, MembrosEquipe
 from django.db.models import Count
 from escalaconnect.tasks import enviar_email_confirmacao_task
 from escalaconnect.services import pendencias_home
+from escalaconnect.notificacoes import pedir_confirmacao
+from escalaconnect.confirmacao import usuario_do_token
+from escalaconnect.regras import RegraDeNegocio
+from escala.services import confirmar_escala
+from django.contrib.auth.views import redirect_to_login
 from django.utils import timezone
 from django.urls import reverse
 
@@ -64,30 +69,37 @@ def custom_403(request, exception):
 def redirect_to_home(request, exception=None):
     return HttpResponseRedirect('/')
 
+@login_required(login_url='/login/')
 def view_enviar_confirmacao(request, evento_id):
     evento = get_object_or_404(Evento, pk=evento_id)
+    if not evento.pode_ser_gerenciada_por(request.user):
+        return render(request, '403_forbidden.html', status=403)
 
-    escalas = (
-        Escala.objects
-        .filter(evento=evento, confirmada=False)
-        .select_related("usuario", "funcao", "funcao__equipe")
-        .exclude(usuario__email__isnull=True)
-        .exclude(usuario__email__exact="")
-    )
-
-    for escala in escalas:
-        enviar_email_confirmacao_task.delay(escala.id)
-
-    if escalas.exists():
-        messages.success(request, f"Enfileirados {escalas.count()} e-mails de confirmação.")
+    total = pedir_confirmacao(evento)
+    if total:
+        messages.success(request, f"Enfileirados {total} e-mails de confirmação.")
     else:
         messages.info(request, "Ninguém pendente de confirmação com e-mail cadastrado.")
     return redirect("evento_detail", pk=evento_id)
 
 def confirmar_presenca(request, evento_id, escala_id):
+    """Confirmação pelo link do e-mail, sem exigir login.
+
+    O link leva um token assinado (escalaconnect/confirmacao.py) que só vale para
+    aquela escala e aquele voluntário. Sem token válido, só confirma se quem está
+    logado é o dono da escala; caso contrário, manda para o login.
+    """
     escala = get_object_or_404(Escala, pk=escala_id, evento_id=evento_id)
-    escala.confirmada = True
-    escala.data_confirmacao = timezone.now()
-    escala.save(update_fields=["confirmada", "data_confirmacao"])
-    messages.success(request, "Presença confirmada – obrigado!")
-    return HttpResponseRedirect(reverse("minhas_escalas"))  # ajuste para sua rota de “Minhas Escalas”
+    usuario_id = usuario_do_token(request.GET.get('t', ''), escala)
+    if usuario_id is None and request.user.is_authenticated:
+        usuario_id = request.user.pk
+    if usuario_id is None or escala.usuario_id != usuario_id:
+        messages.error(request, "Entre na sua conta para confirmar esta escala.")
+        return redirect_to_login(reverse("minhas_escalas"), login_url='/login/')
+
+    try:
+        confirmar_escala(escala, escala.usuario)
+        messages.success(request, "Presença confirmada – obrigado!")
+    except RegraDeNegocio as erro:
+        (messages.info if erro.code == 'ja_confirmada' else messages.error)(request, str(erro))
+    return HttpResponseRedirect(reverse("minhas_escalas"))

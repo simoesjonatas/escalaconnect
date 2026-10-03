@@ -50,4 +50,5 @@ class LogoutAllView(APIView):
 
     def post(self, request):
         request.user.auth_token_set.all().delete()
+        request.user.devices.update(ativo=False)
         return Response(status=status.HTTP_204_NO_CONTENT)

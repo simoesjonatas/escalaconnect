@@ -1,3 +1,5 @@
+from escalaconnect.push import notificar_push
+from evento.models import Notification
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.core.paginator import Paginator
@@ -93,6 +95,10 @@ def aprovar_membro(request, equipe_pk, membro_pk):
     membro = get_object_or_404(MembrosEquipe, pk=membro_pk, equipe_id=equipe_pk)
     membro.aprovado = True
     membro.save()
+    notificar_push(
+        membro.usuario_id, 'Você entrou na equipe', f'Sua entrada na equipe {membro.equipe.nome} foi aprovada.',
+        tipo='membro_aprovado', purpose=Notification.PURPOSE_MEMBER_APPROVED,
+    )
     return redirect('listar_membros_pendentes', equipe_pk=equipe_pk)
 
 @require_lideranca

@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "Escala Connect",
+    "slug": "jonatas",
+    "scheme": "escalaconnect",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "br.org.pibvp.connect"
+    },
+    "android": {
+      "package": "br.org.pibvp.connect",
+      "adaptiveIcon": {
+        "backgroundColor": "#111111",
+        "foregroundImage": "./assets/android-icon-foreground.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-notifications"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9e3287a1-27d9-4427-9417-e02107756f2a"
+      }
+    },
+    "owner": "jonatassimoess-team",
+    "updates": {
+      "url": "https://u.expo.dev/9e3287a1-27d9-4427-9417-e02107756f2a"
+    }
+  }
+}

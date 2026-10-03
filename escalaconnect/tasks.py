@@ -7,6 +7,7 @@ from django.conf import settings
 
 from escala.models import Escala
 from evento.models import Notification, NotificationAttempt  # <- agora vem de evento.models
+from escalaconnect.confirmacao import token_de_confirmacao
 
 # @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3)
 @shared_task(bind=True, autoretry_for=(Exception,), retry_backoff=True, max_retries=3, rate_limit="30/m")
@@ -45,7 +46,7 @@ def enviar_email_confirmacao_task(self, escala_id: int):
     evento_data = formats.date_format(evento.data_inicio, "l, d \\d\\e F \\d\\e Y", use_l10n=True)
     evento_hora = formats.date_format(evento.data_inicio, "H:i", use_l10n=True)
 
-    confirm_url = _build_confirm_url(evento_id=evento.id, escala_id=escala.id)
+    confirm_url = _build_confirm_url(escala)
 
     contexto = {
         "usuario_nome": (getattr(usuario, "first_name", "") or usuario.get_username()) if usuario else "Colaborador(a)",
@@ -107,7 +108,8 @@ def enviar_email_confirmacao_task(self, escala_id: int):
         notif.save(update_fields=["total_attempts", "last_status", "last_error", "updated_at"])
         raise  # deixa o Celery re-tentar
 
-def _build_confirm_url(evento_id: int, escala_id: int) -> str:
+def _build_confirm_url(escala) -> str:
     base = getattr(settings, "SITE_URL", "https://connect.pibvp.org.br")
-    path = reverse("minhas_escalas_confirmar", kwargs={"evento_id": evento_id, "escala_id": escala_id})
-    return f"{base}{path}"
+    path = reverse("minhas_escalas_confirmar", kwargs={"evento_id": escala.evento_id, "escala_id": escala.id})
+    # Token assinado: o link só confirma esta escala, para este voluntário.
+    return f"{base}{path}?t={token_de_confirmacao(escala)}"

@@ -1,0 +1,2 @@
+# O app mobile (com seu node_modules) não faz parte da imagem do backend.
+mobile/
