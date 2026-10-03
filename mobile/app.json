@@ -11,7 +11,7 @@
       "policy": "appVersion"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "br.org.pibvp.connect",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
