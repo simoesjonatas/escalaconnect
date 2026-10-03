@@ -137,3 +137,6 @@ docker-compose.override.yml
 
 # Local task notes
 task.md
+
+# Arquivo do Firebase: fica fora do repositório (público); o EAS recebe como variável secreta GOOGLE_SERVICES_JSON.
+mobile/google-services.json
