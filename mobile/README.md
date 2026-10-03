@@ -6,8 +6,9 @@ deste repositório (app `api/`). Android primeiro; o mesmo código serve para iO
 ## O que o app faz (v1, só voluntário)
 
 Login, primeiro acesso (definir senha e aceitar o termo), início com pendências, minhas
-escalas (confirmar, sinalizar impedimento, pedir/cancelar troca), calendário, disponibilidades
-e indisponibilidades, minhas equipes, contato e troca de senha. Líder e admin usam o site.
+escalas (confirmar, sinalizar impedimento, pedir/cancelar troca), calendário, disponibilidade
+pelos eventos (como no site), minhas equipes, contato e troca de senha. Tema claro/escuro segue o
+aparelho. Líder e admin usam o site.
 
 ## Estrutura
 

@@ -52,7 +52,7 @@ export type Home = {
   proxima_escala: Escala | null;
 };
 
-export type Periodo = {
+export type Disponibilidade = {
   id: number;
   data_inicio: string;
   data_fim: string;
@@ -63,6 +63,3 @@ export type Periodo = {
 export type Equipe = { id: number; nome: string };
 
 export type Equipes = { aprovadas: Equipe[]; pendentes: Equipe[]; disponiveis: Equipe[] };
-
-/** Os dois tipos de período têm as mesmas rotas na API. */
-export type TipoPeriodo = 'disponibilidades' | 'indisponibilidades';

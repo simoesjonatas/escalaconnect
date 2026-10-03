@@ -1,18 +1,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { periodo } from '../../lib/datas';
-import { useEventosElegiveis, useMudarPeriodos } from '../../lib/hooks';
-import { tipoDoParametro } from '../../lib/periodo-ui';
-import { cores } from '../../lib/tema';
+import { useEventosElegiveis, useMudarDisponibilidades } from '../../lib/hooks';
+import { useTema } from '../../lib/tema';
 import { Botao, Cartao, Erro, Estado, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
 
 export default function PorEvento() {
-  const tipo = tipoDoParametro(useLocalSearchParams<{ tipo?: string }>().tipo);
-  const eventos = useEventosElegiveis(tipo);
-  const mudar = useMudarPeriodos(tipo);
+  const eventos = useEventosElegiveis();
+  const mudar = useMudarDisponibilidades();
+  const { cores } = useTema();
   const [marcados, setMarcados] = useState<number[]>([]);
 
   const alternar = (id: number) =>
@@ -20,11 +19,7 @@ export default function PorEvento() {
 
   return (
     <Tela atualizando={eventos.isRefetching} aoAtualizar={() => eventos.refetch()}>
-      <Texto>
-        {tipo === 'disponibilidades'
-          ? 'Marque os eventos dos próximos 60 dias em que você pode servir.'
-          : 'Marque os eventos dos próximos 60 dias em que você não pode servir.'}
-      </Texto>
+      <Texto>Marque os eventos dos próximos 60 dias em que você pode servir.</Texto>
       <Estado consulta={eventos} vazio={eventos.data?.length === 0 && 'Não há eventos novos para marcar.'} />
       {eventos.data?.map((evento) => {
         const marcado = marcados.includes(evento.id);

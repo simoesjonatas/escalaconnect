@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from './api';
-import { Equipes, Escala, Evento, EventoCalendario, Home, Periodo, TipoPeriodo } from './types';
+import { Disponibilidade, Equipes, Escala, Evento, EventoCalendario, Home } from './types';
 
 export const useHome = () => useQuery({ queryKey: ['home'], queryFn: () => api<Home>('GET', '/home/') });
 
@@ -46,32 +46,27 @@ export const useEventos = (inicio: string, fim: string) =>
     queryFn: () => api<EventoCalendario[]>('GET', `/eventos/?inicio=${inicio}&fim=${fim}`),
   });
 
-export const usePeriodos = (tipo: TipoPeriodo) =>
-  useQuery({ queryKey: ['periodos', tipo], queryFn: () => api<Periodo[]>('GET', `/${tipo}/`) });
+export const useDisponibilidades = () =>
+  useQuery({ queryKey: ['disponibilidades'], queryFn: () => api<Disponibilidade[]>('GET', '/disponibilidades/') });
 
-export const useEventosElegiveis = (tipo: TipoPeriodo) =>
-  useQuery({ queryKey: ['periodos', tipo, 'eventos'], queryFn: () => api<Evento[]>('GET', `/${tipo}/eventos/`) });
+/** Eventos dos próximos 60 dias em que o voluntário ainda não marcou disponibilidade. */
+export const useEventosElegiveis = () =>
+  useQuery({
+    queryKey: ['disponibilidades', 'eventos'],
+    queryFn: () => api<Evento[]>('GET', '/disponibilidades/eventos/'),
+  });
 
-export type MudancaDePeriodo =
-  | { acao: 'criar'; data_inicio: string; data_fim: string }
-  | { acao: 'por-evento'; evento_ids: number[] }
-  | { acao: 'excluir'; id: number };
+export type MudancaDeDisponibilidade = { acao: 'por-evento'; evento_ids: number[] } | { acao: 'excluir'; id: number };
 
-export function useMudarPeriodos(tipo: TipoPeriodo) {
+export function useMudarDisponibilidades() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (mudanca: MudancaDePeriodo) => {
-      switch (mudanca.acao) {
-        case 'criar':
-          return api('POST', `/${tipo}/`, { data_inicio: mudanca.data_inicio, data_fim: mudanca.data_fim });
-        case 'por-evento':
-          return api('POST', `/${tipo}/por-evento/`, { evento_ids: mudanca.evento_ids });
-        case 'excluir':
-          return api('DELETE', `/${tipo}/${mudanca.id}/`);
-      }
-    },
+    mutationFn: (mudanca: MudancaDeDisponibilidade) =>
+      mudanca.acao === 'por-evento'
+        ? api('POST', '/disponibilidades/por-evento/', { evento_ids: mudanca.evento_ids })
+        : api('DELETE', `/disponibilidades/${mudanca.id}/`),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['periodos'] });
+      void queryClient.invalidateQueries({ queryKey: ['disponibilidades'] });
       void queryClient.invalidateQueries({ queryKey: ['home'] });
     },
   });

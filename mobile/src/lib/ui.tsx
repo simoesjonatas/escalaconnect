@@ -1,6 +1,8 @@
-import { ReactNode } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -8,13 +10,14 @@ import {
   Text,
   TextInput,
   TextInputProps,
+  TextStyle,
   View,
   ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { mensagemDeErro } from './api';
-import { cores, espaco } from './tema';
+import { espaco, useTema } from './tema';
 
 /** Tela rolável com "puxar para atualizar". */
 export function Tela({
@@ -29,13 +32,18 @@ export function Tela({
   /** Respeita a área segura de cima (telas sem cabeçalho do navegador). */
   comTopo?: boolean;
 }) {
+  const { cores } = useTema();
   return (
-    <SafeAreaView style={estilos.tela} edges={comTopo ? ['top', 'left', 'right'] : ['left', 'right']}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: cores.fundo }}
+      edges={comTopo ? ['top', 'left', 'right'] : ['left', 'right']}>
       <ScrollView
         contentContainerStyle={estilos.conteudo}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          aoAtualizar ? <RefreshControl refreshing={!!atualizando} onRefresh={aoAtualizar} /> : undefined
+          aoAtualizar ? (
+            <RefreshControl refreshing={!!atualizando} onRefresh={aoAtualizar} tintColor={cores.primaria} />
+          ) : undefined
         }>
         {children}
       </ScrollView>
@@ -44,13 +52,34 @@ export function Tela({
 }
 
 export function Cartao({ children, style }: { children: ReactNode; style?: ViewStyle }) {
-  return <View style={[estilos.cartao, style]}>{children}</View>;
+  const { cores } = useTema();
+  return (
+    <View style={[estilos.cartao, { backgroundColor: cores.cartao, borderColor: cores.borda }, style]}>{children}</View>
+  );
 }
 
-export const Titulo = ({ children }: { children: ReactNode }) => <Text style={estilos.titulo}>{children}</Text>;
-export const Subtitulo = ({ children }: { children: ReactNode }) => <Text style={estilos.subtitulo}>{children}</Text>;
-export const Texto = ({ children }: { children: ReactNode }) => <Text style={estilos.texto}>{children}</Text>;
-export const Suave = ({ children }: { children: ReactNode }) => <Text style={estilos.suave}>{children}</Text>;
+function texto(estilo: TextStyle, suave = false) {
+  return function Texto({ children, style }: { children: ReactNode; style?: TextStyle }) {
+    const { cores } = useTema();
+    return <Text style={[estilo, { color: suave ? cores.textoSuave : cores.texto }, style]}>{children}</Text>;
+  };
+}
+
+export const Titulo = texto({ fontSize: 24, fontWeight: '700' });
+export const Subtitulo = texto({ fontSize: 17, fontWeight: '600' });
+export const Texto = texto({ fontSize: 15, lineHeight: 21 });
+export const Suave = texto({ fontSize: 14, lineHeight: 20 }, true);
+
+/** Logo da marca (o mesmo arquivo do ícone do app). */
+export function Logo({ tamanho = 96 }: { tamanho?: number }) {
+  return (
+    <Image
+      source={require('../../assets/icon.png')}
+      style={{ width: tamanho, height: tamanho, borderRadius: tamanho / 5 }}
+      accessibilityLabel="Connect"
+    />
+  );
+}
 
 export function Botao({
   titulo,
@@ -65,6 +94,7 @@ export function Botao({
   carregando?: boolean;
   desabilitado?: boolean;
 }) {
+  const { cores } = useTema();
   const cheio = variante === 'primario';
   const cor = variante === 'perigo' ? cores.perigo : cores.primaria;
   return (
@@ -86,11 +116,35 @@ export function Botao({
   );
 }
 
-export function Campo({ rotulo, ...props }: { rotulo: string } & TextInputProps) {
+export function Campo({ rotulo, senha, ...props }: { rotulo: string; senha?: boolean } & TextInputProps) {
+  const { cores } = useTema();
+  const [mostrar, setMostrar] = useState(false);
   return (
     <View style={{ gap: 4 }}>
-      <Text style={estilos.rotulo}>{rotulo}</Text>
-      <TextInput placeholderTextColor={cores.textoSuave} {...props} style={[estilos.campo, props.style]} />
+      <Text style={[estilos.rotulo, { color: cores.texto }]}>{rotulo}</Text>
+      <View>
+        <TextInput
+          placeholderTextColor={cores.textoSuave}
+          secureTextEntry={senha && !mostrar}
+          {...props}
+          style={[
+            estilos.campo,
+            { borderColor: cores.borda, backgroundColor: cores.cartao, color: cores.texto },
+            senha && { paddingRight: 48 },
+            props.style,
+          ]}
+        />
+        {senha && (
+          <Pressable
+            onPress={() => setMostrar((m) => !m)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={mostrar ? 'Ocultar senha' : 'Mostrar senha'}
+            style={estilos.olho}>
+            <Ionicons name={mostrar ? 'eye-off-outline' : 'eye-outline'} size={22} color={cores.textoSuave} />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -104,8 +158,9 @@ export function Etiqueta({ texto, cor }: { texto: string; cor: string }) {
 }
 
 export function Erro({ erro }: { erro: unknown }) {
+  const { cores } = useTema();
   if (!erro) return null;
-  return <Text style={estilos.erro}>{mensagemDeErro(erro)}</Text>;
+  return <Text style={{ color: cores.perigo, fontSize: 14 }}>{mensagemDeErro(erro)}</Text>;
 }
 
 /** Estados de uma consulta: carregando, erro (com "tentar de novo") ou vazio. Devolve null se há o que mostrar. */
@@ -116,6 +171,7 @@ export function Estado({
   consulta: { isPending: boolean; error: unknown; refetch: () => unknown };
   vazio?: string | false;
 }) {
+  const { cores } = useTema();
   if (consulta.isPending) return <ActivityIndicator style={{ marginTop: espaco.gg }} color={cores.primaria} />;
   if (consulta.error) {
     return (
@@ -125,25 +181,13 @@ export function Estado({
       </Cartao>
     );
   }
-  if (vazio) return <Text style={[estilos.suave, { textAlign: 'center', marginTop: espaco.gg }]}>{vazio}</Text>;
+  if (vazio) return <Suave style={{ textAlign: 'center', marginTop: espaco.gg }}>{vazio}</Suave>;
   return null;
 }
 
 const estilos = StyleSheet.create({
-  tela: { flex: 1, backgroundColor: cores.fundo },
   conteudo: { padding: espaco.g, gap: espaco.m },
-  cartao: {
-    backgroundColor: cores.cartao,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    padding: espaco.g,
-    gap: espaco.p,
-  },
-  titulo: { fontSize: 24, fontWeight: '700', color: cores.texto },
-  subtitulo: { fontSize: 17, fontWeight: '600', color: cores.texto },
-  texto: { fontSize: 15, color: cores.texto, lineHeight: 21 },
-  suave: { fontSize: 14, color: cores.textoSuave, lineHeight: 20 },
+  cartao: { borderRadius: 12, borderWidth: 1, padding: espaco.g, gap: espaco.p },
   botao: {
     minHeight: 48,
     borderRadius: 10,
@@ -153,18 +197,9 @@ const estilos = StyleSheet.create({
     paddingHorizontal: espaco.g,
   },
   botaoTexto: { fontSize: 16, fontWeight: '600' },
-  rotulo: { fontSize: 14, fontWeight: '600', color: cores.texto },
-  campo: {
-    minHeight: 48,
-    borderWidth: 1,
-    borderColor: cores.borda,
-    borderRadius: 10,
-    paddingHorizontal: espaco.m,
-    fontSize: 16,
-    color: cores.texto,
-    backgroundColor: cores.cartao,
-  },
+  rotulo: { fontSize: 14, fontWeight: '600' },
+  campo: { minHeight: 48, borderWidth: 1, borderRadius: 10, paddingHorizontal: espaco.m, fontSize: 16 },
+  olho: { position: 'absolute', right: 12, top: 0, bottom: 0, justifyContent: 'center' },
   etiqueta: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   etiquetaTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  erro: { color: cores.perigo, fontSize: 14 },
 });

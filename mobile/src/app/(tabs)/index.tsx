@@ -1,9 +1,10 @@
 import { router } from 'expo-router';
+import { View } from 'react-native';
 
 import { useAuth } from '../../lib/auth';
 import { CartaoDeEscala } from '../../lib/escala-ui';
 import { useHome } from '../../lib/hooks';
-import { Botao, Cartao, Estado, Suave, Subtitulo, Tela, Texto, Titulo } from '../../lib/ui';
+import { Botao, Cartao, Estado, Logo, Suave, Subtitulo, Tela, Texto, Titulo } from '../../lib/ui';
 
 export default function Inicio() {
   const { usuario } = useAuth();
@@ -12,7 +13,10 @@ export default function Inicio() {
 
   return (
     <Tela atualizando={home.isRefetching} aoAtualizar={() => home.refetch()}>
-      <Titulo>Olá, {usuario?.first_name || usuario?.username}</Titulo>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <Logo tamanho={44} />
+        <Titulo>Olá, {usuario?.first_name || usuario?.username}</Titulo>
+      </View>
       <Estado consulta={home} />
       {dados && (
         <>

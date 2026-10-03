@@ -1,7 +1,10 @@
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
+import * as Updates from 'expo-updates';
 import { Alert } from 'react-native';
 
 import { useAuth } from '../../lib/auth';
+import { BUILD_ATUAL } from '../../lib/versao';
 import { Botao, Cartao, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
 
 export default function Perfil() {
@@ -27,6 +30,10 @@ export default function Perfil() {
       <Botao titulo="Minhas equipes" variante="secundario" aoTocar={() => router.push('/equipes')} />
       <Botao titulo="Trocar senha" variante="secundario" aoTocar={() => router.push('/trocar-senha')} />
       <Botao titulo="Sair" variante="perigo" aoTocar={confirmarSaida} />
+      <Suave style={{ textAlign: 'center' }}>
+        Escala Connect {Constants.expoConfig?.version ?? ''} · build {BUILD_ATUAL}
+        {Updates.updateId ? ` · atualização ${Updates.updateId.slice(0, 8)}` : ''}
+      </Suave>
     </Tela>
   );
 }

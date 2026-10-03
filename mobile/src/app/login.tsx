@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Image, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, View } from 'react-native';
 
 import { useAuth } from '../lib/auth';
-import { Botao, Campo, Erro, Suave, Tela, Titulo } from '../lib/ui';
+import { Botao, Campo, Erro, Logo, Suave, Tela, Titulo } from '../lib/ui';
 
 export default function Login() {
   const { entrar } = useAuth();
@@ -26,7 +26,7 @@ export default function Login() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Tela comTopo>
         <View style={{ alignItems: 'center', gap: 8, marginVertical: 32 }}>
-          <Image source={require('../../assets/icon.png')} style={{ width: 96, height: 96, borderRadius: 20 }} />
+          <Logo tamanho={120} />
           <Titulo>Escala Connect</Titulo>
           <Suave>Entre com o mesmo usuário do site.</Suave>
         </View>
@@ -44,7 +44,7 @@ export default function Login() {
           rotulo="Senha"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
+          senha
           textContentType="password"
           returnKeyType="go"
           onSubmitEditing={enviar}

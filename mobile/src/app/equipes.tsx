@@ -1,5 +1,5 @@
 import { useCandidatura, useEquipes } from '../lib/hooks';
-import { cores } from '../lib/tema';
+import { useTema } from '../lib/tema';
 import { Equipe } from '../lib/types';
 import { Botao, Cartao, Erro, Estado, Etiqueta, Suave, Subtitulo, Tela } from '../lib/ui';
 
@@ -8,6 +8,7 @@ export default function Equipes() {
   const candidatura = useCandidatura();
   const ocupada = (equipe: Equipe) => candidatura.isPending && candidatura.variables?.equipeId === equipe.id;
   const dados = equipes.data;
+  const { cores } = useTema();
 
   return (
     <Tela atualizando={equipes.isRefetching} aoAtualizar={() => equipes.refetch()}>

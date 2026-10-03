@@ -1,23 +1,32 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { AuthProvider, EstadoDaSessao, useAuth } from '../lib/auth';
 import { usePush } from '../lib/push';
-import { cores } from '../lib/tema';
+import { useTema } from '../lib/tema';
 import { TelaDeAtualizacao, useAtualizacaoObrigatoria } from '../lib/versao';
 
 export default function RootLayout() {
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } }),
   );
+  const { cores, escuro } = useTema();
+  // Cores do navegador (cabeçalhos, fundo das transições) acompanham o tema do aparelho.
+  const base = escuro ? DarkTheme : DefaultTheme;
+  const tema = {
+    ...base,
+    colors: { ...base.colors, primary: cores.primaria, background: cores.fundo, card: cores.cartao, text: cores.texto, border: cores.borda },
+  };
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <StatusBar style="dark" />
-        <Navegacao />
+        <ThemeProvider value={tema}>
+          <StatusBar style={escuro ? 'light' : 'dark'} />
+          <Navegacao />
+        </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
@@ -26,6 +35,7 @@ export default function RootLayout() {
 /** Cada grupo de telas só existe no estado de sessão correspondente (ver lib/auth.tsx). */
 function Navegacao() {
   const { estado } = useAuth();
+  const { cores } = useTema();
   const atualizacao = useAtualizacaoObrigatoria();
   if (atualizacao) return <TelaDeAtualizacao meta={atualizacao} />;
   if (estado === 'carregando') {
@@ -49,8 +59,16 @@ function Push() {
 }
 
 function Telas({ estado }: { estado: EstadoDaSessao }) {
+  const { cores } = useTema();
   return (
-    <Stack screenOptions={{ headerTintColor: cores.primaria, headerTitleStyle: { color: cores.texto } }}>
+    <Stack
+      screenOptions={{
+        headerTintColor: cores.primaria,
+        headerTitleStyle: { color: cores.texto },
+        headerStyle: { backgroundColor: cores.cartao },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: cores.fundo },
+      }}>
       <Stack.Protected guard={estado === 'anonimo'}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
       </Stack.Protected>
@@ -63,8 +81,7 @@ function Telas({ estado }: { estado: EstadoDaSessao }) {
       <Stack.Protected guard={estado === 'liberado'}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="escala/[id]" options={{ title: 'Escala' }} />
-        <Stack.Screen name="periodo/novo" options={{ title: 'Novo período' }} />
-        <Stack.Screen name="periodo/por-evento" options={{ title: 'Escolher eventos' }} />
+        <Stack.Screen name="periodo/por-evento" options={{ title: 'Registrar disponibilidade' }} />
         <Stack.Screen name="equipes" options={{ title: 'Minhas equipes' }} />
         <Stack.Screen name="contato" options={{ title: 'Meu contato' }} />
         <Stack.Screen name="trocar-senha" options={{ title: 'Trocar senha' }} />

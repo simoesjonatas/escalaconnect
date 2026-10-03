@@ -28,13 +28,13 @@ export default function TrocarSenha() {
 
   return (
     <Tela>
-      <Campo rotulo="Senha atual" value={atual} onChangeText={setAtual} secureTextEntry textContentType="password" />
-      <Campo rotulo="Nova senha" value={nova} onChangeText={setNova} secureTextEntry textContentType="newPassword" />
+      <Campo rotulo="Senha atual" value={atual} onChangeText={setAtual} senha textContentType="password" />
+      <Campo rotulo="Nova senha" value={nova} onChangeText={setNova} senha textContentType="newPassword" />
       <Campo
         rotulo="Repita a nova senha"
         value={confirmacao}
         onChangeText={setConfirmacao}
-        secureTextEntry
+        senha
         textContentType="newPassword"
       />
       {diferentes && <Suave>As senhas não são iguais.</Suave>}

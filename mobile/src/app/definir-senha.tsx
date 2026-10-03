@@ -29,12 +29,12 @@ export default function DefinirSenha() {
     <Tela comTopo>
       <Titulo>Crie sua senha</Titulo>
       <Suave>Este é seu primeiro acesso. Escolha uma senha nova para continuar.</Suave>
-      <Campo rotulo="Nova senha" value={senha} onChangeText={setSenha} secureTextEntry textContentType="newPassword" />
+      <Campo rotulo="Nova senha" value={senha} onChangeText={setSenha} senha textContentType="newPassword" />
       <Campo
         rotulo="Repita a nova senha"
         value={confirmacao}
         onChangeText={setConfirmacao}
-        secureTextEntry
+        senha
         textContentType="newPassword"
       />
       {diferentes && <Suave>As senhas não são iguais.</Suave>}

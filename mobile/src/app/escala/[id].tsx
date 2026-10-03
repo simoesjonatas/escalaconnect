@@ -4,6 +4,7 @@ import { Alert } from 'react-native';
 
 import { periodo } from '../../lib/datas';
 import { situacaoDaEscala } from '../../lib/escala-ui';
+import { useTema } from '../../lib/tema';
 import { useAcaoDeEscala, useEscala } from '../../lib/hooks';
 import { Botao, Campo, Cartao, Erro, Estado, Etiqueta, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
 
@@ -14,6 +15,7 @@ export default function DetalheDaEscala() {
   const [informandoMotivo, setInformandoMotivo] = useState(false);
   const [motivo, setMotivo] = useState('');
   const escala = consulta.data;
+  const { cores } = useTema();
 
   const iniciou = escala ? new Date(escala.evento.data_inicio) <= new Date() : false;
   const encerrou = escala ? new Date(escala.evento.data_fim) < new Date() : false;
@@ -31,7 +33,7 @@ export default function DetalheDaEscala() {
       {escala && (
         <>
           <Cartao>
-            <Etiqueta {...situacaoDaEscala(escala)} />
+            <Etiqueta {...situacaoDaEscala(escala, cores)} />
             <Subtitulo>{escala.evento.nome}</Subtitulo>
             <Texto>{periodo(escala.evento.data_inicio, escala.evento.data_fim)}</Texto>
             <Suave>

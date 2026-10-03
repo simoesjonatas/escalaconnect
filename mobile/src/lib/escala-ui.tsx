@@ -2,11 +2,11 @@ import { router } from 'expo-router';
 import { Pressable } from 'react-native';
 
 import { periodo } from './datas';
-import { cores } from './tema';
+import { Cores, useTema } from './tema';
 import { Escala } from './types';
 import { Cartao, Etiqueta, Suave, Subtitulo, Texto } from './ui';
 
-export function situacaoDaEscala(escala: Escala): { texto: string; cor: string } {
+export function situacaoDaEscala(escala: Escala, cores: Cores): { texto: string; cor: string } {
   if (escala.tem_impedimento) return { texto: 'Impedimento sinalizado', cor: cores.perigo };
   if (escala.troca_pendente) return { texto: 'Troca solicitada', cor: cores.neutra };
   if (escala.confirmada) return { texto: 'Confirmada', cor: cores.confirmada };
@@ -15,7 +15,7 @@ export function situacaoDaEscala(escala: Escala): { texto: string; cor: string }
 
 /** Cartão de uma escala; tocar abre o detalhe. */
 export function CartaoDeEscala({ escala }: { escala: Escala }) {
-  const situacao = situacaoDaEscala(escala);
+  const situacao = situacaoDaEscala(escala, useTema().cores);
   return (
     <Pressable onPress={() => router.push({ pathname: '/escala/[id]', params: { id: escala.id } })}>
       <Cartao>
