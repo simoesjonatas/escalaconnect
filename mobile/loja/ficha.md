@@ -10,7 +10,7 @@ Escalas da PIBVP: confirme presença, informe disponibilidade e receba avisos.
 
 ## Descrição completa (até 4.000 caracteres)
 
-O Escala Connect é o aplicativo dos voluntários da PIBVP. Ele traz para o celular as escalas das equipes de serviço da igreja, para você saber quando foi escalado, confirmar presença e avisar a liderança quando não puder servir, tudo em poucos toques.
+O Escala Connect é o aplicativo dos voluntários da Primeira Igreja Batista da Vila da Penha (PIBVP). Ele traz para o celular as escalas das equipes de serviço da igreja, para você saber quando foi escalado, confirmar presença e avisar a liderança quando não puder servir, tudo em poucos toques.
 
 O QUE VOCÊ FAZ NO APP
 
@@ -25,7 +25,7 @@ O QUE VOCÊ FAZ NO APP
 
 PARA QUEM É
 
-O aplicativo é de uso dos voluntários cadastrados no Escala Connect da PIBVP. O acesso é feito com o mesmo usuário e senha do sistema; se você ainda não tem cadastro, fale com a liderança da sua equipe.
+O aplicativo é de uso dos voluntários cadastrados no Escala Connect da Primeira Igreja Batista da Vila da Penha. O acesso é feito com o mesmo usuário e senha do sistema; se você ainda não tem cadastro, fale com a liderança da sua equipe.
 
 A liderança continua organizando as equipes, os eventos e as escalas pelo site; o aplicativo é a versão do voluntário, feita para o dia a dia.
 
