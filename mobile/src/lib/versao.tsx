@@ -9,7 +9,7 @@ import { Botao, Tela, Texto, Titulo } from './ui';
  * mudança exigir APK novo (bibliotecas nativas, permissões): os aparelhos com build
  * menor passam a ver o aviso abaixo. Mudanças só de JavaScript vão por `eas update`.
  */
-export const BUILD_ATUAL = 2;
+export const BUILD_ATUAL = 3;
 
 type Meta = { min_build: number; apk_url: string };
 
