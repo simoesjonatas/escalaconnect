@@ -8,13 +8,18 @@ class MembrosEquipeForm(forms.ModelForm):
         model = MembrosEquipe
         fields = ['usuario', 'equipe']
         widgets = {
-            'usuario': forms.Select(attrs={'class': 'form-control'}),
+            # data-busca: vira campo de busca com lista (static/js/busca-select.js)
+            'usuario': forms.Select(attrs={'class': 'form-control', 'data-busca': '', 'data-busca-placeholder': 'Digite o nome para buscar…'}),
             'equipe': forms.Select(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
         equipe = kwargs.pop('equipe', None)
         super(MembrosEquipeForm, self).__init__(*args, **kwargs)
+
+        usuario = self.fields['usuario']
+        usuario.queryset = usuario.queryset.filter(is_active=True).order_by('first_name', 'last_name', 'username')
+        usuario.label_from_instance = lambda u: u.get_full_name() or u.username
 
         if equipe:
             self.fields['equipe'].queryset = Equipe.objects.filter(pk=equipe.pk)

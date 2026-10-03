@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block page_title %}Adicionar/Editar Membro da Equipe{% endblock %}
 
@@ -20,4 +21,5 @@
         <a class="btn btn-secondary" href="{% url 'listar_membros_equipe' equipe.pk %}">Cancelar</a>
     </form>
 </div>
+<script src="{% static 'js/busca-select.js' %}"></script>
 {% endblock %}
