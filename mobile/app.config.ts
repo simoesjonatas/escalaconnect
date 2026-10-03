@@ -5,9 +5,10 @@ import { ConfigContext, ExpoConfig } from 'expo/config';
 // Complementa o app.json com o que depende do perfil de build (ver eas.json).
 export default ({ config }: ConfigContext): ExpoConfig => {
   const desenvolvimento = process.env.APP_VARIANT === 'development';
-  // Baixado do projeto Firebase (necessário para o push no Android). Enquanto o
-  // arquivo não existir, o app compila normalmente, só não recebe push.
-  const googleServices = './google-services.json';
+  // Baixado do projeto Firebase (necessário para o push no Android). Fica fora do
+  // repositório: no EAS vem pela variável secreta GOOGLE_SERVICES_JSON (tipo arquivo);
+  // localmente, do arquivo mobile/google-services.json. Sem ele o app compila, só não recebe push.
+  const googleServices = process.env.GOOGLE_SERVICES_JSON ?? './google-services.json';
   return {
     ...(config as ExpoConfig),
     android: {
