@@ -26,6 +26,21 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://connect.pibvp.org.br"
       }
+    },
+    "production": {
+      "distribution": "store",
+      "channel": "production",
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://connect.pibvp.org.br"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal"
+      }
     }
   }
 }
