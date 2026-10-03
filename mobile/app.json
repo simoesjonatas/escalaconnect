@@ -12,7 +12,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "br.org.pibvp.connect"
+      "bundleIdentifier": "br.org.pibvp.connect",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "br.org.pibvp.connect",
