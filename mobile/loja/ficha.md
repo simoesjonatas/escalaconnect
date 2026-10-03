@@ -39,7 +39,7 @@ Estilo de vida (ou Produtividade)
 
 ## Outros campos que o console pede
 
-- E-mail de contato do desenvolvedor: (seu e-mail)
+- E-mail de contato do desenvolvedor: jonatasimoes.js@gmail.com (o mesmo de PRIVACIDADE_CONTATO no servidor)
 - Política de privacidade: https://connect.pibvp.org.br/privacidade/
 - Público-alvo: 18 anos ou mais
 - Anúncios: não contém
