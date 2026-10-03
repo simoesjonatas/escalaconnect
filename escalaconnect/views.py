@@ -16,6 +16,7 @@ from escalaconnect.regras import RegraDeNegocio
 from escala.services import confirmar_escala
 from django.contrib.auth.views import redirect_to_login
 from django.utils import timezone
+from django.conf import settings
 from django.urls import reverse
 
 # View para renderizar a página base
@@ -62,6 +63,10 @@ def calendario_view(request):
         )
         minhas_equipes = Equipe.objects.filter(id__in=equipe_ids).order_by('nome')
     return render(request, 'calendario.html', {'minhas_equipes': minhas_equipes})
+
+def privacidade(request):
+    """Política de privacidade, pública (a Play Store exige um endereço fixo)."""
+    return render(request, 'privacidade.html', {'contato': settings.PRIVACIDADE_CONTATO})
 
 def custom_403(request, exception):
     return render(request, '403_forbidden.html', status=403)

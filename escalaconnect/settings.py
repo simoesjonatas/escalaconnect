@@ -282,6 +282,8 @@ REST_KNOX = {
 # Menor build do app aceito pela API e onde baixar o APK atual (GET /api/v1/meta/).
 APP_MIN_BUILD = config('APP_MIN_BUILD', default=1, cast=int)
 APP_APK_URL = config('APP_APK_URL', default='')
+# E-mail de contato mostrado na política de privacidade (/privacidade/). Vazio = não mostra.
+PRIVACIDADE_CONTATO = config('PRIVACIDADE_CONTATO', default='')
 # Opcional: token de acesso da conta Expo, se o envio de push exigir autenticação.
 EXPO_ACCESS_TOKEN = config('EXPO_ACCESS_TOKEN', default='')
 

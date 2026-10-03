@@ -1,0 +1,97 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidade - Escala Connect</title>
+    <link rel="stylesheet" href="{% static 'css/login.css' %}">
+    <link rel="icon" href="{% static 'images/logo_connect.JPG' %}" type="image/jpeg">
+    <style>
+        .privacidade-card { max-width: 760px; text-align: left; }
+        .privacidade-card h1 { text-align: center; }
+        .privacidade-card h3 { margin-top: 1.4rem; }
+        .privacidade-card p, .privacidade-card li { line-height: 1.6; }
+        .privacidade-card ul { padding-left: 1.2rem; }
+        .privacidade-card li { margin-bottom: .4rem; }
+        .privacidade-atualizacao { color: #9aa4ad; font-size: .9rem; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card privacidade-card">
+            <div class="login-logo" aria-hidden="true">
+                <img src="{% static 'images/logo_connect.JPG' %}" alt="Connect" />
+            </div>
+            <h1>Política de Privacidade</h1>
+            <p class="privacidade-atualizacao">Última atualização: 3 de outubro de 2026</p>
+
+            <p>
+                O <strong>Escala Connect</strong> é o sistema de organização das escalas de voluntários da
+                PIBVP, disponível pelo site e pelo aplicativo para celular. Esta política explica quais
+                dados são guardados, para que servem e quais são os seus direitos, em conformidade com a
+                Lei Geral de Proteção de Dados (Lei nº 13.709/2018).
+            </p>
+
+            <h3>1. Quais dados guardamos</h3>
+            <ul>
+                <li><strong>Cadastro:</strong> nome, nome de usuário, e-mail, telefone, CPF, data de aniversário e data de batismo.</li>
+                <li><strong>Participação:</strong> equipes de que você faz parte, disponibilidades informadas, escalas em que foi designado, confirmações, impedimentos e pedidos de troca.</li>
+                <li><strong>Uso do sistema:</strong> data e hora dos acessos e da última atividade, e o registro das notificações enviadas a você (e-mail e notificações do aplicativo).</li>
+                <li><strong>Aplicativo:</strong> um identificador do seu aparelho, usado só para entregar as notificações. Ele é apagado quando você sai da conta no aplicativo.</li>
+            </ul>
+            <p>O aplicativo não acessa sua localização, câmera, contatos ou arquivos.</p>
+
+            <h3>2. Para que usamos</h3>
+            <ul>
+                <li>Identificar você e permitir o acesso à sua conta.</li>
+                <li>Montar as escalas de acordo com a disponibilidade informada.</li>
+                <li>Avisar quando você for escalado, lembrar de confirmar presença e comunicar a aprovação de trocas e impedimentos, por e-mail e por notificação no aplicativo.</li>
+                <li>Permitir que a liderança da sua equipe entre em contato com você.</li>
+                <li>Acompanhar o uso do sistema para mantê-lo funcionando.</li>
+            </ul>
+
+            <h3>3. Com quem compartilhamos</h3>
+            <p>
+                Seus dados não são vendidos nem usados para publicidade. A liderança das equipes de que
+                você participa vê seu nome e contato. Para funcionar, o sistema usa serviços de terceiros
+                que recebem apenas o necessário:
+            </p>
+            <ul>
+                <li><strong>Envio de e-mail</strong> (Google), que recebe seu endereço de e-mail para entregar as mensagens.</li>
+                <li><strong>Notificações do aplicativo</strong> (Expo e Firebase Cloud Messaging, do Google), que recebem o identificador do aparelho e o texto da notificação.</li>
+            </ul>
+
+            <h3>4. Por quanto tempo</h3>
+            <p>
+                Os dados ficam guardados enquanto sua conta existir. Quando você deixa de ser voluntário
+                e pede a exclusão, sua conta é removida e os dados de cadastro são apagados; o histórico de
+                escalas pode ser mantido sem identificação pessoal.
+            </p>
+
+            <h3>5. Seus direitos</h3>
+            <p>
+                Você pode consultar e corrigir seu e-mail e telefone no próprio sistema ou aplicativo.
+                Para acessar os demais dados, corrigi-los, pedir a exclusão da conta ou tirar dúvidas
+                sobre esta política, fale com a liderança da sua equipe{% if contato %} ou escreva para
+                <a href="mailto:{{ contato }}">{{ contato }}</a>{% endif %}.
+            </p>
+
+            <h3>6. Segurança</h3>
+            <p>
+                As senhas são guardadas de forma criptografada e o acesso ao sistema é feito por conexão
+                segura (HTTPS). No aplicativo, as credenciais ficam no armazenamento protegido do aparelho.
+            </p>
+
+            <h3>7. Alterações</h3>
+            <p>
+                Esta política pode ser atualizada. A data da última atualização aparece no topo da página.
+            </p>
+
+            <p style="text-align:center; margin-top: 1.5rem;">
+                <a class="termo-sair" href="/">Voltar ao Escala Connect</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
