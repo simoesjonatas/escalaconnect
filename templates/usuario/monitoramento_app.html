@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Aplicativo
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'monitoramento_uso' %}">Monitoramento</a></li>
+    <li class="breadcrumb-item active">Aplicativo</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<style>
+    .monitor-page { display: grid; gap: 16px; }
+    .monitor-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+    .monitor-card, .monitor-painel {
+        padding: 16px; border: 1px solid var(--connect-border); border-radius: 12px; background: var(--connect-surface);
+    }
+    .monitor-card .monitor-rotulo { margin: 0; font-size: 13px; font-weight: 700; color: var(--connect-muted); }
+    .monitor-card .monitor-valor { margin: 4px 0 0; font-size: 30px; font-weight: 900; color: var(--connect-text); line-height: 1.1; }
+    .monitor-card .monitor-detalhe { margin: 4px 0 0; font-size: 12px; color: var(--connect-muted); }
+    .monitor-card.destaque .monitor-valor { color: var(--connect-green); }
+    .monitor-painel h3 { margin: 0 0 12px; font-size: 16px; color: var(--connect-text); }
+    .monitor-painel h3 small { font-weight: 400; color: var(--connect-muted); }
+    .monitor-tabela { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--connect-text); }
+    .monitor-tabela th, .monitor-tabela td { padding: 8px 6px; border-bottom: 1px solid var(--connect-border); text-align: left; vertical-align: top; }
+    .monitor-tabela th { font-size: 12px; color: var(--connect-muted); text-transform: uppercase; letter-spacing: .03em; }
+    .monitor-tabela tr:last-child td { border-bottom: none; }
+    .monitor-tabela .muted { color: var(--connect-muted); font-size: 12px; }
+    .monitor-vazio { margin: 0; color: var(--connect-muted); font-size: 14px; }
+    .selo { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .selo-ok { background: rgba(57, 255, 20, .15); color: var(--connect-green); }
+    .selo-off { background: rgba(255, 255, 255, .08); color: var(--connect-muted); }
+    .tabela-rolavel { overflow-x: auto; }
+</style>
+
+<div class="monitor-page">
+    <div class="monitor-cards">
+        <div class="monitor-card destaque">
+            <p class="monitor-rotulo">Usuários com o app</p>
+            <p class="monitor-valor">{{ usuarios_com_app }}</p>
+            <p class="monitor-detalhe">com sessão válida, de {{ total_usuarios }} cadastrados</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Usaram o app hoje</p>
+            <p class="monitor-valor">{{ usaram_hoje }}</p>
+            <p class="monitor-detalhe">pela última atividade da sessão</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Aparelhos com push</p>
+            <p class="monitor-valor">{{ aparelhos_ativos }}</p>
+            <p class="monitor-detalhe">de {{ aparelhos_total }} já registrados</p>
+        </div>
+    </div>
+
+    <div class="monitor-painel">
+        <h3>Aparelhos <small>registrados para notificações</small></h3>
+        {% if aparelhos %}
+        <div class="tabela-rolavel">
+        <table class="monitor-tabela">
+            <thead>
+                <tr>
+                    <th>Usuário</th>
+                    <th>Aparelho</th>
+                    <th>Versão do app</th>
+                    <th>Push</th>
+                    <th>Último uso</th>
+                    <th>Registrado em</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in aparelhos %}
+                <tr>
+                    <td>{{ a.usuario.get_full_name|default:a.usuario.username }}<br><span class="muted">{{ a.usuario.username }}</span></td>
+                    <td>{{ a.nome_aparelho|default:"—" }}<br><span class="muted">{{ a.get_plataforma_display }}</span></td>
+                    <td>{{ a.app_versao|default:"—" }}</td>
+                    <td>{% if a.ativo %}<span class="selo selo-ok">ativo</span>{% else %}<span class="selo selo-off">desligado</span>{% endif %}</td>
+                    <td>{{ a.ultimo_uso|date:"d/m/Y H:i" }}</td>
+                    <td>{{ a.criado_em|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <p class="monitor-vazio">Nenhum aparelho registrado ainda.</p>
+        {% endif %}
+    </div>
+
+    <div class="monitor-painel">
+        <h3>Sessões do app <small>válidas por {{ validade_dias }} dias de inatividade; "último uso" tem precisão de 1 hora</small></h3>
+        {% if sessoes %}
+        <div class="tabela-rolavel">
+        <table class="monitor-tabela">
+            <thead>
+                <tr>
+                    <th>Usuário</th>
+                    <th>Sessões</th>
+                    <th>Último uso</th>
+                    <th>Conectado desde</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in sessoes %}
+                <tr>
+                    <td>{{ s.usuario.get_full_name|default:s.usuario.username }}<br><span class="muted">{{ s.usuario.username }}</span></td>
+                    <td>{{ s.qtd }}</td>
+                    <td>{{ s.ultimo_uso|date:"d/m/Y H:i" }}</td>
+                    <td>{{ s.primeiro_login|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <p class="monitor-vazio">Ninguém conectado pelo app.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

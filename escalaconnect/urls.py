@@ -22,7 +22,7 @@ from django.contrib.auth.views import LogoutView, LoginView
 
 from .views import base_view, calendario_view, redirect_to_home, confirmar_presenca, view_enviar_confirmacao, privacidade
 from escala.views import carregar_funcoes
-from usuario.views_monitor import monitoramento_uso
+from usuario.views_monitor import monitoramento_uso, monitoramento_app
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,6 +32,7 @@ urlpatterns = [
     path('', base_view, name='base_page'),
     path('calendario/', calendario_view, name='calendario'),
     path('monitoramento/', monitoramento_uso, name='monitoramento_uso'),
+    path('monitoramento/app/', monitoramento_app, name='monitoramento_app'),
     path('privacidade/', privacidade, name='privacidade'),
 
     # API JSON do app mobile (as demais rotas api/... abaixo devolvem HTML).

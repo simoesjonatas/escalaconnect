@@ -104,3 +104,44 @@ def monitoramento_uso(request):
         'limite_online_minutos': LIMITE_ONLINE_MINUTOS,
     }
     return render(request, 'usuario/monitoramento.html', contexto)
+
+
+@login_required
+def monitoramento_app(request):
+    """Quem usa o aplicativo: aparelhos registrados e sessões (tokens) válidas."""
+    if not request.user.is_superuser:
+        return render(request, '403_forbidden.html', status=403)
+
+    from api.models import Device
+    from knox.models import AuthToken
+    from knox.settings import knox_settings
+
+    agora = timezone.now()
+    hoje = timezone.localdate()
+    ttl = knox_settings.TOKEN_TTL
+
+    aparelhos = list(Device.objects.select_related('usuario').order_by('-ultimo_uso'))
+
+    # Sessões do app por usuário. O knox renova a validade a cada uso (no máximo
+    # 1x por hora), então "validade - TTL" é o último uso aproximado da sessão.
+    sessoes = {}
+    for token in AuthToken.objects.filter(expiry__gt=agora).select_related('user').order_by('-expiry'):
+        info = sessoes.setdefault(token.user, {'usuario': token.user, 'qtd': 0, 'primeiro_login': token.created, 'ultimo_uso': None})
+        info['qtd'] += 1
+        info['primeiro_login'] = min(info['primeiro_login'], token.created)
+        ultimo_uso = token.expiry - ttl
+        if info['ultimo_uso'] is None or ultimo_uso > info['ultimo_uso']:
+            info['ultimo_uso'] = ultimo_uso
+    sessoes = sorted(sessoes.values(), key=lambda s: s['ultimo_uso'], reverse=True)
+
+    contexto = {
+        'aparelhos': aparelhos,
+        'sessoes': sessoes,
+        'usuarios_com_app': len(sessoes),
+        'aparelhos_ativos': sum(1 for a in aparelhos if a.ativo),
+        'aparelhos_total': len(aparelhos),
+        'usaram_hoje': sum(1 for s in sessoes if timezone.localdate(s['ultimo_uso']) == hoje),
+        'total_usuarios': Usuario.objects.count(),
+        'validade_dias': ttl.days,
+    }
+    return render(request, 'usuario/monitoramento_app.html', contexto)
