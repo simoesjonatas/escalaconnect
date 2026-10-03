@@ -811,6 +811,8 @@ html[data-theme="light"] .escala-tabs .nav-link.active {
     cursor: pointer;
 }
 .busca-membro-item:last-of-type { border-bottom: 0; }
+/* O display:flex acima venceria o atributo hidden; sem isto, o filtro não esconde nada. */
+.busca-membro-item[hidden], .busca-membro-vazio[hidden] { display: none; }
 .busca-membro-item:hover, .busca-membro-item:focus-visible { background: rgba(57, 255, 20, .08); outline: none; }
 .busca-membro-item.selecionado { background: rgba(57, 255, 20, .18); font-weight: 700; }
 .busca-membro-item .resumo-avatar { width: 28px; height: 28px; font-size: 12px; flex: 0 0 auto; }
@@ -841,6 +843,8 @@ html[data-theme="light"] .escala-tabs .nav-link.active {
     cursor: pointer;
 }
 .busca-select-item:last-of-type { border-bottom: 0; }
+/* O display:flex acima venceria o atributo hidden; sem isto, o filtro não esconde nada. */
+.busca-select-item[hidden], .busca-select-vazio[hidden] { display: none; }
 .busca-select-item:hover, .busca-select-item:focus-visible { background: rgba(57, 255, 20, .08); outline: none; }
 .busca-select-item.selecionado { background: rgba(57, 255, 20, .18); font-weight: 700; }
 .busca-select-inicial {
