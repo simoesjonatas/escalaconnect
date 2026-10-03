@@ -108,3 +108,34 @@ class FluxosDoVoluntarioNoSiteTests(TestCase):
         self.assertTrue(troca.aprovada)
         self.assertEqual(troca.lider_aprovador, self.lider)
         self.assertIsNone(self.escala.usuario)
+
+
+class TirarDaEscalaPelaEquipeTests(TestCase):
+    """Botão "Tirar da escala" no detalhe da escala por equipe, antes ou depois da confirmação."""
+
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome='Recepção')
+        self.funcao = Funcao.objects.create(nome='Porta', equipe=self.equipe)
+        self.voluntario = criar_voluntario('maria', '52998224725')
+        self.lider = criar_voluntario('lider', '39053344705')
+        Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+        inicio = timezone.now() + timedelta(days=3)
+        evento = Evento.objects.create(nome='Culto', data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
+        self.escala = Escala.objects.create(usuario=self.voluntario, funcao=self.funcao, evento=evento)
+        self.detalhe = reverse('escala_detail_equipe', args=[self.equipe.pk, self.escala.pk])
+        self.cancelar = reverse('cancelar_escala_equipe', args=[self.escala.pk])
+
+    def test_lider_ve_o_botao_antes_da_confirmacao_e_tira_a_pessoa(self):
+        self.client.force_login(self.lider)
+        self.assertContains(self.client.get(self.detalhe), 'Tirar da escala')
+        resp = self.client.get(self.cancelar)
+        self.assertRedirects(resp, self.detalhe)
+        self.escala.refresh_from_db()
+        self.assertIsNone(self.escala.usuario)
+        self.assertNotContains(self.client.get(self.detalhe), 'Tirar da escala')
+
+    def test_voluntario_comum_nao_tira(self):
+        self.client.force_login(self.voluntario)
+        self.client.get(self.cancelar)
+        self.escala.refresh_from_db()
+        self.assertEqual(self.escala.usuario, self.voluntario)

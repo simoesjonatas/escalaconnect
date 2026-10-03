@@ -295,11 +295,11 @@ def cancelar_escala_equipe(request, escala_id):
         escala.confirmada = False
         escala.data_confirmacao = None
         escala.save()
-        messages.success(request, 'Escala cancelada com sucesso.')
+        messages.success(request, 'Escala cancelada com sucesso. A vaga está em aberto.')
     else:
         messages.error(request, 'Você não tem permissão para cancelar esta escala.')
 
-    return redirect(reverse('listar_escalas', kwargs={'equipe_pk': escala.equipe.pk}))
+    return redirect('escala_detail_equipe', equipe_pk=escala.equipe.pk, pk=escala.pk)
 
 
 @login_required

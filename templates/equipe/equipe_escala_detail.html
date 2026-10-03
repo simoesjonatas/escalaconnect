@@ -55,9 +55,12 @@
 
     <div class="action-bar">
         <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe.pk %}">Voltar</a>
-        {% if escala.confirmada %}
+        {% if escala.usuario %}
             {% if request.user.is_staff or request.user.is_superuser or is_leader %}
-            <a class="btn btn-info" href="{% url 'cancelar_escala' escala.pk %}">Cancelar Escala</a>
+            <a class="btn btn-info" href="{% url 'cancelar_escala_equipe' escala.pk %}"
+               onclick="return confirm('Tirar {{ escala.usuario.get_full_name|default:escala.usuario.username|escapejs }} desta escala? A vaga volta a ficar em aberto.');">
+                <i class="fa fa-user-minus"></i> {% if escala.confirmada %}Cancelar escala{% else %}Tirar da escala{% endif %}
+            </a>
             {% endif %}
         {% endif %}
         {% if request.user.is_staff or request.user.is_superuser or is_leader %}
