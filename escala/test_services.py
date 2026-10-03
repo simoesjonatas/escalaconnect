@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from equipe.models import Equipe, Lideranca
+from equipe.models import Equipe, Lideranca, MembrosEquipe
 from escala.models import Desistencia, Escala, Funcao, SolicitacaoTroca
 from evento.models import Evento
 
@@ -119,6 +119,7 @@ class TirarDaEscalaPelaEquipeTests(TestCase):
         self.voluntario = criar_voluntario('maria', '52998224725')
         self.lider = criar_voluntario('lider', '39053344705')
         Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+        MembrosEquipe.objects.create(usuario=self.voluntario, equipe=self.equipe, aprovado=True)
         inicio = timezone.now() + timedelta(days=3)
         evento = Evento.objects.create(nome='Culto', data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
         self.escala = Escala.objects.create(usuario=self.voluntario, funcao=self.funcao, evento=evento)
@@ -127,7 +128,9 @@ class TirarDaEscalaPelaEquipeTests(TestCase):
 
     def test_lider_ve_o_botao_antes_da_confirmacao_e_tira_a_pessoa(self):
         self.client.force_login(self.lider)
-        self.assertContains(self.client.get(self.detalhe), 'Tirar da escala')
+        resp = self.client.get(self.detalhe)
+        self.assertContains(resp, 'Tirar da escala')
+        self.assertContains(resp, 'id="buscaMembro"')  # busca de membro no modal
         resp = self.client.get(self.cancelar)
         self.assertRedirects(resp, self.detalhe)
         self.escala.refresh_from_db()

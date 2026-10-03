@@ -193,13 +193,21 @@
         </div>
         <div class="modal-body">
             {% if usuarios_equipe %}
-            <label for="usuarioEquipeSelect" class="form-label">Membro da equipe</label>
-            <select id="usuarioEquipeSelect" class="form-select">
-                <option value="" selected disabled>— escolha um membro —</option>
+            <label for="buscaMembro" class="form-label">Membro da equipe</label>
+            <!-- Busca com filtro: a lista é longa demais para um select comum. -->
+            <input type="search" id="buscaMembro" class="form-control busca-membro-campo" autocomplete="off"
+                   placeholder="Digite o nome para buscar…" aria-controls="listaMembros">
+            <div class="busca-membro-lista" id="listaMembros" role="listbox" aria-label="Membros da equipe">
                 {% for u in usuarios_equipe %}
-                <option value="{{ u.pk }}">{{ u.get_full_name|default:u.username }}</option>
+                <button type="button" class="busca-membro-item" role="option" aria-selected="false"
+                        data-id="{{ u.pk }}" data-nome="{{ u.get_full_name|default:u.username }}">
+                    <span class="resumo-avatar">{{ u.get_full_name|default:u.username|first|upper }}</span>
+                    <span>{{ u.get_full_name|default:u.username }}</span>
+                </button>
                 {% endfor %}
-            </select>
+                <div class="busca-membro-vazio" hidden>Ninguém com esse nome na equipe.</div>
+            </div>
+            <input type="hidden" id="usuarioEquipeSelect" value="">
             <div class="modal-nota">
                 <i class="fa fa-exclamation-triangle"></i>
                 <span>A pessoa escolhida <strong>não marcou disponibilidade</strong> para este horário — combine com ela antes de escalar.</span>
@@ -266,6 +274,54 @@
         }
     }
 
+    // Busca de membro no modal: filtra a lista conforme se digita (sem acentos/maiúsculas).
+    (function(){
+    const campo = document.getElementById('buscaMembro');
+    const lista = document.getElementById('listaMembros');
+    const escolhido = document.getElementById('usuarioEquipeSelect');
+    if (!campo || !lista || !escolhido) return;
+
+    const itens = Array.from(lista.querySelectorAll('.busca-membro-item'));
+    const vazio = lista.querySelector('.busca-membro-vazio');
+    const normalizar = (t) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    itens.forEach(item => { item.dataset.busca = normalizar(item.dataset.nome); });
+
+    function filtrar() {
+      const termo = normalizar(campo.value);
+      let visiveis = 0;
+      itens.forEach(item => {
+        const mostra = !termo || item.dataset.busca.includes(termo);
+        item.hidden = !mostra;
+        if (mostra) visiveis++;
+      });
+      vazio.hidden = visiveis > 0;
+    }
+
+    function escolher(item) {
+      itens.forEach(i => { i.classList.remove('selecionado'); i.setAttribute('aria-selected', 'false'); });
+      item.classList.add('selecionado');
+      item.setAttribute('aria-selected', 'true');
+      escolhido.value = item.dataset.id;
+      campo.value = item.dataset.nome;
+      filtrar();
+    }
+
+    campo.addEventListener('input', () => { escolhido.value = ''; itens.forEach(i => i.classList.remove('selecionado')); filtrar(); });
+    campo.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const primeiro = itens.find(i => !i.hidden);
+      if (primeiro) escolher(primeiro);
+    });
+    itens.forEach(item => item.addEventListener('click', () => escolher(item)));
+
+    // Ao abrir o modal, começa limpo e com o foco na busca.
+    const modal = document.getElementById('forcarEscalaModal');
+    if (modal) {
+      modal.addEventListener('shown.bs.modal', () => { campo.value = ''; escolhido.value = ''; itens.forEach(i => i.classList.remove('selecionado')); filtrar(); campo.focus(); });
+    }
+    })();
+
     // Forçar escala sem disponibilidade
     (function(){
     const btn = document.getElementById('confirmForcarEscalaBtn');
@@ -275,7 +331,7 @@
     btn.addEventListener('click', function() {
       const userId = select.value;
       if (!userId) {
-        alert('Selecione um usuário da equipe.');
+        alert('Escolha um membro na lista.');
         return;
       }
       const template = btn.getAttribute('data-url-template'); // .../escalar/<escala_id>/0/equipe
