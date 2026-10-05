@@ -48,7 +48,8 @@ Disponibilidades da Equipe {{ equipe.nome }}
     <div class="panel-heading">
       <div>
         <h4>Lembrete de disponibilidades</h4>
-        <p>Peça que a equipe informe disponibilidade para um mês específico.</p>
+        <p>Peça que a equipe informe disponibilidade para um mês específico. Só recebe quem ainda não informou
+           nenhuma no mês; a notificação do app chega a quem tem o aplicativo instalado, no máximo uma vez por dia.</p>
       </div>
     </div>
     <form method="POST" action="{% url 'lider_pedir_disponibilidades' equipe_id=equipe.pk %}" class="reminder-form">
@@ -69,8 +70,11 @@ Disponibilidades da Equipe {{ equipe.nome }}
           {% endfor %}
         </select>
       </label>
-      <button type="submit" class="btn btn-warning">
-        <i class="fa fa-paper-plane mr-1"></i> Enviar lembrete
+      <button type="submit" name="canal" value="todos" class="btn btn-warning">
+        <i class="fa fa-paper-plane mr-1"></i> Enviar lembrete (e-mail e app)
+      </button>
+      <button type="submit" name="canal" value="app" class="btn btn-primary">
+        <i class="fa fa-mobile-alt mr-1"></i> Lembrar só pelo app
       </button>
     </form>
   </section>

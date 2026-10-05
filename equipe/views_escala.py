@@ -263,6 +263,9 @@ def lider_pedir_disponibilidades(request, equipe_id: int):
         return redirect("disponibilidades_equipe", equipe_pk=equipe_id)
 
     lider_nome = request.user.get_full_name() or request.user.get_username()
+    # Botão "Lembrar só pelo app" manda canal=app; o outro manda e-mail e app.
+    so_app = request.POST.get("canal") == "app"
+    canais = ["push"] if so_app else ["email", "push"]
 
     # publica no worker: só enviará para quem AINDA NÃO cadastrou no mês
     task_result = disparar_pedido_disponibilidades.delay(
@@ -270,17 +273,25 @@ def lider_pedir_disponibilidades(request, equipe_id: int):
         mes=mes,
         equipe_id=equipe_id,
         lider_nome=lider_nome,
+        canais=canais,
     )
 
+    por_onde = "pelo app" if so_app else "por e-mail e pelo app"
     if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
         resultado = task_result.get()
-        enviados = resultado.get("emails_enviados", 0) if isinstance(resultado, dict) else 0
-        faltantes = resultado.get("usuarios_faltantes", 0) if isinstance(resultado, dict) else 0
-        messages.success(request, f"Lembretes processados para {mes:02d}/{ano}: {enviados} enviado(s), {faltantes} pendente(s).")
+        resultado = resultado if isinstance(resultado, dict) else {}
+        partes = [f"{resultado.get('push_enfileirados', 0)} notificação(ões) no app"]
+        if not so_app:
+            partes.insert(0, f"{resultado.get('emails_enviados', 0)} e-mail(s)")
+        messages.success(
+            request,
+            f"Lembretes processados para {mes:02d}/{ano}: {' e '.join(partes)}, "
+            f"{resultado.get('usuarios_faltantes', 0)} pendente(s)."
+        )
     else:
         messages.success(
             request,
-            f"Lembretes publicados para {mes:02d}/{ano}. Verifique o admin em Notification/Attempts."
+            f"Lembretes enviados {por_onde} para {mes:02d}/{ano}, só a quem ainda não informou disponibilidade."
         )
     return redirect("disponibilidades_equipe", equipe_pk=equipe_id)
 

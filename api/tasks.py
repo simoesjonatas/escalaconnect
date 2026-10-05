@@ -1,7 +1,13 @@
+from datetime import timedelta
+
 import requests
 from celery import shared_task
-from django.utils import timezone
+from django.conf import settings
+from django.db.models import Exists, OuterRef
+from django.utils import formats, timezone
 
+from escala.models import Escala
+from escalaconnect.push import notificar_push
 from evento.models import Notification, NotificationAttempt
 
 from . import push
@@ -87,3 +93,44 @@ def verificar_recibos_push_task(devices_por_ticket):
         if ticket_id in devices_por_ticket and push.token_invalido(recibo)
     ]
     return Device.objects.filter(pk__in=invalidos).update(ativo=False)
+
+
+@shared_task
+def lembrar_escalas_proximas():
+    """Avisa pelo app quem está escalado em evento que começa nas próximas horas.
+
+    Roda a cada 10 minutos (CELERY_BEAT_SCHEDULE). Cada voluntário recebe um único
+    aviso por escala: quem já teve envio bem-sucedido fica de fora nas rodadas
+    seguintes; se a escala mudar de pessoa, a nova é avisada. Só push, sem e-mail.
+    """
+    agora = timezone.now()
+    ja_avisado = Notification.objects.filter(
+        escala=OuterRef('pk'), usuario=OuterRef('usuario_id'),
+        channel=Notification.CHANNEL_PUSH, purpose=Notification.PURPOSE_EVENT_SOON, success_count__gt=0,
+    )
+    escalas = (
+        Escala.objects
+        .filter(
+            usuario__isnull=False,
+            evento__data_inicio__gt=agora,
+            evento__data_inicio__lte=agora + timedelta(hours=settings.LEMBRETE_EVENTO_HORAS),
+        )
+        .annotate(ja_avisado=Exists(ja_avisado))
+        .filter(ja_avisado=False)
+        .select_related('evento', 'funcao')
+    )
+    enfileirados = 0
+    for escala in escalas:
+        inicio = timezone.localtime(escala.evento.data_inicio)
+        hoje = 'hoje ' if inicio.date() == timezone.localdate(agora) else ''
+        corpo = f'{escala.evento.nome} · {escala.funcao.nome}'
+        if not escala.confirmada:
+            corpo += ' · Confirme sua presença'
+        enfileirados += notificar_push(
+            escala.usuario_id,
+            f"Você serve {hoje}às {formats.date_format(inicio, 'H:i')}",
+            corpo,
+            # 'escalado' é o tipo que o app já sabe abrir na tela da escala.
+            tipo='escalado', purpose=Notification.PURPOSE_EVENT_SOON, escala_id=escala.pk, throttle_horas=24,
+        )
+    return enfileirados

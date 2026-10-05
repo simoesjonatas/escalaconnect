@@ -65,21 +65,25 @@ services:
       web:
         condition: service_started
 
-  # Opcional: Celery Beat (tarefas periódicas)
-  # celerybeat:
-  #   container_name: escalaconnect-beat
-  #   build: .
-  #   restart: always
-  #   command: celery -A escalaconnect beat -l INFO
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     DJANGO_SETTINGS_MODULE: escalaconnect.settings
-  #     CELERY_BROKER_URL: redis://redis:6379/0
-  #     CELERY_RESULT_BACKEND: redis://redis:6379/1
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
+  # Celery Beat: dispara as tarefas periódicas (CELERY_BEAT_SCHEDULE em settings.py),
+  # como o aviso pelo app 2h antes do evento. Deve existir UM só container deste
+  # serviço: com dois, cada aviso sairia duplicado.
+  celerybeat:
+    container_name: escalaconnect-beat
+    build: .
+    restart: always
+    command: celery -A escalaconnect beat -l INFO -s /tmp/celerybeat-schedule
+    env_file:
+      - .env
+    environment:
+      DJANGO_SETTINGS_MODULE: escalaconnect.settings
+      DATABASE_ENGINE: postgres
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_TASK_ALWAYS_EAGER: "False"
+    depends_on:
+      redis:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine

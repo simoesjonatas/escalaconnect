@@ -107,6 +107,7 @@ class Notification(models.Model):
     PURPOSE_SWAP_APPROVED = "troca_aprovada"
     PURPOSE_WITHDRAWAL_APPROVED = "desistencia_aprovada"
     PURPOSE_MEMBER_APPROVED = "membro_aprovado"
+    PURPOSE_EVENT_SOON = "evento_proximo"
 
     PURPOSE_CHOICES = [
         (PURPOSE_CONFIRM, "Confirmação de Escala"),
@@ -116,6 +117,7 @@ class Notification(models.Model):
         (PURPOSE_SWAP_APPROVED, "Troca aprovada"),
         (PURPOSE_WITHDRAWAL_APPROVED, "Desistência aprovada"),
         (PURPOSE_MEMBER_APPROVED, "Entrada na equipe aprovada"),
+        (PURPOSE_EVENT_SOON, "Evento começa em breve"),
     ]
 
     escala = models.ForeignKey("escala.Escala", on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)

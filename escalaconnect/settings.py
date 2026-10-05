@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from datetime import timedelta
+from celery.schedules import crontab
 from decouple import config, Csv
 from pathlib import Path
 import os
@@ -322,6 +323,16 @@ else:
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", str(60 * 5)))
 CELERY_TIMEZONE = "America/Sao_Paulo"
+
+# Tarefas periódicas (serviço celerybeat no docker-compose).
+# Aviso pelo app a quem está escalado, X horas antes do evento começar.
+LEMBRETE_EVENTO_HORAS = config('LEMBRETE_EVENTO_HORAS', default=2, cast=int)
+CELERY_BEAT_SCHEDULE = {
+    'lembrar-escalas-proximas': {
+        'task': 'api.tasks.lembrar_escalas_proximas',
+        'schedule': crontab(minute='*/10'),
+    },
+}
 
 # Execução síncrona (apenas dev)
 CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true"

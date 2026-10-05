@@ -57,11 +57,12 @@ def _build_disponibilidade_url(ano: int, mes: int) -> str:
 
 
 @shared_task(rate_limit="120/m")
-def disparar_pedido_disponibilidades(ano: int, mes: int, equipe_id: int | None = None, lider_nome: str = "Líder"):
+def disparar_pedido_disponibilidades(ano: int, mes: int, equipe_id: int | None = None, lider_nome: str = "Líder",
+                                     canais=("email", "push")):
     """
-    Envia e-mail pedindo cadastro de disponibilidades para o mês/ano.
-    Só envia para usuários que AINDA NÃO registraram nenhuma Disponibilidade
-    para eventos dentro do mês informado.
+    Pede o cadastro de disponibilidades para o mês/ano, por e-mail e/ou push no app
+    (`canais`). Só envia para usuários que AINDA NÃO registraram nenhuma
+    Disponibilidade para eventos dentro do mês informado.
 
     Se equipe_id for informado, limita o universo aos usuários que já serviram
     (têm Escala) nessa equipe em qualquer momento.
@@ -80,7 +81,7 @@ def disparar_pedido_disponibilidades(ano: int, mes: int, equipe_id: int | None =
 
     # Se não há eventos no mês, não faz sentido cobrar disponibilidade
     if not eventos_mes:
-        return {"usuarios_faltantes": 0, "emails_enviados": 0, "obs": "sem eventos no mês"}
+        return {"usuarios_faltantes": 0, "emails_enviados": 0, "push_enfileirados": 0, "obs": "sem eventos no mês"}
 
     # --- universo de usuários ---
     usuarios_qs = Usuario.objects.filter(is_active=True)
@@ -123,12 +124,22 @@ def disparar_pedido_disponibilidades(ano: int, mes: int, equipe_id: int | None =
     # print("DEBUG usuarios_com_disp_ids:", list(usuarios_com_disp_ids))
 
     # Push para quem tem o app, mesmo sem e-mail cadastrado (no máximo 1 por dia).
-    for usuario_id in usuarios_qs.exclude(id__in=usuarios_com_disp_ids).values_list("id", flat=True):
-        notificar_push(
-            usuario_id, "Informe sua disponibilidade",
-            f"A liderança precisa saber quando você pode servir em {mes_legivel}.",
-            tipo="disponibilidade", purpose=Notification.PURPOSE_AVAILABILITY, throttle_horas=24,
-        )
+    sem_disponibilidade = usuarios_qs.exclude(id__in=usuarios_com_disp_ids)
+    push_enfileirados = 0
+    if "push" in canais:
+        for usuario_id in sem_disponibilidade.values_list("id", flat=True):
+            push_enfileirados += notificar_push(
+                usuario_id, "Informe sua disponibilidade",
+                f"A liderança precisa saber quando você pode servir em {mes_legivel}.",
+                tipo="disponibilidade", purpose=Notification.PURPOSE_AVAILABILITY, throttle_horas=24,
+            )
+
+    if "email" not in canais:
+        return {
+            "usuarios_faltantes": sem_disponibilidade.count(),
+            "emails_enviados": 0,
+            "push_enfileirados": push_enfileirados,
+        }
 
     # --- faltantes: sem disponibilidade e com e-mail válido ---
     faltantes_qs = (
@@ -228,4 +239,4 @@ def disparar_pedido_disponibilidades(ano: int, mes: int, equipe_id: int | None =
             notif.last_error = str(e)
             notif.save(update_fields=["total_attempts", "last_status", "last_error", "updated_at"])
 
-    return {"usuarios_faltantes": total_faltantes, "emails_enviados": enviados}
+    return {"usuarios_faltantes": total_faltantes, "emails_enviados": enviados, "push_enfileirados": push_enfileirados}
