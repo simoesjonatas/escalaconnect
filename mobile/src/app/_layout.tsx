@@ -67,6 +67,8 @@ function Telas({ estado }: { estado: EstadoDaSessao }) {
         headerTitleStyle: { color: cores.texto },
         headerStyle: { backgroundColor: cores.cartao },
         headerShadowVisible: false,
+        // Sem isto o iPhone mostra o nome da rota anterior ("(tabs)") no botão de voltar.
+        headerBackTitle: 'Voltar',
         contentStyle: { backgroundColor: cores.fundo },
       }}>
       <Stack.Protected guard={estado === 'anonimo'}>
