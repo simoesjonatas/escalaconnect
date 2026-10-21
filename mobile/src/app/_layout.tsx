@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
+import { FaixaDeAtualizacao, useVerificarAtualizacoes } from '../lib/atualizacoes';
 import { AuthProvider, EstadoDaSessao, useAuth } from '../lib/auth';
 import { usePush } from '../lib/push';
 import { useTema } from '../lib/tema';
@@ -14,6 +15,7 @@ export default function RootLayout() {
     () => new QueryClient({ defaultOptions: { queries: { staleTime: 30_000, retry: 1 } } }),
   );
   const { cores, escuro } = useTema();
+  useVerificarAtualizacoes();
   // Cores do navegador (cabeçalhos, fundo das transições) acompanham o tema do aparelho.
   const base = escuro ? DarkTheme : DefaultTheme;
   const tema = {
@@ -25,7 +27,11 @@ export default function RootLayout() {
       <AuthProvider>
         <ThemeProvider value={tema}>
           <StatusBar style={escuro ? 'light' : 'dark'} />
-          <Navegacao />
+          {/* Container para a faixa de atualização ficar sobreposta às telas. */}
+          <View style={{ flex: 1 }}>
+            <Navegacao />
+            <FaixaDeAtualizacao />
+          </View>
         </ThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
