@@ -23,9 +23,13 @@ export type Evento = {
   observacao: string | null;
 };
 
-export type EventoCalendario = Evento & {
+/** Evento com a equipe dona dele (null = culto geral, aberto a todos). */
+export type EventoComEquipe = Evento & {
   equipe_id: number | null;
   equipe: string | null;
+};
+
+export type EventoCalendario = EventoComEquipe & {
   escalado: boolean;
   confirmada: boolean;
   funcoes: string[];

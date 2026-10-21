@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from './api';
-import { Disponibilidade, Equipes, Escala, Evento, EventoCalendario, Home } from './types';
+import { Disponibilidade, Equipes, Escala, EventoCalendario, EventoComEquipe, Home } from './types';
 
 export const useHome = () => useQuery({ queryKey: ['home'], queryFn: () => api<Home>('GET', '/home/') });
 
@@ -53,7 +53,7 @@ export const useDisponibilidades = () =>
 export const useEventosElegiveis = () =>
   useQuery({
     queryKey: ['disponibilidades', 'eventos'],
-    queryFn: () => api<Evento[]>('GET', '/disponibilidades/eventos/'),
+    queryFn: () => api<EventoComEquipe[]>('GET', '/disponibilidades/eventos/'),
   });
 
 export type MudancaDeDisponibilidade = { acao: 'por-evento'; evento_ids: number[] } | { acao: 'excluir'; id: number };

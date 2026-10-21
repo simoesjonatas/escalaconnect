@@ -149,6 +149,41 @@ export function Campo({ rotulo, senha, ...props }: { rotulo: string; senha?: boo
   );
 }
 
+/** Linha rolável de opções em pílula; a selecionada fica destacada. */
+export function Opcoes<T extends string>({
+  opcoes,
+  valor,
+  aoEscolher,
+}: {
+  opcoes: { valor: T; rotulo: string }[];
+  valor: T;
+  aoEscolher: (valor: T) => void;
+}) {
+  const { cores } = useTema();
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+      {opcoes.map((opcao) => {
+        const ativa = opcao.valor === valor;
+        return (
+          <Pressable
+            key={opcao.valor}
+            onPress={() => aoEscolher(opcao.valor)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: ativa }}
+            style={[
+              estilos.opcao,
+              { borderColor: ativa ? cores.primaria : cores.borda, backgroundColor: ativa ? cores.primaria : cores.cartao },
+            ]}>
+            <Text style={{ color: ativa ? cores.sobrePrimaria : cores.texto, fontSize: 14, fontWeight: '600' }}>
+              {opcao.rotulo}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
 export function Etiqueta({ texto, cor }: { texto: string; cor: string }) {
   return (
     <View style={[estilos.etiqueta, { backgroundColor: cor }]}>
@@ -200,6 +235,7 @@ const estilos = StyleSheet.create({
   rotulo: { fontSize: 14, fontWeight: '600' },
   campo: { minHeight: 48, borderWidth: 1, borderRadius: 10, paddingHorizontal: espaco.m, fontSize: 16 },
   olho: { position: 'absolute', right: 12, top: 0, bottom: 0, justifyContent: 'center' },
+  opcao: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
   etiqueta: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   etiquetaTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });

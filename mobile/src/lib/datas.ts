@@ -20,3 +20,11 @@ export function periodo(inicio: string, fim: string): string {
 
 /** "2026-10-04", no fuso do aparelho (chave dos dias no calendário). */
 export const chaveDoDia = (data: Date | string) => fmt(data, 'yyyy-MM-dd');
+
+/** "Outubro" (com o ano quando não for o ano corrente: "Janeiro 2027"). */
+export function mesPorExtenso(data: Date | string): string {
+  const d = new Date(data);
+  const nome = fmt(d, 'MMMM');
+  const texto = nome.charAt(0).toUpperCase() + nome.slice(1);
+  return d.getFullYear() === new Date().getFullYear() ? texto : `${texto} ${d.getFullYear()}`;
+}
