@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router/js-tabs';
 import { ComponentProps } from 'react';
 import { ColorValue } from 'react-native';
 
+import { useHome } from '../../lib/hooks';
 import { useTema } from '../../lib/tema';
 
 const icone =
@@ -11,6 +12,8 @@ const icone =
 
 export default function TabsLayout() {
   const { cores } = useTema();
+  // Contador de escalas a confirmar na aba Escalas (some quando zera).
+  const pendentes = useHome().data?.escalas_pendentes ?? 0;
   return (
     <Tabs
       screenOptions={{
@@ -22,7 +25,15 @@ export default function TabsLayout() {
         headerShadowVisible: false,
       }}>
       <Tabs.Screen name="index" options={{ title: 'Início', tabBarIcon: icone('home-outline') }} />
-      <Tabs.Screen name="escalas" options={{ title: 'Escalas', tabBarIcon: icone('clipboard-outline') }} />
+      <Tabs.Screen
+        name="escalas"
+        options={{
+          title: 'Escalas',
+          tabBarIcon: icone('clipboard-outline'),
+          tabBarBadge: pendentes > 0 ? pendentes : undefined,
+          tabBarBadgeStyle: { backgroundColor: cores.perigo, color: '#fff' },
+        }}
+      />
       <Tabs.Screen name="calendario" options={{ title: 'Calendário', tabBarIcon: icone('calendar-outline') }} />
       <Tabs.Screen name="disponibilidade" options={{ title: 'Disponibilidade', tabBarIcon: icone('time-outline') }} />
       <Tabs.Screen name="perfil" options={{ title: 'Perfil', tabBarIcon: icone('person-outline') }} />
