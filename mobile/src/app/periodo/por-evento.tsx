@@ -29,11 +29,40 @@ function tipoDoEvento(evento: EventoComEquipe): Tipo {
 const chaveDoMes = (evento: EventoComEquipe) => evento.data_inicio.slice(0, 7);
 const chaveDaEquipe = (evento: EventoComEquipe) => (evento.equipe_id ? String(evento.equipe_id) : 'gerais');
 
-/** Opções de um filtro: "Todos" mais os valores presentes na lista, na ordem em que aparecem. */
-function opcoesDe(eventos: EventoComEquipe[], chave: (e: EventoComEquipe) => string, rotulo: (e: EventoComEquipe) => string) {
+/** Opções de um filtro: "todos" mais os valores presentes na lista, na ordem em que aparecem. */
+function opcoesDe(
+  eventos: EventoComEquipe[],
+  chave: (e: EventoComEquipe) => string,
+  rotulo: (e: EventoComEquipe) => string,
+  rotuloTodos: string,
+) {
   const vistas = new Map<string, string>();
   for (const evento of eventos) if (!vistas.has(chave(evento))) vistas.set(chave(evento), rotulo(evento));
-  return [{ valor: 'todos', rotulo: 'Todos' }, ...[...vistas].map(([valor, r]) => ({ valor, rotulo: r }))];
+  return [{ valor: 'todos', rotulo: rotuloTodos }, ...[...vistas].map(([valor, r]) => ({ valor, rotulo: r }))];
+}
+
+/** "Equipe Recepção", sem repetir a palavra quando o nome já começa com "Equipe". */
+const nomeDaEquipe = (nome: string) => (/^equipe\b/i.test(nome) ? nome : `Equipe ${nome}`);
+
+/** Uma linha de filtro com título, para deixar claro o que as opções filtram. */
+function Filtro({
+  titulo,
+  opcoes,
+  valor,
+  aoEscolher,
+}: {
+  titulo: string;
+  opcoes: { valor: string; rotulo: string }[];
+  valor: string;
+  aoEscolher: (valor: string) => void;
+}) {
+  if (opcoes.length <= 2) return null; // uma opção só não filtra nada
+  return (
+    <View style={{ gap: 6 }}>
+      <Suave style={{ fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>{titulo}</Suave>
+      <Opcoes opcoes={opcoes} valor={valor} aoEscolher={aoEscolher} />
+    </View>
+  );
 }
 
 export default function PorEvento() {
@@ -48,12 +77,12 @@ export default function PorEvento() {
   const lista = eventos.data ?? [];
   const filtros = useMemo(() => {
     const ordemDosTipos = Object.keys(ROTULO_DO_TIPO);
-    const tipos = opcoesDe(lista, tipoDoEvento, (e) => ROTULO_DO_TIPO[tipoDoEvento(e)]);
+    const tipos = opcoesDe(lista, tipoDoEvento, (e) => ROTULO_DO_TIPO[tipoDoEvento(e)], 'Todos os cultos');
     tipos.sort((a, b) => (a.valor === 'todos' ? -1 : b.valor === 'todos' ? 1 : ordemDosTipos.indexOf(a.valor) - ordemDosTipos.indexOf(b.valor)));
     return {
-      meses: opcoesDe(lista, chaveDoMes, (e) => mesPorExtenso(e.data_inicio)),
+      meses: opcoesDe(lista, chaveDoMes, (e) => mesPorExtenso(e.data_inicio), 'Todos os meses'),
       tipos,
-      equipes: opcoesDe(lista, chaveDaEquipe, (e) => e.equipe ?? 'Cultos gerais'),
+      equipes: opcoesDe(lista, chaveDaEquipe, (e) => (e.equipe ? nomeDaEquipe(e.equipe) : 'Cultos gerais'), 'Todas'),
     };
   }, [lista]);
 
@@ -63,6 +92,13 @@ export default function PorEvento() {
       (tipo === 'todos' || tipoDoEvento(e) === tipo) &&
       (equipe === 'todos' || chaveDaEquipe(e) === equipe),
   );
+  const filtrando = mes !== 'todos' || tipo !== 'todos' || equipe !== 'todos';
+  const temFiltros = [filtros.meses, filtros.tipos, filtros.equipes].some((o) => o.length > 2);
+  function limparFiltros() {
+    setMes('todos');
+    setTipo('todos');
+    setEquipe('todos');
+  }
   const todosVisiveisMarcados = visiveis.length > 0 && visiveis.every((e) => marcados.includes(e.id));
 
   const alternar = (id: number) =>
@@ -83,13 +119,29 @@ export default function PorEvento() {
 
       {lista.length > 0 && (
         <>
-          {filtros.meses.length > 2 && <Opcoes opcoes={filtros.meses} valor={mes} aoEscolher={setMes} />}
-          {filtros.tipos.length > 2 && <Opcoes opcoes={filtros.tipos} valor={tipo} aoEscolher={setTipo} />}
-          {filtros.equipes.length > 2 && <Opcoes opcoes={filtros.equipes} valor={equipe} aoEscolher={setEquipe} />}
+          {temFiltros && (
+            <Cartao style={{ gap: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Ionicons name="funnel-outline" size={18} color={cores.texto} />
+                  <Subtitulo>Filtrar eventos</Subtitulo>
+                </View>
+                {filtrando && (
+                  <Pressable onPress={limparFiltros} hitSlop={8} accessibilityRole="button">
+                    <Suave style={{ color: cores.primaria, fontWeight: '600' }}>Limpar filtros</Suave>
+                  </Pressable>
+                )}
+              </View>
+              <Filtro titulo="Mês" opcoes={filtros.meses} valor={mes} aoEscolher={setMes} />
+              <Filtro titulo="Culto" opcoes={filtros.tipos} valor={tipo} aoEscolher={setTipo} />
+              <Filtro titulo="Equipe" opcoes={filtros.equipes} valor={equipe} aoEscolher={setEquipe} />
+            </Cartao>
+          )}
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Suave>
-              {marcados.length} selecionado{marcados.length === 1 ? '' : 's'} · {visiveis.length} na lista
+              {filtrando ? `Mostrando ${visiveis.length} de ${lista.length}` : `${lista.length} eventos`} ·{' '}
+              {marcados.length} selecionado{marcados.length === 1 ? '' : 's'}
             </Suave>
             {visiveis.length > 0 && (
               <Pressable onPress={alternarVisiveis} hitSlop={8} accessibilityRole="button">
@@ -124,7 +176,7 @@ export default function PorEvento() {
                 <View style={{ flex: 1, gap: 2 }}>
                   <Subtitulo>{evento.nome}</Subtitulo>
                   <Suave>{periodo(evento.data_inicio, evento.data_fim)}</Suave>
-                  {!!evento.equipe && <Suave>Equipe {evento.equipe}</Suave>}
+                  {!!evento.equipe && <Suave>{nomeDaEquipe(evento.equipe)}</Suave>}
                 </View>
               </View>
             </Cartao>
