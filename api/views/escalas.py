@@ -47,6 +47,8 @@ class HomeView(APIView):
         return Response({
             **pendencias_home(request.user),
             'proxima_escala': EscalaSerializer(proxima).data if proxima else None,
+            # Sem equipe aprovada o app pede para entrar em uma antes de informar disponibilidade.
+            'em_equipe': request.user.is_in_team(),
             'pendencias_lider': total_pendencias_do_lider(request.user) if pode_liderar(request.user) else 0,
         })
 

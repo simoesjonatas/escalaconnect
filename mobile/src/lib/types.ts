@@ -54,6 +54,8 @@ export type Home = {
   falta_email: boolean;
   falta_telefone: boolean;
   proxima_escala: Escala | null;
+  /** Membro aprovado de alguma equipe (sem isso não pode informar disponibilidade). */
+  em_equipe?: boolean;
   /** Impedimentos, trocas e candidaturas esperando o líder (0 para quem não lidera). */
   pendencias_lider?: number;
 };

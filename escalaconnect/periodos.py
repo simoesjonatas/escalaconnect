@@ -17,10 +17,18 @@ class Periodos:
 
     JANELA_EVENTOS = timedelta(days=60)
 
-    def __init__(self, modelo, conflitante, mensagem_conflito):
+    def __init__(self, modelo, conflitante, mensagem_conflito, exige_equipe=False):
         self.modelo = modelo
         self.conflitante = conflitante
         self.mensagem_conflito = mensagem_conflito
+        # Disponibilidade só faz sentido para quem já é membro aprovado de alguma equipe.
+        self.exige_equipe = exige_equipe
+
+    def _exigir_equipe(self, usuario):
+        if self.exige_equipe and not usuario.is_in_team():
+            raise RegraDeNegocio(
+                "Entre em uma equipe e aguarde a aprovação da liderança para informar sua disponibilidade.",
+                code='sem_equipe')
 
     def do_usuario(self, usuario):
         return self.modelo.objects.filter(usuario=usuario)
@@ -31,6 +39,7 @@ class Periodos:
         return self.do_usuario(usuario).filter(data_inicio__gte=hoje, data_fim__gte=hoje)
 
     def validar(self, usuario, data_inicio, data_fim):
+        self._exigir_equipe(usuario)
         if data_fim <= data_inicio:
             raise RegraDeNegocio("O fim do período precisa ser depois do início.", code='periodo_invalido')
         conflitos = self.conflitante.objects.filter(
@@ -51,6 +60,7 @@ class Periodos:
 
     def registrar_por_eventos(self, usuario, evento_ids):
         """Cria um período por evento informado (visível e ainda sem registro). Devolve quantos criou."""
+        self._exigir_equipe(usuario)
         ja_registrados = set(
             self.do_usuario(usuario).filter(evento_id__in=evento_ids).values_list('evento_id', flat=True))
         eventos = Evento.objects.visiveis_para(usuario).filter(pk__in=evento_ids).exclude(pk__in=ja_registrados)

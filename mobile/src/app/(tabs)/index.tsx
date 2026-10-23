@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 
 import { useAuth } from '../../lib/auth';
 import { hora } from '../../lib/datas';
+import { AvisoSemEquipe } from '../../lib/equipe-ui';
 import { CartaoDeEscala } from '../../lib/escala-ui';
 import { useAcaoDeEscala, useEscalas, useHome } from '../../lib/hooks';
 import { useTema } from '../../lib/tema';
@@ -50,6 +51,7 @@ export default function Inicio() {
   const home = useHome();
   const escalas = useEscalas();
   const dados = home.data;
+  const semEquipe = dados?.em_equipe === false;
 
   // Escalas de hoje que ainda não terminaram vão para o destaque; as demais, para "Próximas escalas".
   const agora = new Date();
@@ -75,6 +77,8 @@ export default function Inicio() {
       <Estado consulta={home} />
       {dados && (
         <>
+          {semEquipe && <AvisoSemEquipe />}
+
           {deHoje.map((escala) => (
             <CartaoDeHoje key={escala.id} escala={escala} />
           ))}
@@ -108,7 +112,7 @@ export default function Inicio() {
             <Suave>{deHoje.length ? 'Nenhuma outra escala marcada.' : 'Você não tem escalas futuras.'}</Suave>
           )}
 
-          {!dados.tem_disponibilidade && (
+          {!dados.tem_disponibilidade && !semEquipe && (
             <Cartao>
               <Subtitulo>Informe sua disponibilidade</Subtitulo>
               <Texto>Sem ela, a liderança não sabe quando pode contar com você.</Texto>

@@ -160,6 +160,31 @@ class PeriodosTests(BaseTestCase):
         self.assertEqual(self.client.get('/api/v1/disponibilidades/').data[0]['evento'], 'Culto')
 
 
+class SemEquipeTests(ApiTestCase):
+    """Sem equipe aprovada (só candidatura pendente) não registra disponibilidade."""
+
+    def setUp(self):
+        super().setUp()
+        self.user = criar_usuario()
+        MembrosEquipe.objects.create(usuario=self.user, equipe=Equipe.objects.create(nome='Recepção'))
+        self.autenticar(self.user)
+
+    def test_home_avisa_e_disponibilidade_e_recusada(self):
+        self.assertFalse(self.client.get('/api/v1/home/').data['em_equipe'])
+        evento = criar_evento('Culto', 2)
+        resp = self.client.post('/api/v1/disponibilidades/por-evento/', {'evento_ids': [evento.pk]}, format='json')
+        self.assertEqual((resp.status_code, resp.data['code']), (400, 'sem_equipe'))
+        resp = self.client.post(
+            '/api/v1/disponibilidades/', {'data_inicio': em(2), 'data_fim': em(2, 2)}, format='json')
+        self.assertEqual((resp.status_code, resp.data['code']), (400, 'sem_equipe'))
+        self.assertFalse(Disponivel.objects.exists())
+
+        MembrosEquipe.objects.filter(usuario=self.user).update(aprovado=True)
+        self.assertTrue(self.client.get('/api/v1/home/').data['em_equipe'])
+        resp = self.client.post('/api/v1/disponibilidades/por-evento/', {'evento_ids': [evento.pk]}, format='json')
+        self.assertEqual(resp.data, {'criados': 1})
+
+
 class EquipesTests(BaseTestCase):
     def test_lista_e_candidatura(self):
         resp = self.client.get('/api/v1/equipes/')

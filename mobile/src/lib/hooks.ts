@@ -90,7 +90,10 @@ export function useCandidatura() {
   return useMutation({
     mutationFn: ({ equipeId, cancelar }: { equipeId: number; cancelar?: boolean }) =>
       api<Equipes>(cancelar ? 'DELETE' : 'POST', `/equipes/${equipeId}/candidatura/`),
-    onSuccess: (equipes) => queryClient.setQueryData(['equipes'], equipes),
+    onSuccess: (equipes) => {
+      queryClient.setQueryData(['equipes'], equipes);
+      void queryClient.invalidateQueries({ queryKey: ['home'] });
+    },
   });
 }
 

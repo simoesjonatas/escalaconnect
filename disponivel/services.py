@@ -6,4 +6,5 @@ from .models import Disponivel
 disponibilidades = Periodos(
     Disponivel, Ocupado,
     "Existe uma indisponibilidade registrada que conflita com este período de disponibilidade.",
+    exige_equipe=True,
 )

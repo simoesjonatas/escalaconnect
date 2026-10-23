@@ -2,7 +2,8 @@ import { router } from 'expo-router';
 import { Alert, Pressable } from 'react-native';
 
 import { periodo } from '../../lib/datas';
-import { useDisponibilidades, useMudarDisponibilidades } from '../../lib/hooks';
+import { AvisoSemEquipe } from '../../lib/equipe-ui';
+import { useDisponibilidades, useHome, useMudarDisponibilidades } from '../../lib/hooks';
 import { useTema } from '../../lib/tema';
 import { Disponibilidade } from '../../lib/types';
 import { Botao, Cartao, Erro, Estado, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
@@ -12,6 +13,8 @@ export default function Disponibilidades() {
   const disponibilidades = useDisponibilidades();
   const mudar = useMudarDisponibilidades();
   const { cores } = useTema();
+  const home = useHome();
+  const semEquipe = home.data?.em_equipe === false;
 
   function excluir(item: Disponibilidade) {
     Alert.alert('Excluir disponibilidade', item.evento ?? periodo(item.data_inicio, item.data_fim), [
@@ -21,9 +24,20 @@ export default function Disponibilidades() {
   }
 
   return (
-    <Tela atualizando={disponibilidades.isRefetching} aoAtualizar={() => disponibilidades.refetch()}>
-      <Texto>Marque os eventos em que você pode servir. A liderança escala só quem está disponível.</Texto>
-      <Botao titulo="Registrar disponibilidade" aoTocar={() => router.push('/periodo/por-evento')} />
+    <Tela
+      atualizando={disponibilidades.isRefetching || home.isRefetching}
+      aoAtualizar={() => {
+        void disponibilidades.refetch();
+        void home.refetch();
+      }}>
+      {semEquipe ? (
+        <AvisoSemEquipe />
+      ) : (
+        <>
+          <Texto>Marque os eventos em que você pode servir. A liderança escala só quem está disponível.</Texto>
+          <Botao titulo="Registrar disponibilidade" aoTocar={() => router.push('/periodo/por-evento')} />
+        </>
+      )}
 
       <Subtitulo>Próximas disponibilidades</Subtitulo>
       <Erro erro={mudar.error} />
