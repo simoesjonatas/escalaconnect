@@ -4,12 +4,14 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from escala import services
-from escala.models import Desistencia, Escala, SolicitacaoTroca
+from escala.models import Desistencia, Escala, Rendimento, SolicitacaoTroca
 from equipe.services import total_pendencias_do_lider
 from escalaconnect.services import pendencias_home
 
+from .avisos import nao_lidos
 from .lideranca import pode_liderar
 from ..serializers.escala import EscalaSerializer, ImpedimentoSerializer
+from ..serializers.lideranca import VagaAbertaSerializer
 
 
 def escalas_do_usuario(usuario, base=None):
@@ -39,6 +41,16 @@ class EscalaDoUsuarioView(APIView):
         return Response(EscalaSerializer(self.get_escala(escala.pk)).data)
 
 
+def vagas_abertas(usuario):
+    """Vagas das equipes do usuário, marcando as em que ele já se ofereceu."""
+    return (
+        services.vagas_abertas_para(usuario)
+        .select_related('evento', 'funcao__equipe')
+        .annotate(me_ofereci=Exists(Rendimento.objects.filter(escala=OuterRef('pk'), candidato=usuario, aprovada=False)))
+        .order_by('evento__data_inicio', 'funcao__equipe__nome', 'funcao__nome')
+    )
+
+
 class HomeView(APIView):
     """Pendências do voluntário e a próxima escala, para a tela inicial."""
 
@@ -49,6 +61,9 @@ class HomeView(APIView):
             'proxima_escala': EscalaSerializer(proxima).data if proxima else None,
             # Sem equipe aprovada o app pede para entrar em uma antes de informar disponibilidade.
             'em_equipe': request.user.is_in_team(),
+            'avisos_nao_lidos': nao_lidos(request.user),
+            # Vagas da equipe em que o voluntário ainda pode se oferecer.
+            'vagas_abertas': vagas_abertas(request.user).filter(me_ofereci=False).count(),
             'pendencias_lider': total_pendencias_do_lider(request.user) if pode_liderar(request.user) else 0,
         })
 
@@ -85,3 +100,26 @@ class TrocaView(EscalaDoUsuarioView):
 
     def delete(self, request, pk):
         return self.executar(services.cancelar_troca)
+
+
+class VagaAbertaListView(APIView):
+    """Vagas em aberto das equipes do voluntário, para ele se oferecer."""
+
+    def get(self, request):
+        return Response(VagaAbertaSerializer(vagas_abertas(request.user), many=True).data)
+
+
+class OfertaView(APIView):
+    """POST: oferece-se para a vaga (o líder aprova no app ou no site). DELETE: desiste da oferta."""
+
+    def responder(self, pk):
+        vaga = vagas_abertas(self.request.user).filter(pk=pk).first()
+        return Response(VagaAbertaSerializer(vaga).data if vaga else None)
+
+    def post(self, request, pk):
+        services.oferecer_para_vaga(get_object_or_404(Escala, pk=pk), request.user)
+        return self.responder(pk)
+
+    def delete(self, request, pk):
+        services.cancelar_oferta(get_object_or_404(Escala, pk=pk), request.user)
+        return self.responder(pk)

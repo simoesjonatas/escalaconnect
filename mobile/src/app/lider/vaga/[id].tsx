@@ -26,7 +26,8 @@ export default function EscalarNaVaga() {
   const candidatos = (dados?.candidatos ?? []).filter((c) => semAcento(c.nome).includes(semAcento(busca.trim())));
 
   function confirmar(candidato: Candidato) {
-    const aviso = candidato.disponivel ? '' : '\n\nEssa pessoa não marcou disponibilidade para este evento.';
+    const aviso =
+      candidato.disponivel || candidato.se_ofereceu ? '' : '\n\nEssa pessoa não marcou disponibilidade para este evento.';
     Alert.alert('Escalar', `Escalar ${candidato.nome} nesta vaga? A pessoa recebe um aviso no app.${aviso}`, [
       { text: 'Voltar', style: 'cancel' },
       {
@@ -76,6 +77,7 @@ export default function EscalarNaVaga() {
               accessibilityRole="button"
               style={({ pressed }) => (pressed || escalar.isPending) && { opacity: 0.6 }}>
               <Cartao>
+                {candidato.se_ofereceu && <Etiqueta texto="Se ofereceu" cor={cores.confirmada} />}
                 <Subtitulo>{candidato.nome}</Subtitulo>
                 <Texto style={{ color: candidato.disponivel ? cores.confirmada : cores.textoSuave, fontWeight: '600' }}>
                   {candidato.disponivel ? 'Disponível' : 'Sem disponibilidade marcada'}

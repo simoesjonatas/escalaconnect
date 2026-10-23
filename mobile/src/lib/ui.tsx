@@ -184,6 +184,88 @@ export function Opcoes<T extends string>({
   );
 }
 
+/** Abas internas de largura igual (ex.: Pendências · Cultos · Vagas), com contador opcional. */
+export function Segmentos<T extends string>({
+  opcoes,
+  valor,
+  aoEscolher,
+}: {
+  opcoes: { valor: T; rotulo: string; total?: number }[];
+  valor: T;
+  aoEscolher: (valor: T) => void;
+}) {
+  const { cores } = useTema();
+  return (
+    <View style={[estilos.segmentos, { backgroundColor: cores.borda }]} accessibilityRole="tablist">
+      {opcoes.map((opcao) => {
+        const ativa = opcao.valor === valor;
+        return (
+          <Pressable
+            key={opcao.valor}
+            onPress={() => aoEscolher(opcao.valor)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: ativa }}
+            style={[estilos.segmento, ativa && { backgroundColor: cores.cartao }]}>
+            <Text numberOfLines={1} style={{ color: ativa ? cores.texto : cores.textoSuave, fontSize: 14, fontWeight: '600' }}>
+              {opcao.rotulo}
+            </Text>
+            {!!opcao.total && (
+              <View style={[estilos.contador, { backgroundColor: cores.perigo }]}>
+                <Text style={estilos.contadorTexto}>{opcao.total}</Text>
+              </View>
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Linha compacta de lista, tocável, com seta à direita (alternativa leve ao Cartao). */
+export function Linha({
+  titulo,
+  detalhe,
+  status,
+  corStatus,
+  aoTocar,
+}: {
+  titulo: string;
+  detalhe?: string;
+  status?: string;
+  corStatus?: string;
+  aoTocar?: () => void;
+}) {
+  const { cores } = useTema();
+  return (
+    <Pressable
+      onPress={aoTocar}
+      disabled={!aoTocar}
+      accessibilityRole={aoTocar ? 'button' : undefined}
+      style={({ pressed }) => [
+        estilos.linha,
+        { backgroundColor: cores.cartao, borderColor: cores.borda },
+        pressed && { opacity: 0.6 },
+      ]}>
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text numberOfLines={1} style={{ color: cores.texto, fontSize: 15, fontWeight: '600' }}>
+          {titulo}
+        </Text>
+        {!!detalhe && (
+          <Text numberOfLines={1} style={{ color: cores.textoSuave, fontSize: 13 }}>
+            {detalhe}
+          </Text>
+        )}
+        {!!status && (
+          <Text numberOfLines={1} style={{ color: corStatus ?? cores.textoSuave, fontSize: 13, fontWeight: '600' }}>
+            {status}
+          </Text>
+        )}
+      </View>
+      {aoTocar && <Ionicons name="chevron-forward" size={18} color={cores.textoSuave} />}
+    </Pressable>
+  );
+}
+
 export function Etiqueta({ texto, cor }: { texto: string; cor: string }) {
   return (
     <View style={[estilos.etiqueta, { backgroundColor: cor }]}>
@@ -236,6 +318,28 @@ const estilos = StyleSheet.create({
   campo: { minHeight: 48, borderWidth: 1, borderRadius: 10, paddingHorizontal: espaco.m, fontSize: 16 },
   olho: { position: 'absolute', right: 12, top: 0, bottom: 0, justifyContent: 'center' },
   opcao: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
+  segmentos: { flexDirection: 'row', borderRadius: 10, padding: 3, gap: 3 },
+  segmento: {
+    flex: 1,
+    minHeight: 38,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
+  },
+  contador: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center' },
+  contadorTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  linha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: espaco.m,
+    paddingVertical: 10,
+  },
   etiqueta: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   etiquetaTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });

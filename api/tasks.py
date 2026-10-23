@@ -11,7 +11,7 @@ from escalaconnect.push import notificar_push
 from evento.models import Notification, NotificationAttempt
 
 from . import push
-from .models import Device
+from .models import Aviso, Device
 
 
 @shared_task(bind=True, autoretry_for=(requests.RequestException,), retry_backoff=True, max_retries=3)
@@ -37,12 +37,15 @@ def enviar_push_task(self, usuario_id, titulo, corpo, tipo, purpose, escala_id=N
         )
         return 'throttled'
 
+    # Número no ícone do app: avisos ainda não lidos na caixa do app.
+    nao_lidos = Aviso.objects.filter(usuario_id=usuario_id, lido_em__isnull=True).count()
     mensagens = [
         {
             'to': device.expo_token,
             'title': titulo,
             'body': corpo,
             'sound': 'default',
+            'badge': nao_lidos,
             'data': {'tipo': tipo, 'escala_id': escala_id},
         }
         for device in devices
@@ -160,3 +163,13 @@ def lembretes_de_escala():
             tipo='escalado', purpose=purpose, escala_id=escala.pk, throttle_horas=24,
         )
     return enfileirados
+
+
+DIAS_DE_AVISOS = 60
+
+
+@shared_task
+def limpar_avisos_antigos():
+    """Apaga da caixa do app os avisos com mais de 60 dias (roda uma vez por dia)."""
+    apagados, _ = Aviso.objects.filter(criado_em__lt=timezone.now() - timedelta(days=DIAS_DE_AVISOS)).delete()
+    return apagados

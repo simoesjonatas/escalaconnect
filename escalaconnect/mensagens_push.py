@@ -80,6 +80,10 @@ def pedido_recusado(escala):
     return 'Você continua escalado', f'A liderança não aprovou o pedido para {_dia(escala.evento.data_inicio)}'
 
 
+def oferta_nao_aceita(escala):
+    return 'Obrigado por se oferecer', f'A vaga de {_dia(escala.evento.data_inicio)} não ficou com você desta vez'
+
+
 def entrada_na_equipe(equipe):
     return 'Boas-vindas à equipe! 🙌', f'Agora você faz parte da {nome_da_equipe(equipe.nome)}'
 
@@ -106,3 +110,11 @@ def lider_troca(troca):
 
 def lider_candidatura(membro):
     return 'Nova candidatura', f'{_nome(membro.usuario)} quer entrar na {nome_da_equipe(membro.equipe.nome)}'
+
+
+def lider_oferta(oferta):
+    escala = oferta.escala
+    return (
+        'Voluntário para a vaga',
+        f'{_nome(oferta.candidato)} · {_quando(escala.evento.data_inicio)} · {escala.funcao.nome}',
+    )

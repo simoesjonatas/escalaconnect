@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { isSameDay } from 'date-fns';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { useAuth } from '../../lib/auth';
@@ -63,6 +64,14 @@ export default function Inicio() {
     .filter((e) => !deHoje.includes(e) && new Date(e.evento.data_fim) > agora)
     .slice(0, PROXIMAS);
 
+  // Ao voltar para o Início (de outra aba ou tela), o sino e os cartões se atualizam.
+  const { refetch: recarregarHome } = home;
+  useFocusEffect(
+    useCallback(() => {
+      void recarregarHome();
+    }, [recarregarHome]),
+  );
+
   function atualizar() {
     void home.refetch();
     void escalas.refetch();
@@ -91,6 +100,18 @@ export default function Inicio() {
                   : `Você tem ${dados.escalas_pendentes} escalas a confirmar`}
               </Subtitulo>
               <Botao titulo="Ver minhas escalas" aoTocar={() => router.navigate('/escalas')} />
+            </Cartao>
+          )}
+
+          {!!dados.vagas_abertas && (
+            <Cartao>
+              <Subtitulo>Sua equipe precisa de ajuda</Subtitulo>
+              <Texto>
+                {dados.vagas_abertas === 1
+                  ? 'Tem 1 vaga em aberto em que você pode se oferecer.'
+                  : `Tem ${dados.vagas_abertas} vagas em aberto em que você pode se oferecer.`}
+              </Texto>
+              <Botao titulo="Ver vagas" variante="secundario" aoTocar={() => router.push('/vagas')} />
             </Cartao>
           )}
 

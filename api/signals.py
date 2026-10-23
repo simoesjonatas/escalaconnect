@@ -3,7 +3,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from equipe.models import Lideranca, MembrosEquipe
-from escala.models import Desistencia, Escala, SolicitacaoTroca
+from escala.models import Desistencia, Escala, Rendimento, SolicitacaoTroca
 from escalaconnect import mensagens_push
 from escalaconnect.push import notificar_push
 from evento.models import Notification
@@ -65,3 +65,10 @@ def avisar_lider_troca(sender, instance, created, **kwargs):
 def avisar_lider_candidatura(sender, instance, created, **kwargs):
     if created and not instance.aprovado:
         _avisar_lideres(instance.equipe, instance.usuario_id, mensagens_push.lider_candidatura(instance))
+
+
+@receiver(post_save, sender=Rendimento)
+def avisar_lider_oferta(sender, instance, created, **kwargs):
+    if created and not instance.aprovada:
+        _avisar_lideres(instance.escala.equipe, instance.candidato_id,
+                        mensagens_push.lider_oferta(instance), escala_id=instance.escala_id)

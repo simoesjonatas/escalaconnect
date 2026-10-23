@@ -56,6 +56,10 @@ export type Home = {
   proxima_escala: Escala | null;
   /** Membro aprovado de alguma equipe (sem isso não pode informar disponibilidade). */
   em_equipe?: boolean;
+  /** Vagas da equipe em que o voluntário ainda pode se oferecer. */
+  vagas_abertas?: number;
+  /** Avisos ainda não lidos na caixa do app (o sino do Início). */
+  avisos_nao_lidos?: number;
   /** Impedimentos, trocas e candidaturas esperando o líder (0 para quem não lidera). */
   pendencias_lider?: number;
 };
@@ -87,10 +91,57 @@ export type Troca = { id: number; data_solicitacao: string; pessoa: Pessoa; esca
 
 export type Candidatura = { id: number; pessoa: Pessoa; equipe: string; equipe_id: number };
 
-export type PendenciasDoLider = { impedimentos: Impedimento[]; trocas: Troca[]; candidaturas: Candidatura[] };
+/** Voluntário que se ofereceu para uma vaga em aberto. */
+export type Oferta = { id: number; data_candidatura: string; pessoa: Pessoa; escala: EscalaDaEquipe };
+
+export type PendenciasDoLider = {
+  impedimentos: Impedimento[];
+  trocas: Troca[];
+  ofertas: Oferta[];
+  candidaturas: Candidatura[];
+};
 
 export type Vaga = EscalaDaEquipe & { disponiveis: number };
 
-export type Candidato = Pessoa & { disponivel: boolean; servicos_no_mes: number };
+export type Candidato = Pessoa & { disponivel: boolean; se_ofereceu: boolean; servicos_no_mes: number };
 
 export type DetalheDaVaga = { vaga: Vaga; candidatos: Candidato[] };
+
+/** Vaga da equipe do voluntário (tela "Vagas em aberto"). */
+export type VagaAberta = EscalaDaEquipe & { me_ofereci: boolean };
+
+export type Culto = EventoComEquipe & { total: number; confirmadas: number; pendentes: number; vagas: number };
+
+export type EscalaDoCulto = {
+  id: number;
+  funcao: string;
+  equipe: string;
+  pessoa: Pessoa | null;
+  confirmada: boolean;
+  tem_impedimento: boolean;
+  troca_pendente: boolean;
+};
+
+export type DetalheDoCulto = { evento: EventoComEquipe; escalas: EscalaDoCulto[] };
+
+export type DisponibilidadeDaEquipe = {
+  equipes: Equipe[];
+  equipe_id: number | null;
+  ano: number | null;
+  mes: number | null;
+  faltantes: Pessoa[];
+  membros: number;
+};
+
+/** Notificação guardada na caixa de avisos. `tipo` e `escala_id` são os mesmos do push. */
+export type Aviso = {
+  id: number;
+  titulo: string;
+  corpo: string;
+  tipo: string;
+  escala_id: number | null;
+  criado_em: string;
+  lido: boolean;
+};
+
+export type CaixaDeAvisos = { nao_lidos: number; avisos: Aviso[] };

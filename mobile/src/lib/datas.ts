@@ -9,6 +9,9 @@ export const diaPorExtenso = (data: Date | string) => fmt(data, "EEEE, d 'de' MM
 /** "19:00" */
 export const hora = (data: Date | string) => fmt(data, 'HH:mm');
 
+/** "dom 04/10 · 19:00" (listas compactas) */
+export const diaCurto = (data: Date | string) => `${fmt(data, 'EEEE').slice(0, 3)} ${fmt(data, "dd/MM '·' HH:mm")}`;
+
 /** "04/10 19:00" */
 export const diaEHora = (data: Date | string) => fmt(data, 'dd/MM HH:mm');
 

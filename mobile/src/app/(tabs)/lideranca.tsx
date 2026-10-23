@@ -1,222 +1,289 @@
-import { router } from 'expo-router';
-import { ReactNode, useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { router, useLocalSearchParams } from 'expo-router';
+import { ComponentProps, useEffect, useState } from 'react';
+import { Alert, Pressable, Text, View } from 'react-native';
 
-import { periodo } from '../../lib/datas';
-import { AcaoDoLider, useAcaoDoLider, usePendenciasDoLider, useVagas } from '../../lib/hooks';
-import { useTema } from '../../lib/tema';
-import { EscalaDaEquipe, Vaga } from '../../lib/types';
-import { Botao, Cartao, Erro, Estado, Etiqueta, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
+import { diaCurto } from '../../lib/datas';
+import { AcaoDoLider, useAcaoDoLider, useCultos, usePendenciasDoLider, useVagas } from '../../lib/hooks';
+import { Cores, useTema } from '../../lib/tema';
+import { Culto, EscalaDaEquipe, PendenciasDoLider, Pessoa } from '../../lib/types';
+import { Botao, Cartao, Erro, Estado, Etiqueta, Linha, Segmentos, Suave, Subtitulo, Tela } from '../../lib/ui';
 
-const VAGAS_VISIVEIS = 8;
+type Aba = 'pendencias' | 'cultos' | 'vagas';
 
 const abrirVaga = (id: number) => router.push({ pathname: '/lider/vaga/[id]', params: { id } });
 
-/** Pendências das equipes que o usuário lidera (aprovar/recusar) e vagas em aberto. */
+/** Uma pendência de qualquer tipo, já com os textos de cada lado da decisão. */
+type Pendencia = {
+  chave: string;
+  pedido: Omit<AcaoDoLider, 'acao'>;
+  tipo: { texto: string; cor: string };
+  pessoa: Pessoa;
+  escala?: EscalaDaEquipe;
+  detalhe?: string;
+  aprovar: string;
+  recusar: string;
+};
+
+/** Junta impedimentos, trocas e ofertas (por data do culto) e, por último, as candidaturas. */
+function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
+  const saida = (nome: string) => `${nome} sai da escala e a vaga fica aberta.`;
+  const continua = (nome: string) => `${nome} continua escalado e será avisado.`;
+  const comData = [
+    ...dados.impedimentos.map((i) => ({
+      chave: `i${i.id}`,
+      pedido: { tipo: 'impedimentos' as const, id: i.id },
+      tipo: { texto: 'Impedimento', cor: cores.perigo },
+      pessoa: i.pessoa,
+      escala: i.escala,
+      detalhe: `Motivo: ${i.motivo}`,
+      aprovar: saida(i.pessoa.nome),
+      recusar: continua(i.pessoa.nome),
+    })),
+    ...dados.trocas.map((t) => ({
+      chave: `t${t.id}`,
+      pedido: { tipo: 'trocas' as const, id: t.id },
+      tipo: { texto: 'Troca', cor: cores.neutra },
+      pessoa: t.pessoa,
+      escala: t.escala,
+      aprovar: saida(t.pessoa.nome),
+      recusar: continua(t.pessoa.nome),
+    })),
+    ...dados.ofertas.map((o) => ({
+      chave: `o${o.id}`,
+      pedido: { tipo: 'ofertas' as const, id: o.id },
+      tipo: { texto: 'Quer servir', cor: cores.confirmada },
+      pessoa: o.pessoa,
+      escala: o.escala,
+      aprovar: `${o.pessoa.nome} fica com a vaga e recebe o aviso de escala.`,
+      recusar: `${o.pessoa.nome} recebe um agradecimento e a vaga continua aberta.`,
+    })),
+  ].sort((a, b) => a.escala.evento.data_inicio.localeCompare(b.escala.evento.data_inicio));
+  const candidaturas: Pendencia[] = dados.candidaturas.map((c) => ({
+    chave: `c${c.id}`,
+    pedido: { tipo: 'candidaturas', id: c.id },
+    tipo: { texto: 'Candidatura', cor: cores.pendente },
+    pessoa: c.pessoa,
+    detalhe: `Quer entrar na equipe ${c.equipe}`,
+    aprovar: `${c.pessoa.nome} passa a fazer parte da equipe ${c.equipe}.`,
+    recusar: `O pedido de ${c.pessoa.nome} para a equipe ${c.equipe} será descartado.`,
+  }));
+  return [...comData, ...candidaturas];
+}
+
+/** Painel do líder em três abas: pendências para decidir, próximos cultos e vagas em aberto. */
 export default function Lideranca() {
   const pendencias = usePendenciasDoLider();
+  const cultos = useCultos();
   const vagas = useVagas();
   const acao = useAcaoDoLider();
-  const [todasAsVagas, setTodasAsVagas] = useState(false);
   const { cores } = useTema();
+  const [escolhida, setEscolhida] = useState<Aba>();
+  // Push e caixa de avisos abrem a aba já em Pendências (ver lib/push.ts).
+  const { aba: abaDoLink, t } = useLocalSearchParams<{ aba?: Aba; t?: string }>();
+  useEffect(() => {
+    if (abaDoLink) setEscolhida(abaDoLink);
+  }, [abaDoLink, t]);
 
-  const dados = pendencias.data;
-  const semPendencias = dados && !dados.impedimentos.length && !dados.trocas.length && !dados.candidaturas.length;
+  const lista = pendencias.data ? listarPendencias(pendencias.data, cores) : [];
+  // Abre em Pendências quando há algo para decidir; senão, em Cultos.
+  const aba: Aba = escolhida ?? (pendencias.data && lista.length === 0 ? 'cultos' : 'pendencias');
+  const consulta = { pendencias, cultos, vagas }[aba];
 
-  function executar(pedido: AcaoDoLider, titulo: string, mensagem: string) {
-    const aprovar = pedido.acao === 'aprovar';
-    Alert.alert(titulo, mensagem, [
+  function decidir(item: Pendencia, qual: AcaoDoLider['acao']) {
+    const aprovar = qual === 'aprovar';
+    Alert.alert(aprovar ? 'Aprovar' : 'Recusar', aprovar ? item.aprovar : item.recusar, [
       { text: 'Voltar', style: 'cancel' },
       {
         text: aprovar ? 'Aprovar' : 'Recusar',
         style: aprovar ? 'default' : 'destructive',
         onPress: () =>
-          acao.mutate(pedido, {
-            onSuccess: (resposta) => {
-              if (!resposta?.vaga_id) return;
-              const vagaId = resposta.vaga_id;
-              Alert.alert('Vaga liberada', 'Quer escalar outra pessoa agora?', [
-                { text: 'Depois', style: 'cancel' },
-                { text: 'Escalar', onPress: () => abrirVaga(vagaId) },
-              ]);
+          acao.mutate(
+            { ...item.pedido, acao: qual },
+            {
+              onSuccess: (resposta) => {
+                if (!resposta?.vaga_id) return;
+                const vagaId = resposta.vaga_id;
+                Alert.alert('Vaga liberada', 'Quer escalar outra pessoa agora?', [
+                  { text: 'Depois', style: 'cancel' },
+                  { text: 'Escalar', onPress: () => abrirVaga(vagaId) },
+                ]);
+              },
             },
-          }),
+          ),
       },
     ]);
   }
 
-  /** Botões Recusar/Aprovar de uma pendência, com confirmação. */
-  const decisao = (pedido: Omit<AcaoDoLider, 'acao'>, aprovar: string, recusar: string) => {
-    const emAndamento = acao.isPending && acao.variables?.tipo === pedido.tipo && acao.variables.id === pedido.id;
-    return (
-      <Decisao
-        bloqueado={acao.isPending}
-        carregando={emAndamento ? (acao.variables?.acao ?? null) : null}
-        aoDecidir={(qual) =>
-          executar({ ...pedido, acao: qual }, qual === 'aprovar' ? 'Aprovar' : 'Recusar', qual === 'aprovar' ? aprovar : recusar)
-        }
-      />
-    );
-  };
-
   return (
-    <Tela
-      atualizando={pendencias.isRefetching || vagas.isRefetching}
-      aoAtualizar={() => {
-        void pendencias.refetch();
-        void vagas.refetch();
-      }}>
-      <Estado consulta={pendencias} />
-      <Erro erro={acao.error} />
+    <Tela atualizando={consulta.isRefetching} aoAtualizar={() => consulta.refetch()}>
+      <Segmentos
+        opcoes={[
+          { valor: 'pendencias', rotulo: 'Pendências', total: lista.length },
+          { valor: 'cultos', rotulo: 'Cultos' },
+          { valor: 'vagas', rotulo: 'Vagas', total: vagas.data?.length },
+        ]}
+        valor={aba}
+        aoEscolher={setEscolhida}
+      />
 
-      {semPendencias && (
-        <Cartao>
-          <Subtitulo>Tudo em dia 🙌</Subtitulo>
-          <Suave>Nenhum impedimento, troca ou candidatura esperando você.</Suave>
-        </Cartao>
-      )}
-
-      {!!dados?.impedimentos.length && (
-        <Secao titulo="Impedimentos" total={dados.impedimentos.length}>
-          {dados.impedimentos.map((item) => (
-            <Cartao key={item.id}>
-              <Etiqueta texto="Impedimento" cor={cores.perigo} />
-              <Subtitulo>{item.pessoa.nome}</Subtitulo>
-              <ResumoDaEscala escala={item.escala} />
-              <Texto>Motivo: {item.motivo}</Texto>
-              {decisao(
-                { tipo: 'impedimentos', id: item.id },
-                `${item.pessoa.nome} sai da escala e a vaga fica aberta.`,
-                `${item.pessoa.nome} continua escalado e será avisado.`,
-              )}
+      {aba === 'pendencias' && (
+        <>
+          <Estado consulta={pendencias} />
+          <Erro erro={acao.error} />
+          {pendencias.data && lista.length === 0 && (
+            <Cartao>
+              <Subtitulo>Tudo em dia 🙌</Subtitulo>
+              <Suave>Nenhum impedimento, troca, oferta ou candidatura esperando você.</Suave>
             </Cartao>
-          ))}
-        </Secao>
+          )}
+          {lista.map((item) => {
+            const emAndamento =
+              acao.isPending && acao.variables?.tipo === item.pedido.tipo && acao.variables.id === item.pedido.id;
+            return (
+              <CartaoDePendencia
+                key={item.chave}
+                item={item}
+                bloqueado={acao.isPending}
+                carregando={emAndamento ? (acao.variables?.acao ?? null) : null}
+                aoDecidir={(qual) => decidir(item, qual)}
+              />
+            );
+          })}
+        </>
       )}
 
-      {!!dados?.trocas.length && (
-        <Secao titulo="Pedidos de troca" total={dados.trocas.length}>
-          {dados.trocas.map((item) => (
-            <Cartao key={item.id}>
-              <Etiqueta texto="Troca" cor={cores.neutra} />
-              <Subtitulo>{item.pessoa.nome}</Subtitulo>
-              <ResumoDaEscala escala={item.escala} />
-              {decisao(
-                { tipo: 'trocas', id: item.id },
-                `${item.pessoa.nome} sai da escala e a vaga fica aberta.`,
-                `${item.pessoa.nome} continua escalado e será avisado.`,
-              )}
-            </Cartao>
-          ))}
-        </Secao>
-      )}
-
-      {!!dados?.candidaturas.length && (
-        <Secao titulo="Candidaturas" total={dados.candidaturas.length}>
-          {dados.candidaturas.map((item) => (
-            <Cartao key={item.id}>
-              <Subtitulo>{item.pessoa.nome}</Subtitulo>
-              <Suave>Quer entrar na equipe {item.equipe}</Suave>
-              {decisao(
-                { tipo: 'candidaturas', id: item.id },
-                `${item.pessoa.nome} passa a fazer parte da equipe ${item.equipe}.`,
-                `O pedido de ${item.pessoa.nome} para a equipe ${item.equipe} será descartado.`,
-              )}
-            </Cartao>
-          ))}
-        </Secao>
-      )}
-
-      <Secao titulo="Vagas em aberto" total={vagas.data?.length}>
-        <Estado consulta={vagas} vazio={vagas.data?.length === 0 && 'Nenhuma vaga em aberto nos próximos 60 dias.'} />
-        {(todasAsVagas ? vagas.data : vagas.data?.slice(0, VAGAS_VISIVEIS))?.map((vaga) => (
-          <CartaoDeVaga key={vaga.id} vaga={vaga} />
-        ))}
-        {!todasAsVagas && (vagas.data?.length ?? 0) > VAGAS_VISIVEIS && (
-          <Botao
-            titulo={`Ver todas (${vagas.data?.length})`}
-            variante="secundario"
-            aoTocar={() => setTodasAsVagas(true)}
+      {aba === 'cultos' && (
+        <>
+          <Atalho
+            icone="paper-plane-outline"
+            texto="Pedir disponibilidade da equipe"
+            aoTocar={() => router.push('/lider/disponibilidade')}
           />
-        )}
-      </Secao>
+          <Estado
+            consulta={cultos}
+            vazio={cultos.data?.length === 0 && 'Nenhum culto com escala da sua equipe nos próximos 60 dias.'}
+          />
+          {cultos.data?.map((culto) => <LinhaDeCulto key={culto.id} culto={culto} />)}
+        </>
+      )}
+
+      {aba === 'vagas' && (
+        <>
+          <Estado consulta={vagas} vazio={vagas.data?.length === 0 && 'Nenhuma vaga em aberto nos próximos 60 dias.'} />
+          {vagas.data?.map((vaga) => (
+            <Linha
+              key={vaga.id}
+              titulo={`${vaga.funcao} · ${vaga.evento.nome}`}
+              detalhe={`${diaCurto(vaga.evento.data_inicio)} · ${vaga.equipe}`}
+              status={
+                vaga.disponiveis === 0
+                  ? 'Ninguém marcou disponibilidade'
+                  : `${vaga.disponiveis} ${vaga.disponiveis === 1 ? 'disponível' : 'disponíveis'}`
+              }
+              corStatus={vaga.disponiveis ? cores.confirmada : cores.pendente}
+              aoTocar={() => abrirVaga(vaga.id)}
+            />
+          ))}
+        </>
+      )}
     </Tela>
   );
 }
 
-function Decisao({
+function CartaoDePendencia({
+  item,
   bloqueado,
   carregando,
   aoDecidir,
 }: {
+  item: Pendencia;
   bloqueado: boolean;
   carregando: AcaoDoLider['acao'] | null;
   aoDecidir: (acao: AcaoDoLider['acao']) => void;
 }) {
-  return (
-    <View style={{ flexDirection: 'row', gap: 8 }}>
-      <View style={{ flex: 1 }}>
-        <Botao
-          titulo="Recusar"
-          variante="secundario"
-          carregando={carregando === 'recusar'}
-          desabilitado={bloqueado}
-          aoTocar={() => aoDecidir('recusar')}
-        />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Botao
-          titulo="Aprovar"
-          carregando={carregando === 'aprovar'}
-          desabilitado={bloqueado}
-          aoTocar={() => aoDecidir('aprovar')}
-        />
-      </View>
-    </View>
-  );
-}
-
-function Secao({ titulo, total, children }: { titulo: string; total?: number; children: ReactNode }) {
-  return (
-    <View style={{ gap: 12 }}>
-      <Subtitulo style={{ marginTop: 8 }}>
-        {titulo}
-        {total ? ` (${total})` : ''}
-      </Subtitulo>
-      {children}
-    </View>
-  );
-}
-
-function ResumoDaEscala({ escala }: { escala: EscalaDaEquipe }) {
-  return (
-    <>
-      <Texto>
-        {escala.evento.nome} · {periodo(escala.evento.data_inicio, escala.evento.data_fim)}
-      </Texto>
-      <Suave>
-        {escala.funcao} · {escala.equipe}
-      </Suave>
-    </>
-  );
-}
-
-function CartaoDeVaga({ vaga }: { vaga: Vaga }) {
   const { cores } = useTema();
   return (
-    <Pressable onPress={() => abrirVaga(vaga.id)} accessibilityRole="button">
-      <Cartao>
-        <Subtitulo>{vaga.evento.nome}</Subtitulo>
-        <Texto>{periodo(vaga.evento.data_inicio, vaga.evento.data_fim)}</Texto>
-        <Suave>
-          {vaga.funcao} · {vaga.equipe}
-        </Suave>
-        <Texto style={{ color: vaga.disponiveis ? cores.confirmada : cores.pendente, fontWeight: '600' }}>
-          {vaga.disponiveis === 0
-            ? 'Ninguém marcou disponibilidade · tocar para escalar'
-            : `${vaga.disponiveis} ${vaga.disponiveis === 1 ? 'disponível' : 'disponíveis'} · tocar para escalar`}
-        </Texto>
-      </Cartao>
+    <Cartao style={{ gap: 6 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <Subtitulo style={{ flex: 1 }}>{item.pessoa.nome}</Subtitulo>
+        <Etiqueta {...item.tipo} />
+      </View>
+      {item.escala && (
+        <Text numberOfLines={1} style={{ color: cores.textoSuave, fontSize: 13 }}>
+          {item.escala.evento.nome} · {diaCurto(item.escala.evento.data_inicio)} · {item.escala.funcao}
+        </Text>
+      )}
+      {!!item.detalhe && (
+        <Text numberOfLines={2} style={{ color: cores.texto, fontSize: 14 }}>
+          {item.detalhe}
+        </Text>
+      )}
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+        <View style={{ flex: 1 }}>
+          <Botao
+            titulo="Recusar"
+            variante="secundario"
+            carregando={carregando === 'recusar'}
+            desabilitado={bloqueado}
+            aoTocar={() => aoDecidir('recusar')}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Botao
+            titulo="Aprovar"
+            carregando={carregando === 'aprovar'}
+            desabilitado={bloqueado}
+            aoTocar={() => aoDecidir('aprovar')}
+          />
+        </View>
+      </View>
+    </Cartao>
+  );
+}
+
+function LinhaDeCulto({ culto }: { culto: Culto }) {
+  const { cores } = useTema();
+  const completo = !culto.pendentes && !culto.vagas;
+  const resumo = [
+    `${culto.confirmadas}/${culto.total - culto.vagas} confirmadas`,
+    culto.vagas ? `${culto.vagas} vaga${culto.vagas === 1 ? '' : 's'}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <Linha
+      titulo={culto.nome}
+      detalhe={diaCurto(culto.data_inicio)}
+      status={completo ? 'Todos confirmados 🙌' : resumo}
+      corStatus={completo ? cores.confirmada : cores.pendente}
+      aoTocar={() => router.push({ pathname: '/lider/culto/[id]', params: { id: culto.id } })}
+    />
+  );
+}
+
+function Atalho({
+  icone,
+  texto,
+  aoTocar,
+}: {
+  icone: ComponentProps<typeof Ionicons>['name'];
+  texto: string;
+  aoTocar: () => void;
+}) {
+  const { cores } = useTema();
+  return (
+    <Pressable
+      onPress={aoTocar}
+      accessibilityRole="button"
+      hitSlop={6}
+      style={({ pressed }) => [
+        { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+        pressed && { opacity: 0.6 },
+      ]}>
+      <Ionicons name={icone} size={18} color={cores.primaria} />
+      <Text style={{ color: cores.primaria, fontSize: 15, fontWeight: '600', flex: 1 }}>{texto}</Text>
+      <Ionicons name="chevron-forward" size={16} color={cores.primaria} />
     </Pressable>
   );
 }

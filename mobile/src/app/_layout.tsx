@@ -1,14 +1,20 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, AppState, View } from 'react-native';
 
 import { FaixaDeAtualizacao, useVerificarAtualizacoes } from '../lib/atualizacoes';
 import { AuthProvider, EstadoDaSessao, useAuth } from '../lib/auth';
 import { usePush } from '../lib/push';
 import { useTema } from '../lib/tema';
 import { TelaDeAtualizacao, useAtualizacaoObrigatoria } from '../lib/versao';
+
+// Ao voltar para o app, o React Query atualiza o que estiver desatualizado (sino, contadores, listas).
+focusManager.setEventListener((aoMudarFoco) => {
+  const inscricao = AppState.addEventListener('change', (estado) => aoMudarFoco(estado === 'active'));
+  return () => inscricao.remove();
+});
 
 export default function RootLayout() {
   const [queryClient] = useState(
@@ -94,6 +100,10 @@ function Telas({ estado }: { estado: EstadoDaSessao }) {
         <Stack.Screen name="contato" options={{ title: 'Meu contato' }} />
         <Stack.Screen name="trocar-senha" options={{ title: 'Trocar senha' }} />
         <Stack.Screen name="lider/vaga/[id]" options={{ title: 'Escalar na vaga' }} />
+        <Stack.Screen name="lider/culto/[id]" options={{ title: 'Culto' }} />
+        <Stack.Screen name="lider/disponibilidade" options={{ title: 'Pedir disponibilidade' }} />
+        <Stack.Screen name="vagas" options={{ title: 'Vagas em aberto' }} />
+        <Stack.Screen name="avisos" options={{ title: 'Avisos' }} />
       </Stack.Protected>
     </Stack>
   );

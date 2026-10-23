@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from escala.models import Desistencia, Escala, SolicitacaoTroca
+from escala.models import Desistencia, Escala, Rendimento, SolicitacaoTroca
 from equipe.models import MembrosEquipe
 
 from .escala import EventoResumoSerializer
@@ -44,6 +44,16 @@ class TrocaSerializer(serializers.ModelSerializer):
         fields = ['id', 'data_solicitacao', 'pessoa', 'escala']
 
 
+class OfertaSerializer(serializers.ModelSerializer):
+    """Voluntário que se ofereceu para uma vaga em aberto."""
+    pessoa = PessoaSerializer(source='candidato')
+    escala = EscalaDaEquipeSerializer()
+
+    class Meta:
+        model = Rendimento
+        fields = ['id', 'data_candidatura', 'pessoa', 'escala']
+
+
 class CandidaturaSerializer(serializers.ModelSerializer):
     pessoa = PessoaSerializer(source='usuario')
     equipe = serializers.CharField(source='equipe.nome')
@@ -61,10 +71,39 @@ class VagaSerializer(EscalaDaEquipeSerializer):
         fields = EscalaDaEquipeSerializer.Meta.fields + ['disponiveis']
 
 
+class VagaAbertaSerializer(EscalaDaEquipeSerializer):
+    """Vaga da equipe do voluntário; `me_ofereci` diz se ele já se ofereceu."""
+    me_ofereci = serializers.BooleanField(read_only=True)
+
+    class Meta(EscalaDaEquipeSerializer.Meta):
+        fields = EscalaDaEquipeSerializer.Meta.fields + ['me_ofereci']
+
+
 class CandidatoSerializer(PessoaSerializer):
     disponivel = serializers.BooleanField()
+    se_ofereceu = serializers.BooleanField()
     servicos_no_mes = serializers.IntegerField()
 
 
 class EscalarSerializer(serializers.Serializer):
     usuario_id = serializers.IntegerField()
+
+
+class EscalaDoCultoSerializer(serializers.ModelSerializer):
+    """Uma função no culto, vista pelo líder: quem está (ou vaga) e a situação."""
+    funcao = serializers.CharField(source='funcao.nome', read_only=True)
+    equipe = serializers.CharField(source='funcao.equipe.nome', read_only=True)
+    pessoa = PessoaSerializer(source='usuario', allow_null=True)
+    tem_impedimento = serializers.BooleanField(read_only=True)
+    troca_pendente = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Escala
+        fields = ['id', 'funcao', 'equipe', 'pessoa', 'confirmada', 'tem_impedimento', 'troca_pendente']
+
+
+class PedirDisponibilidadeSerializer(serializers.Serializer):
+    equipe_id = serializers.IntegerField()
+    ano = serializers.IntegerField(min_value=2000, max_value=2100)
+    mes = serializers.IntegerField(min_value=1, max_value=12)
+    canal = serializers.ChoiceField(choices=['app', 'todos'])

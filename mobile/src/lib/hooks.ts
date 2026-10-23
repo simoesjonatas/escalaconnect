@@ -3,7 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import {
   Agenda,
+  CaixaDeAvisos,
+  Culto,
   DetalheDaVaga,
+  DetalheDoCulto,
+  DisponibilidadeDaEquipe,
   Disponibilidade,
   Equipes,
   Escala,
@@ -12,6 +16,7 @@ import {
   Home,
   PendenciasDoLider,
   Vaga,
+  VagaAberta,
 } from './types';
 
 export const useHome = () => useQuery({ queryKey: ['home'], queryFn: () => api<Home>('GET', '/home/') });
@@ -111,7 +116,7 @@ export const useVaga = (id: number) =>
   useQuery({ queryKey: ['lider', 'vagas', id], queryFn: () => api<DetalheDaVaga>('GET', `/lider/vagas/${id}/`) });
 
 export type AcaoDoLider = {
-  tipo: 'impedimentos' | 'trocas' | 'candidaturas';
+  tipo: 'impedimentos' | 'trocas' | 'ofertas' | 'candidaturas';
   id: number;
   acao: 'aprovar' | 'recusar';
 };
@@ -120,7 +125,9 @@ function useAtualizarPainel() {
   const queryClient = useQueryClient();
   // Painel, contador da aba e as telas do voluntário que mostram as mesmas escalas.
   return () => {
-    for (const chave of ['lider', 'home', 'escalas', 'eventos']) void queryClient.invalidateQueries({ queryKey: [chave] });
+    for (const chave of ['lider', 'home', 'escalas', 'eventos', 'vagas']) {
+      void queryClient.invalidateQueries({ queryKey: [chave] });
+    }
   };
 }
 
@@ -139,5 +146,72 @@ export function useEscalarNaVaga(vagaId: number) {
   return useMutation({
     mutationFn: (usuarioId: number) => api('POST', `/lider/vagas/${vagaId}/escalar/`, { usuario_id: usuarioId }),
     onSuccess: atualizar,
+  });
+}
+
+export const useCultos = () =>
+  useQuery({ queryKey: ['lider', 'cultos'], queryFn: () => api<Culto[]>('GET', '/lider/cultos/') });
+
+export const useCulto = (id: number) =>
+  useQuery({ queryKey: ['lider', 'cultos', id], queryFn: () => api<DetalheDoCulto>('GET', `/lider/cultos/${id}/`) });
+
+/** Pede a confirmação (e-mail e app) de quem ainda não confirmou no culto; devolve quantos eram. */
+export function usePedirConfirmacao(eventoId: number) {
+  return useMutation({
+    mutationFn: () => api<{ pendentes: number }>('POST', `/lider/cultos/${eventoId}/pedir-confirmacao/`),
+  });
+}
+
+export type FiltroDeDisponibilidade = { equipe?: number; ano?: number; mes?: number };
+
+export const useDisponibilidadeDaEquipe = ({ equipe, ano, mes }: FiltroDeDisponibilidade) =>
+  useQuery({
+    queryKey: ['lider', 'disponibilidade', equipe, ano, mes],
+    queryFn: () => {
+      const params = Object.entries({ equipe, ano, mes })
+        .filter(([, valor]) => valor !== undefined)
+        .map(([chave, valor]) => `${chave}=${valor}`)
+        .join('&');
+      return api<DisponibilidadeDaEquipe>('GET', `/lider/disponibilidade/${params ? `?${params}` : ''}`);
+    },
+  });
+
+export type PedidoDeDisponibilidade = { equipe_id: number; ano: number; mes: number; canal: 'app' | 'todos' };
+
+export const usePedirDisponibilidade = () =>
+  useMutation({
+    mutationFn: (pedido: PedidoDeDisponibilidade) =>
+      api<{ faltantes: number }>('POST', '/lider/disponibilidade/pedir/', pedido),
+  });
+
+// ── Vagas em aberto (voluntário) ──
+
+export const useVagasAbertas = () =>
+  useQuery({ queryKey: ['vagas'], queryFn: () => api<VagaAberta[]>('GET', '/vagas/') });
+
+/** Oferecer-se para uma vaga (ou desistir da oferta). */
+export function useOferta() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ vagaId, desistir }: { vagaId: number; desistir?: boolean }) =>
+      api<VagaAberta | null>(desistir ? 'DELETE' : 'POST', `/vagas/${vagaId}/oferta/`),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['vagas'] });
+      void queryClient.invalidateQueries({ queryKey: ['home'] });
+    },
+  });
+}
+
+// ── Caixa de avisos ──
+
+export const useAvisos = () =>
+  useQuery({ queryKey: ['avisos'], queryFn: () => api<CaixaDeAvisos>('GET', '/avisos/') });
+
+/** Marca todos os avisos como lidos; atualiza o sino (contador da /home/). */
+export function useMarcarAvisosLidos() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => api<{ nao_lidos: number }>('POST', '/avisos/ler/'),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['home'] }),
   });
 }

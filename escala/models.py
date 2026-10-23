@@ -114,11 +114,12 @@ class Desistencia(models.Model):
 
 
 class Rendimento(models.Model):
+    """Voluntário que se ofereceu para ocupar uma vaga em aberto; o líder aprova ou recusa."""
     escala = models.ForeignKey(Escala, on_delete=models.CASCADE)
     candidato = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    aprovada = models.BooleanField()
-    data_candidatura = models.DateTimeField()
-    data_aprovacao = models.DateTimeField()
+    aprovada = models.BooleanField(default=False)
+    data_candidatura = models.DateTimeField(auto_now_add=True)
+    data_aprovacao = models.DateTimeField(null=True, blank=True)
     
     def __str__(self):
         return f"Rendimento: {self.candidato} - Escala: {self.escala}"

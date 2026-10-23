@@ -1,4 +1,6 @@
 """Regras das escalas do voluntário, compartilhadas entre o site e a API do app."""
+from datetime import timedelta
+
 from django.utils import timezone
 
 from equipe.models import MembrosEquipe
@@ -7,7 +9,9 @@ from escalaconnect.push import notificar_push
 from escalaconnect.regras import RegraDeNegocio
 from evento.models import Notification
 
-from .models import Desistencia, Escala, SolicitacaoTroca
+from .models import Desistencia, Escala, Rendimento, SolicitacaoTroca
+
+DIAS_DE_VAGAS = 60
 
 
 def escalas_futuras(usuario):
@@ -166,4 +170,69 @@ def escalar_em_vaga(escala, usuario):
         raise RegraDeNegocio("Essa pessoa já está escalada neste evento.", code='ja_escalado')
     escala.usuario = usuario
     escala.save()
+    _encerrar_ofertas(escala, usuario)
     return escala
+
+
+# ── Oferta para vaga (voluntário se oferece, líder aprova) ──
+
+def vagas_abertas_para(usuario):
+    """Vagas em aberto, nos próximos 60 dias, das equipes em que o usuário é membro aprovado.
+
+    Ficam de fora os eventos em que ele já está escalado (em qualquer função).
+    """
+    agora = timezone.now()
+    equipes = MembrosEquipe.objects.filter(usuario=usuario, aprovado=True).values('equipe_id')
+    ja_escalado = Escala.objects.filter(usuario=usuario).values('evento_id')
+    return (
+        Escala.objects
+        .filter(usuario__isnull=True, funcao__equipe__in=equipes,
+                evento__data_inicio__gt=agora, evento__data_inicio__lte=agora + timedelta(days=DIAS_DE_VAGAS))
+        .exclude(evento_id__in=ja_escalado)
+    )
+
+
+def ofertas_pendentes():
+    """Ofertas que ainda valem: não aprovadas, de vaga ainda aberta em evento futuro."""
+    return Rendimento.objects.filter(
+        aprovada=False, escala__usuario__isnull=True, escala__evento__data_inicio__gt=timezone.now())
+
+
+def oferecer_para_vaga(escala, usuario):
+    if not vagas_abertas_para(usuario).filter(pk=escala.pk).exists():
+        raise RegraDeNegocio("Esta vaga não está mais disponível para você.", code='vaga_indisponivel')
+    oferta, _ = Rendimento.objects.get_or_create(escala=escala, candidato=usuario, aprovada=False)
+    return oferta
+
+
+def cancelar_oferta(escala, usuario):
+    apagadas, _ = Rendimento.objects.filter(escala=escala, candidato=usuario, aprovada=False).delete()
+    if not apagadas:
+        raise RegraDeNegocio("Você não se ofereceu para esta vaga.", code='sem_oferta')
+
+
+def aprovar_oferta(oferta):
+    """Escala quem se ofereceu (push "Você foi escalado" pelo signal)."""
+    return escalar_em_vaga(oferta.escala, oferta.candidato)
+
+
+def recusar_oferta(oferta):
+    escala = oferta.escala
+    oferta.delete()
+    _avisar_oferta_nao_aceita(oferta.candidato_id, escala)
+
+
+def _avisar_oferta_nao_aceita(usuario_id, escala):
+    notificar_push(
+        usuario_id, *mensagens_push.oferta_nao_aceita(escala),
+        tipo='oferta_recusada', purpose=Notification.PURPOSE_OFFER_DECLINED, escala_id=escala.pk,
+    )
+
+
+def _encerrar_ofertas(escala, escolhido):
+    """Vaga preenchida: marca a oferta de quem ficou com ela e avisa os demais que se ofereceram."""
+    Rendimento.objects.filter(escala=escala, candidato=escolhido, aprovada=False).update(
+        aprovada=True, data_aprovacao=timezone.now())
+    for oferta in Rendimento.objects.filter(escala=escala, aprovada=False).exclude(candidato=escolhido):
+        oferta.delete()
+        _avisar_oferta_nao_aceita(oferta.candidato_id, escala)

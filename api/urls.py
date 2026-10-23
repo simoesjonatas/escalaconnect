@@ -4,7 +4,7 @@ from django.urls import path, re_path
 from disponivel.services import disponibilidades
 from ocupado.services import indisponibilidades
 
-from .views import conta, devices, equipes, escalas, eventos, lideranca, periodos
+from .views import avisos, conta, devices, equipes, escalas, eventos, lideranca, periodos
 from .views.auth import LoginView, LogoutAllView, LogoutView
 from .views.conta import MeView, MetaView
 
@@ -44,6 +44,10 @@ urlpatterns = [
     path('escalas/<int:pk>/confirmar/', escalas.ConfirmarEscalaView.as_view(), name='api_escala_confirmar'),
     path('escalas/<int:pk>/impedimento/', escalas.ImpedimentoView.as_view(), name='api_escala_impedimento'),
     path('escalas/<int:pk>/troca/', escalas.TrocaView.as_view(), name='api_escala_troca'),
+    path('avisos/', avisos.AvisoListView.as_view(), name='api_avisos'),
+    path('avisos/ler/', avisos.LerAvisosView.as_view(), name='api_avisos_ler'),
+    path('vagas/', escalas.VagaAbertaListView.as_view(), name='api_vagas'),
+    path('vagas/<int:pk>/oferta/', escalas.OfertaView.as_view(), name='api_vaga_oferta'),
 
     path('eventos/', eventos.EventoListView.as_view(), name='api_eventos'),
     *rotas_de_periodos('disponibilidades', disponibilidades),
@@ -57,6 +61,15 @@ urlpatterns = [
             lideranca.ImpedimentoView.as_view(), name='api_lider_impedimento'),
     re_path(r'^lider/trocas/(?P<pk>\d+)/(?P<acao>aprovar|recusar)/$',
             lideranca.TrocaView.as_view(), name='api_lider_troca'),
+    re_path(r'^lider/ofertas/(?P<pk>\d+)/(?P<acao>aprovar|recusar)/$',
+            lideranca.OfertaView.as_view(), name='api_lider_oferta'),
+    path('lider/cultos/', lideranca.CultoListView.as_view(), name='api_lider_cultos'),
+    path('lider/cultos/<int:pk>/', lideranca.CultoDetailView.as_view(), name='api_lider_culto'),
+    path('lider/cultos/<int:pk>/pedir-confirmacao/', lideranca.PedirConfirmacaoView.as_view(),
+         name='api_lider_pedir_confirmacao'),
+    path('lider/disponibilidade/', lideranca.DisponibilidadeDaEquipeView.as_view(), name='api_lider_disponibilidade'),
+    path('lider/disponibilidade/pedir/', lideranca.PedirDisponibilidadeView.as_view(),
+         name='api_lider_pedir_disponibilidade'),
     re_path(r'^lider/candidaturas/(?P<pk>\d+)/(?P<acao>aprovar|recusar)/$',
             lideranca.CandidaturaView.as_view(), name='api_lider_candidatura'),
     path('lider/vagas/', lideranca.VagaListView.as_view(), name='api_lider_vagas'),

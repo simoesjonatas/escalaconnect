@@ -17,7 +17,12 @@ def equipes_lideradas(usuario):
 
 
 def pendencias_do_lider(usuario):
-    """Impedimentos, trocas e candidaturas esperando o líder (mesmo critério do painel do site)."""
+    """Impedimentos, trocas, ofertas para vagas e candidaturas esperando o líder.
+
+    Impedimentos e trocas seguem o mesmo critério do painel do site.
+    """
+    from escala import services as escala_services  # escala.services importa equipe.models
+
     equipes = equipes_lideradas(usuario)
     agora = timezone.now()
     return {
@@ -33,6 +38,12 @@ def pendencias_do_lider(usuario):
                     escala_origem__evento__data_inicio__gte=agora)
             .select_related('escala_origem__evento', 'escala_origem__funcao__equipe', 'solicitante')
             .order_by('escala_origem__evento__data_inicio')
+        ),
+        'ofertas': (
+            escala_services.ofertas_pendentes()
+            .filter(escala__funcao__equipe__in=equipes)
+            .select_related('escala__evento', 'escala__funcao__equipe', 'candidato')
+            .order_by('escala__evento__data_inicio', 'data_candidatura')
         ),
         'candidaturas': (
             MembrosEquipe.objects

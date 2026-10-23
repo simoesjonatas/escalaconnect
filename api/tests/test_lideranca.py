@@ -1,13 +1,14 @@
 """Painel do líder no app, push para o líder, Recusar no site e link de agenda (.ics)."""
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
 
 from api.models import Device
 from disponivel.models import Disponivel
 from equipe.models import Equipe, Lideranca, MembrosEquipe
-from escala.models import Desistencia, Escala, Funcao, SolicitacaoTroca
+from escala.models import Desistencia, Escala, Funcao, Rendimento, SolicitacaoTroca
 from evento.models import Evento
 
 from .test_conta import criar_usuario
@@ -152,7 +153,7 @@ class PendenciasTests(LiderancaTestCase):
         Lideranca.objects.create(usuario=lider_de_fora, equipe=outra_equipe)
 
         resp = self.como(lider_de_fora).get('/api/v1/lider/pendencias/')
-        self.assertEqual(resp.data, {'impedimentos': [], 'trocas': [], 'candidaturas': []})
+        self.assertEqual(resp.data, {'impedimentos': [], 'trocas': [], 'ofertas': [], 'candidaturas': []})
         for rota, pk in (('impedimentos', self.desistencia.pk), ('candidaturas', self.candidatura.pk)):
             for acao in ('aprovar', 'recusar'):
                 self.assertEqual(self.acao(rota, pk, acao, usuario=lider_de_fora).status_code, 404)
@@ -284,3 +285,158 @@ class AgendaTests(PushTestCase):
         self.user.set_password('outra-senha-forte-456')
         self.user.save()
         self.assertEqual(self.baixar(links['https']).status_code, 404)
+
+
+class OfertaParaVagaTests(LiderancaTestCase):
+    """Voluntário se oferece para vaga da própria equipe; o líder aprova ou recusa."""
+
+    def setUp(self):
+        super().setUp()
+        inicio = self.evento.data_inicio + timedelta(days=1)
+        self.outro_culto = Evento.objects.create(nome='Culto de Quarta', data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
+        self.vaga = Escala.objects.create(funcao=self.funcao, evento=self.outro_culto)
+        Escala.objects.create(funcao=self.funcao, evento=self.evento)  # mesmo evento em que Maria já serve: fora
+        Escala.objects.create(funcao=Funcao.objects.create(nome='Vocal', equipe=Equipe.objects.create(nome='Louvor')),
+                              evento=self.outro_culto)  # equipe da qual Maria não faz parte: fora
+        self.post.reset_mock()
+
+    def oferecer(self, metodo='post'):
+        self.autenticar(self.user)
+        with self.captureOnCommitCallbacks(execute=True):
+            return getattr(self.client, metodo)(f'/api/v1/vagas/{self.vaga.pk}/oferta/')
+
+    def test_lista_so_vagas_da_equipe_e_avisa_o_lider(self):
+        self.autenticar(self.user)
+        self.assertEqual([v['id'] for v in self.client.get('/api/v1/vagas/').data], [self.vaga.pk])
+        self.assertEqual(self.client.get('/api/v1/home/').data['vagas_abertas'], 1)
+
+        resp = self.oferecer()
+        self.assertTrue(resp.data['me_ofereci'])
+        ((titulo, corpo),) = self.enviadas_para(TOKEN_LIDER)
+        self.assertEqual(titulo, 'Voluntário para a vaga')
+        self.assertTrue(corpo.startswith('Maria Silva · '))
+        self.assertEqual(self.client.get('/api/v1/home/').data['vagas_abertas'], 0)
+        self.assertEqual(self.como(self.lider).get('/api/v1/home/').data['pendencias_lider'], 1)
+
+        self.assertFalse(self.oferecer('delete').data['me_ofereci'])
+        self.assertFalse(Rendimento.objects.exists())
+
+    def test_lider_aprova_e_os_outros_sao_avisados(self):
+        self.oferecer()
+        joao = criar_usuario(username='joao', cpf='11144477735')
+        MembrosEquipe.objects.create(usuario=joao, equipe=self.equipe, aprovado=True)
+        Device.objects.create(usuario=joao, expo_token=OUTRO_TOKEN, plataforma='ios')
+        Rendimento.objects.create(escala=self.vaga, candidato=joao)
+
+        resp = self.como(self.lider).get('/api/v1/lider/pendencias/')
+        self.assertEqual([o['pessoa']['nome'] for o in resp.data['ofertas']], ['Maria Silva', 'joao'])
+        candidatos = self.client.get(f'/api/v1/lider/vagas/{self.vaga.pk}/').data['candidatos']
+        self.assertEqual([c['se_ofereceu'] for c in candidatos], [True, True])
+
+        oferta = Rendimento.objects.get(candidato=self.user)
+        self.post.reset_mock()
+        self.assertEqual(self.acao('ofertas', oferta.pk, 'aprovar').status_code, 204)
+        self.vaga.refresh_from_db()
+        self.assertEqual(self.vaga.usuario, self.user)
+        self.assertEqual([t for t, _ in self.enviadas_para(self.device.expo_token)], ['Você foi escalado 🙌'])
+        self.assertEqual([t for t, _ in self.enviadas_para(OUTRO_TOKEN)], ['Obrigado por se oferecer'])
+        self.assertEqual(list(Rendimento.objects.values_list('candidato', 'aprovada')), [(self.user.pk, True)])
+        self.assertEqual(self.client.get('/api/v1/lider/pendencias/').data['ofertas'], [])
+
+    def test_lider_recusa(self):
+        self.oferecer()
+        oferta = Rendimento.objects.get()
+        self.post.reset_mock()
+        self.assertEqual(self.acao('ofertas', oferta.pk, 'recusar').status_code, 204)
+        self.assertFalse(Rendimento.objects.exists())
+        self.vaga.refresh_from_db()
+        self.assertIsNone(self.vaga.usuario)
+        ((titulo, corpo),) = self.enviadas_para(self.device.expo_token)
+        self.assertEqual(titulo, 'Obrigado por se oferecer')
+        self.assertIn('não ficou com você', corpo)
+
+    def test_nao_se_oferece_para_vaga_de_outra_equipe_nem_ocupada(self):
+        self.autenticar(self.user)
+        alheia = Escala.objects.exclude(funcao=self.funcao).get()
+        resp = self.client.post(f'/api/v1/vagas/{alheia.pk}/oferta/')
+        self.assertEqual((resp.status_code, resp.data['code']), (400, 'vaga_indisponivel'))
+        self.vaga.usuario = criar_usuario(username='joao', cpf='11144477735')
+        self.vaga.save()
+        resp = self.client.post(f'/api/v1/vagas/{self.vaga.pk}/oferta/')
+        self.assertEqual(resp.data['code'], 'vaga_indisponivel')
+
+
+class CultosDoLiderTests(LiderancaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.joao = criar_usuario(username='joao', cpf='11144477735', first_name='João')
+        Device.objects.create(usuario=self.joao, expo_token=OUTRO_TOKEN, plataforma='ios')
+        Escala.objects.create(usuario=self.joao, funcao=self.funcao, evento=self.evento, confirmada=True)
+        Escala.objects.create(funcao=self.funcao, evento=self.evento)  # vaga
+        # Outra equipe no mesmo culto: não aparece nem recebe pedido.
+        louvor = Funcao.objects.create(nome='Vocal', equipe=Equipe.objects.create(nome='Louvor'))
+        self.pedro = criar_usuario(username='pedro', cpf='12345678909')
+        Device.objects.create(usuario=self.pedro, expo_token=TOKEN_LIDER.replace('c', 'd'), plataforma='ios')
+        Escala.objects.create(usuario=self.pedro, funcao=louvor, evento=self.evento)
+        self.post.reset_mock()
+
+    def test_lista_detalhe_e_pedido_de_confirmacao(self):
+        (culto,) = self.como(self.lider).get('/api/v1/lider/cultos/').data
+        self.assertEqual((culto['id'], culto['total'], culto['confirmadas'], culto['pendentes'], culto['vagas']),
+                         (self.evento.pk, 3, 1, 1, 1))
+
+        resp = self.client.get(f'/api/v1/lider/cultos/{self.evento.pk}/')
+        self.assertEqual(
+            [(e['pessoa'] and e['pessoa']['nome'], e['confirmada']) for e in resp.data['escalas']],
+            [('Maria Silva', False), ('João', True), (None, False)])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(f'/api/v1/lider/cultos/{self.evento.pk}/pedir-confirmacao/')
+        self.assertEqual(resp.data, {'pendentes': 1})
+        # Só Maria (não confirmou, equipe do líder): nem João (confirmado) nem Pedro (outra equipe).
+        self.assertEqual([m['to'] for m in self.mensagens()], [self.device.expo_token])
+        self.assertEqual(self.mensagens()[0]['title'], 'Confirma sua escala?')
+
+    def test_lider_de_outra_equipe_nao_ve(self):
+        lider_de_fora = criar_usuario(username='ze', cpf='98765432100')
+        Lideranca.objects.create(usuario=lider_de_fora, equipe=Equipe.objects.create(nome='Mídia'))
+        self.assertEqual(self.como(lider_de_fora).get('/api/v1/lider/cultos/').data, [])
+        self.assertEqual(self.client.get(f'/api/v1/lider/cultos/{self.evento.pk}/').status_code, 404)
+        self.assertEqual(self.client.post(f'/api/v1/lider/cultos/{self.evento.pk}/pedir-confirmacao/').status_code, 404)
+        self.post.assert_not_called()
+
+
+class PedirDisponibilidadePeloAppTests(LiderancaTestCase):
+    def setUp(self):
+        super().setUp()
+        self.joao = criar_usuario(username='joao', cpf='11144477735', first_name='João')
+        MembrosEquipe.objects.create(usuario=self.joao, equipe=self.equipe, aprovado=True)
+        hoje = timezone.localdate()
+        self.ano, self.mes = (hoje.year + 1, 1) if hoje.month == 12 else (hoje.year, hoje.month + 1)
+        inicio = timezone.make_aware(datetime(self.ano, self.mes, 15, 19, 0))
+        culto = Evento.objects.create(nome='Culto do mês', data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
+        Disponivel.objects.create(usuario=self.joao, evento=culto, data_inicio=culto.data_inicio, data_fim=culto.data_fim)
+        self.post.reset_mock()
+
+    def test_mostra_quem_falta_e_pede_so_pelo_app(self):
+        resp = self.como(self.lider).get('/api/v1/lider/disponibilidade/')
+        self.assertEqual((resp.data['equipe_id'], resp.data['ano'], resp.data['mes']), (self.equipe.pk, self.ano, self.mes))
+        self.assertEqual([p['nome'] for p in resp.data['faltantes']], ['Maria Silva'])
+        self.assertEqual(resp.data['membros'], 2)
+
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post('/api/v1/lider/disponibilidade/pedir/', {
+                'equipe_id': self.equipe.pk, 'ano': self.ano, 'mes': self.mes, 'canal': 'app'}, format='json')
+        self.assertEqual(resp.data, {'faltantes': 1})
+        self.assertEqual([(m['to'], m['title']) for m in self.mensagens()],
+                         [(self.device.expo_token, 'Quando você pode servir?')])
+        self.assertEqual(mail.outbox, [])
+
+    def test_equipe_de_outro_lider_e_voluntario(self):
+        outra = Equipe.objects.create(nome='Louvor')
+        resp = self.como(self.lider).post('/api/v1/lider/disponibilidade/pedir/', {
+            'equipe_id': outra.pk, 'ano': self.ano, 'mes': self.mes, 'canal': 'todos'}, format='json')
+        self.assertEqual(resp.status_code, 404)
+        self.assertEqual(self.client.get(f'/api/v1/lider/disponibilidade/?equipe={outra.pk}').status_code, 404)
+        self.assertEqual(self.como(self.user).get('/api/v1/lider/disponibilidade/').status_code, 403)
+        self.post.assert_not_called()

@@ -1,15 +1,49 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { router } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
-import { ComponentProps } from 'react';
-import { ColorValue } from 'react-native';
+import { ComponentProps, useEffect } from 'react';
+import { ColorValue, Pressable, Text, View } from 'react-native';
 
 import { useAuth } from '../../lib/auth';
 import { useHome } from '../../lib/hooks';
+import { sincronizarIcone } from '../../lib/push';
 import { useTema } from '../../lib/tema';
 
 const icone =
   (nome: ComponentProps<typeof Ionicons>['name']) =>
   ({ color, size }: { color: ColorValue; size: number }) => <Ionicons name={nome} color={color} size={size} />;
+
+/** Sino do Início: abre a caixa de avisos e mostra quantos não foram lidos. */
+function Sino({ naoLidos }: { naoLidos: number }) {
+  const { cores } = useTema();
+  return (
+    <Pressable
+      onPress={() => router.push('/avisos')}
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityLabel={naoLidos ? `Avisos, ${naoLidos} não lidos` : 'Avisos'}
+      style={{ marginHorizontal: 16 }}>
+      <Ionicons name={naoLidos ? 'notifications' : 'notifications-outline'} size={24} color={cores.texto} />
+      {naoLidos > 0 && (
+        <View
+          style={{
+            position: 'absolute',
+            top: -6,
+            right: -10,
+            minWidth: 18,
+            height: 18,
+            borderRadius: 9,
+            paddingHorizontal: 4,
+            backgroundColor: cores.perigo,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{naoLidos > 99 ? '99+' : naoLidos}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
 
 export default function TabsLayout() {
   const { cores } = useTema();
@@ -20,6 +54,11 @@ export default function TabsLayout() {
   const lider = useAuth().usuario?.lider ?? false;
   const pendenciasLider = home?.pendencias_lider ?? 0;
   const selo = { backgroundColor: cores.perigo, color: '#fff' };
+  const naoLidos = home?.avisos_nao_lidos;
+  // O número no ícone do app acompanha os avisos não lidos.
+  useEffect(() => {
+    if (naoLidos !== undefined) void sincronizarIcone(naoLidos);
+  }, [naoLidos]);
   return (
     <Tabs
       screenOptions={{
@@ -30,7 +69,14 @@ export default function TabsLayout() {
         headerTitleStyle: { color: cores.texto },
         headerShadowVisible: false,
       }}>
-      <Tabs.Screen name="index" options={{ title: 'Início', tabBarIcon: icone('home-outline') }} />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Início',
+          tabBarIcon: icone('home-outline'),
+          headerRight: () => <Sino naoLidos={naoLidos ?? 0} />,
+        }}
+      />
       <Tabs.Screen
         name="escalas"
         options={{

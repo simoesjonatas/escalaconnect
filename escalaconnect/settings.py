@@ -340,6 +340,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'api.tasks.lembretes_de_escala',
         'schedule': crontab(minute='*/10'),
     },
+    'limpar-avisos-antigos': {
+        'task': 'api.tasks.limpar_avisos_antigos',
+        'schedule': crontab(hour=3, minute=30),
+    },
 }
 
 # Execução síncrona (apenas dev)

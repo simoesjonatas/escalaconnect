@@ -112,6 +112,7 @@ class Notification(models.Model):
     PURPOSE_DAY_REMINDER = "lembrete_do_dia"
     PURPOSE_REQUEST_DECLINED = "pedido_recusado"
     PURPOSE_LEADER_PENDING = "pendencia_lider"
+    PURPOSE_OFFER_DECLINED = "oferta_recusada"
 
     PURPOSE_CHOICES = [
         (PURPOSE_CONFIRM, "Confirmação de Escala"),
@@ -126,6 +127,7 @@ class Notification(models.Model):
         (PURPOSE_DAY_REMINDER, "Lembrete da escala (véspera ou dia)"),
         (PURPOSE_REQUEST_DECLINED, "Pedido de impedimento/troca recusado"),
         (PURPOSE_LEADER_PENDING, "Pendência para o líder"),
+        (PURPOSE_OFFER_DECLINED, "Oferta para vaga não aceita"),
     ]
 
     escala = models.ForeignKey("escala.Escala", on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
