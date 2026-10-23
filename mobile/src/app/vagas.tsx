@@ -22,7 +22,7 @@ export default function VagasAbertas() {
   }
 
   return (
-    <Tela atualizando={vagas.isRefetching} aoAtualizar={() => vagas.refetch()}>
+    <Tela aoAtualizar={() => vagas.refetch()}>
       <Texto>Estas funções ainda estão sem ninguém. Se você puder servir, ofereça-se e a liderança confirma.</Texto>
       <Erro erro={oferta.error} />
       <Estado consulta={vagas} vazio={vagas.data?.length === 0 && 'Nenhuma vaga em aberto na sua equipe agora.'} />

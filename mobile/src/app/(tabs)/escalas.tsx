@@ -8,7 +8,7 @@ export default function Escalas() {
   const escalas = useEscalas();
   const vagas = useHome().data?.vagas_abertas ?? 0;
   return (
-    <Tela atualizando={escalas.isRefetching} aoAtualizar={() => escalas.refetch()}>
+    <Tela aoAtualizar={() => escalas.refetch()}>
       <Estado consulta={escalas} vazio={escalas.data?.length === 0 && 'Você não tem escalas futuras.'} />
       {escalas.data?.map((escala) => <CartaoDeEscala key={escala.id} escala={escala} />)}
       {vagas > 0 && (

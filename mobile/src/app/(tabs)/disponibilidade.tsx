@@ -24,12 +24,7 @@ export default function Disponibilidades() {
   }
 
   return (
-    <Tela
-      atualizando={disponibilidades.isRefetching || home.isRefetching}
-      aoAtualizar={() => {
-        void disponibilidades.refetch();
-        void home.refetch();
-      }}>
+    <Tela aoAtualizar={() => Promise.all([disponibilidades.refetch(), home.refetch()])}>
       {semEquipe ? (
         <AvisoSemEquipe />
       ) : (

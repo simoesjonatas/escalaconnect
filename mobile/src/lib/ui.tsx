@@ -19,20 +19,32 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { mensagemDeErro } from './api';
 import { espaco, useTema } from './tema';
 
-/** Tela rolável com "puxar para atualizar". */
+/**
+ * Tela rolável com "puxar para atualizar". O indicador só aparece quando a pessoa puxa:
+ * ligá-lo nas atualizações automáticas (ao voltar para o app) deixava o spinner preso
+ * no topo do iPhone.
+ */
 export function Tela({
   children,
-  atualizando,
   aoAtualizar,
   comTopo,
 }: {
   children: ReactNode;
-  atualizando?: boolean;
-  aoAtualizar?: () => void;
+  aoAtualizar?: () => Promise<unknown>;
   /** Respeita a área segura de cima (telas sem cabeçalho do navegador). */
   comTopo?: boolean;
 }) {
   const { cores } = useTema();
+  const [puxando, setPuxando] = useState(false);
+
+  async function atualizar() {
+    setPuxando(true);
+    try {
+      await aoAtualizar?.();
+    } finally {
+      setPuxando(false);
+    }
+  }
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: cores.fundo }}
@@ -42,7 +54,7 @@ export function Tela({
         keyboardShouldPersistTaps="handled"
         refreshControl={
           aoAtualizar ? (
-            <RefreshControl refreshing={!!atualizando} onRefresh={aoAtualizar} tintColor={cores.primaria} />
+            <RefreshControl refreshing={puxando} onRefresh={atualizar} tintColor={cores.primaria} />
           ) : undefined
         }>
         {children}

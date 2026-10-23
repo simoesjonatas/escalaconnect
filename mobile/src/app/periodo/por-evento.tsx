@@ -113,7 +113,7 @@ export default function PorEvento() {
   }
 
   return (
-    <Tela atualizando={eventos.isRefetching} aoAtualizar={() => eventos.refetch()}>
+    <Tela aoAtualizar={() => eventos.refetch()}>
       <Texto>Marque os eventos dos próximos 60 dias em que você pode servir.</Texto>
       <Estado consulta={eventos} vazio={eventos.data?.length === 0 && 'Não há eventos novos para marcar.'} />
 

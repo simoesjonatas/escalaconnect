@@ -58,7 +58,7 @@ export default function Calendario() {
 
   const doDia = porDia[dia] ?? [];
   return (
-    <Tela atualizando={eventos.isRefetching} aoAtualizar={() => eventos.refetch()}>
+    <Tela aoAtualizar={() => eventos.refetch()}>
       <Calendar
         markingType="multi-dot"
         markedDates={marcacoes}

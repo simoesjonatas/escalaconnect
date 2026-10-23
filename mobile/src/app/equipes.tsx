@@ -11,7 +11,7 @@ export default function Equipes() {
   const { cores } = useTema();
 
   return (
-    <Tela atualizando={equipes.isRefetching} aoAtualizar={() => equipes.refetch()}>
+    <Tela aoAtualizar={() => equipes.refetch()}>
       <Estado consulta={equipes} />
       <Erro erro={candidatura.error} />
       {dados && (

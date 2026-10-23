@@ -116,7 +116,7 @@ export default function Lideranca() {
   }
 
   return (
-    <Tela atualizando={consulta.isRefetching} aoAtualizar={() => consulta.refetch()}>
+    <Tela aoAtualizar={() => consulta.refetch()}>
       <Segmentos
         opcoes={[
           { valor: 'pendencias', rotulo: 'Pendências', total: lista.length },

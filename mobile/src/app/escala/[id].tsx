@@ -37,7 +37,7 @@ export default function DetalheDaEscala() {
   }
 
   return (
-    <Tela atualizando={consulta.isRefetching} aoAtualizar={() => consulta.refetch()}>
+    <Tela aoAtualizar={() => consulta.refetch()}>
       <Estado consulta={consulta} />
       {escala && (
         <>

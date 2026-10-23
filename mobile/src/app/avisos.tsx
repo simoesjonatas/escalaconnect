@@ -30,7 +30,7 @@ export default function Avisos() {
   const anteriores = avisos.filter((a) => a.lido);
 
   return (
-    <Tela atualizando={consulta.isRefetching} aoAtualizar={() => consulta.refetch()}>
+    <Tela aoAtualizar={() => consulta.refetch()}>
       <Estado consulta={consulta} vazio={avisos.length === 0 && 'Nenhum aviso por aqui ainda.'} />
       {novos.length > 0 && <Subtitulo>Novos</Subtitulo>}
       {novos.map((aviso) => (

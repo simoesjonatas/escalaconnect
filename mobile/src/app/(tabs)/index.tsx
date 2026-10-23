@@ -72,13 +72,10 @@ export default function Inicio() {
     }, [recarregarHome]),
   );
 
-  function atualizar() {
-    void home.refetch();
-    void escalas.refetch();
-  }
+  const atualizar = () => Promise.all([home.refetch(), escalas.refetch()]);
 
   return (
-    <Tela atualizando={home.isRefetching || escalas.isRefetching} aoAtualizar={atualizar}>
+    <Tela aoAtualizar={atualizar}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
         <Logo tamanho={44} />
         <Titulo>Olá, {usuario?.first_name || usuario?.username}</Titulo>

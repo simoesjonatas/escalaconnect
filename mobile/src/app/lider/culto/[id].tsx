@@ -48,7 +48,7 @@ export default function CultoDoLider() {
   }
 
   return (
-    <Tela atualizando={consulta.isRefetching} aoAtualizar={() => consulta.refetch()}>
+    <Tela aoAtualizar={() => consulta.refetch()}>
       <Estado consulta={consulta} />
       {dados && (
         <>

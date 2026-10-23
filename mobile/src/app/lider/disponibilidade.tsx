@@ -43,7 +43,7 @@ export default function PedirDisponibilidade() {
   }
 
   return (
-    <Tela atualizando={consulta.isRefetching} aoAtualizar={() => consulta.refetch()}>
+    <Tela aoAtualizar={() => consulta.refetch()}>
       {dados && dados.equipes.length > 1 && (
         <Opcoes
           opcoes={dados.equipes.map((e) => ({ valor: String(e.id), rotulo: e.nome }))}
