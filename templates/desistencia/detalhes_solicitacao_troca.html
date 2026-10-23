@@ -35,6 +35,11 @@ Detalhes da Solicitação de Troca
             {% csrf_token %}
             <button type="submit" class="btn btn-success">Aprovar Troca</button>
         </form>
+        <form method="post" action="{% url 'recusar_solicitacao_troca' troca.id %}" style="display:inline;"
+              onsubmit="return confirm('Recusar o pedido de troca? A pessoa continua escalada e será avisada.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger ml-2">Recusar</button>
+        </form>
         <!-- <a href="{% url 'escala_detail_equipe' troca.escala_origem.funcao.equipe.pk troca.escala_origem.pk %}" class="btn btn-primary">Voltar</a> -->
     </div>
 </div>

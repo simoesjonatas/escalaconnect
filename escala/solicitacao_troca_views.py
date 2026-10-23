@@ -67,3 +67,20 @@ def aprovar_solicitacao_troca(request, troca_id):
     if services.aprovar_troca(troca, request.user):
         messages.success(request, "Solicitação de troca aprovada com sucesso.")
     return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)
+
+
+@login_required
+@require_lider
+def recusar_solicitacao_troca(request, troca_id):
+    troca = get_object_or_404(SolicitacaoTroca, id=troca_id)
+    escala = troca.escala_origem
+    if not pode_gerenciar_equipe(request.user, escala.equipe):
+        return render(request, '403_forbidden.html', status=403)
+    if request.method != "POST":
+        return redirect('detalhes_solicitacao_troca', troca_id=troca.pk)
+    try:
+        services.recusar_troca(troca)
+        messages.success(request, "Pedido de troca recusado. A pessoa continua escalada e foi avisada.")
+    except services.RegraDeNegocio as erro:
+        messages.error(request, str(erro))
+    return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)

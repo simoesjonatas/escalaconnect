@@ -1,7 +1,9 @@
 """Regras das escalas do voluntário, compartilhadas entre o site e a API do app."""
 from django.utils import timezone
 
-from escalaconnect.push import notificar_push, quando
+from equipe.models import MembrosEquipe
+from escalaconnect import mensagens_push
+from escalaconnect.push import notificar_push
 from escalaconnect.regras import RegraDeNegocio
 from evento.models import Notification
 
@@ -18,11 +20,18 @@ def escalas_futuras(usuario):
     )
 
 
-def _avisar_saida_da_escala(usuario_id, escala, titulo, purpose):
-    evento = escala.evento
+def _avisar_saida_da_escala(usuario_id, escala, mensagem, purpose):
     notificar_push(
-        usuario_id, titulo, f'Você não está mais escalado em {evento.nome} ({quando(evento)}).',
+        usuario_id, *mensagem(escala),
         tipo='saiu_da_escala', purpose=purpose, escala_id=escala.pk,
+    )
+
+
+def _avisar_pedido_recusado(usuario_id, escala):
+    # A pessoa continua escalada: o toque abre a escala, como no aviso de escalado.
+    notificar_push(
+        usuario_id, *mensagens_push.pedido_recusado(escala),
+        tipo='pedido_recusado', purpose=Notification.PURPOSE_REQUEST_DECLINED, escala_id=escala.pk,
     )
 
 
@@ -75,8 +84,18 @@ def aprovar_desistencia(desistencia):
     desistencia.save()
     desistencia.escala.clear_escala()
     _avisar_saida_da_escala(
-        desistencia.usuario_id, desistencia.escala, 'Impedimento aceito', Notification.PURPOSE_WITHDRAWAL_APPROVED)
+        desistencia.usuario_id, desistencia.escala, mensagens_push.impedimento_aceito,
+        Notification.PURPOSE_WITHDRAWAL_APPROVED)
     return True
+
+
+def recusar_desistencia(desistencia):
+    """Descarta o impedimento: a pessoa continua escalada e é avisada."""
+    if desistencia.aprovada:
+        raise RegraDeNegocio("Este impedimento já foi aprovado.", code='ja_aprovado')
+    escala = desistencia.escala
+    desistencia.delete()
+    _avisar_pedido_recusado(desistencia.usuario_id, escala)
 
 
 # ── Solicitação de troca ──
@@ -117,5 +136,34 @@ def aprovar_troca(troca, lider):
     troca.save()
     troca.escala_origem.clear_escala()
     _avisar_saida_da_escala(
-        troca.solicitante_id, troca.escala_origem, 'Troca aprovada', Notification.PURPOSE_SWAP_APPROVED)
+        troca.solicitante_id, troca.escala_origem, mensagens_push.troca_aprovada, Notification.PURPOSE_SWAP_APPROVED)
     return True
+
+
+def recusar_troca(troca):
+    """Descarta o pedido de troca: a pessoa continua escalada e é avisada."""
+    if troca.aprovada:
+        raise RegraDeNegocio("Esta troca já foi aprovada.", code='ja_aprovada')
+    escala = troca.escala_origem
+    troca.delete()
+    _avisar_pedido_recusado(troca.solicitante_id, escala)
+
+
+# ── Vagas (líder) ──
+
+def escalar_em_vaga(escala, usuario):
+    """Coloca um membro aprovado da equipe numa vaga em aberto de evento futuro.
+
+    O aviso "Você foi escalado" sai pelo signal de Escala (api/signals.py).
+    """
+    if escala.evento.data_inicio <= timezone.now():
+        raise RegraDeNegocio("O evento já começou.", code='evento_iniciado')
+    if escala.usuario_id:
+        raise RegraDeNegocio("Esta vaga já foi preenchida.", code='vaga_ocupada')
+    if not MembrosEquipe.objects.filter(usuario=usuario, equipe=escala.equipe, aprovado=True).exists():
+        raise RegraDeNegocio("Essa pessoa não é membro da equipe.", code='nao_membro')
+    if Escala.objects.filter(evento=escala.evento, usuario=usuario).exists():
+        raise RegraDeNegocio("Essa pessoa já está escalada neste evento.", code='ja_escalado')
+    escala.usuario = usuario
+    escala.save()
+    return escala

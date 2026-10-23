@@ -1,7 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { api } from './api';
-import { Disponibilidade, Equipes, Escala, EventoCalendario, EventoComEquipe, Home } from './types';
+import {
+  Agenda,
+  DetalheDaVaga,
+  Disponibilidade,
+  Equipes,
+  Escala,
+  EventoCalendario,
+  EventoComEquipe,
+  Home,
+  PendenciasDoLider,
+  Vaga,
+} from './types';
 
 export const useHome = () => useQuery({ queryKey: ['home'], queryFn: () => api<Home>('GET', '/home/') });
 
@@ -80,5 +91,50 @@ export function useCandidatura() {
     mutationFn: ({ equipeId, cancelar }: { equipeId: number; cancelar?: boolean }) =>
       api<Equipes>(cancelar ? 'DELETE' : 'POST', `/equipes/${equipeId}/candidatura/`),
     onSuccess: (equipes) => queryClient.setQueryData(['equipes'], equipes),
+  });
+}
+
+export const useAgenda = () =>
+  useQuery({ queryKey: ['agenda'], queryFn: () => api<Agenda>('GET', '/me/agenda/'), staleTime: Infinity });
+
+// ── Painel do líder ──
+
+export const usePendenciasDoLider = () =>
+  useQuery({ queryKey: ['lider', 'pendencias'], queryFn: () => api<PendenciasDoLider>('GET', '/lider/pendencias/') });
+
+export const useVagas = () => useQuery({ queryKey: ['lider', 'vagas'], queryFn: () => api<Vaga[]>('GET', '/lider/vagas/') });
+
+export const useVaga = (id: number) =>
+  useQuery({ queryKey: ['lider', 'vagas', id], queryFn: () => api<DetalheDaVaga>('GET', `/lider/vagas/${id}/`) });
+
+export type AcaoDoLider = {
+  tipo: 'impedimentos' | 'trocas' | 'candidaturas';
+  id: number;
+  acao: 'aprovar' | 'recusar';
+};
+
+function useAtualizarPainel() {
+  const queryClient = useQueryClient();
+  // Painel, contador da aba e as telas do voluntário que mostram as mesmas escalas.
+  return () => {
+    for (const chave of ['lider', 'home', 'escalas', 'eventos']) void queryClient.invalidateQueries({ queryKey: [chave] });
+  };
+}
+
+/** Aprovar/recusar uma pendência. Aprovar impedimento ou troca devolve a vaga liberada. */
+export function useAcaoDoLider() {
+  const atualizar = useAtualizarPainel();
+  return useMutation({
+    mutationFn: ({ tipo, id, acao }: AcaoDoLider) =>
+      api<{ vaga_id: number } | undefined>('POST', `/lider/${tipo}/${id}/${acao}/`),
+    onSuccess: atualizar,
+  });
+}
+
+export function useEscalarNaVaga(vagaId: number) {
+  const atualizar = useAtualizarPainel();
+  return useMutation({
+    mutationFn: (usuarioId: number) => api('POST', `/lider/vagas/${vagaId}/escalar/`, { usuario_id: usuarioId }),
+    onSuccess: atualizar,
   });
 }

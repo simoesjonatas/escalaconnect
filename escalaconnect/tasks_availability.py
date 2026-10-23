@@ -8,6 +8,7 @@ import calendar
 
 from django.apps import apps
 from django.conf import settings
+from escalaconnect import mensagens_push
 from escalaconnect.push import notificar_push
 from django.db.models import Q
 from django.template.loader import render_to_string
@@ -129,8 +130,7 @@ def disparar_pedido_disponibilidades(ano: int, mes: int, equipe_id: int | None =
     if "push" in canais:
         for usuario_id in sem_disponibilidade.values_list("id", flat=True):
             push_enfileirados += notificar_push(
-                usuario_id, "Informe sua disponibilidade",
-                f"A liderança precisa saber quando você pode servir em {mes_legivel}.",
+                usuario_id, *mensagens_push.pedido_de_disponibilidade(d_first),
                 tipo="disponibilidade", purpose=Notification.PURPOSE_AVAILABILITY, throttle_horas=24,
             )
 

@@ -53,6 +53,11 @@ Detalhes da Desistência
             {% csrf_token %}
             <button type="submit" class="btn btn-success">Aprovar</button>
         </form>
+        <form method="post" action="{% url 'recusar_desistencia' desistencia.id %}" style="display:inline;"
+              onsubmit="return confirm('Recusar o impedimento? A pessoa continua escalada e será avisada.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger ml-2">Recusar</button>
+        </form>
         <a href="{% url 'escala_detail_equipe' desistencia.escala.funcao.equipe.pk desistencia.escala.pk %}" class="btn btn-secondary ml-2">Voltar</a>
     </div>
 </div>

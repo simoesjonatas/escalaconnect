@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.shortcuts import render, redirect
 from .desistencia_forms import DesistenciaForm
 from .models import Desistencia, Escala
@@ -27,6 +28,22 @@ def aprovar_desistencia(request, desistencia_id):
     if request.method == "POST":
         # Aprova e libera a vaga para outro voluntário (não faz nada se já aprovada).
         services.aprovar_desistencia(desistencia)
+    return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)
+
+
+@login_required
+@require_lider
+def recusar_desistencia(request, desistencia_id):
+    desistencia = get_object_or_404(Desistencia, pk=desistencia_id)
+    escala = desistencia.escala
+    if not pode_gerenciar_equipe(request.user, escala.equipe):
+        return render(request, '403_forbidden.html', status=403)
+    if request.method == "POST":
+        try:
+            services.recusar_desistencia(desistencia)
+            messages.success(request, "Impedimento recusado. A pessoa continua escalada e foi avisada.")
+        except services.RegraDeNegocio as erro:
+            messages.error(request, str(erro))
     return redirect('escala_detail_equipe', equipe_pk=escala.funcao.equipe.pk, pk=escala.pk)
 
 

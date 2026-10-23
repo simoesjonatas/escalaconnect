@@ -1,7 +1,8 @@
 from escala.models import Escala
 from evento.models import Notification
 
-from .push import notificar_push, quando
+from . import mensagens_push
+from .push import notificar_push
 from .tasks import enviar_email_confirmacao_task
 
 
@@ -22,9 +23,7 @@ def pedir_confirmacao(evento, lembrete=False):
             enviar_email_confirmacao_task.delay(escala.id)
             emails += 1
         notificar_push(
-            escala.usuario_id,
-            'Lembrete de escala' if lembrete else 'Confirme sua presença',
-            f'{evento.nome} · {quando(evento)} · {escala.funcao.nome}',
+            escala.usuario_id, *mensagens_push.pedido_de_confirmacao(escala),
             tipo='confirmar_escala',
             purpose=Notification.PURPOSE_REMINDER if lembrete else Notification.PURPOSE_CONFIRM,
             escala_id=escala.pk,

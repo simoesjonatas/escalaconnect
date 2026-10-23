@@ -167,7 +167,7 @@ class DisparosTests(PushTestCase):
             vaga.confirmada = True
             vaga.save()  # salvar de novo sem trocar o usuário não repete o aviso
         (msg,) = self.mensagens()
-        self.assertEqual(msg['title'], 'Você foi escalado')
+        self.assertEqual(msg['title'], 'Você foi escalado 🙌')
         self.assertIn('Culto', msg['body'])
         self.assertEqual(msg['data']['escala_id'], vaga.pk)
 
@@ -193,7 +193,7 @@ class DisparosTests(PushTestCase):
             emails = pedir_confirmacao(self.evento)
         self.assertEqual(emails, 1)  # só quem tem e-mail
         self.assertEqual(len(mail.outbox), 1)
-        self.assertEqual(self.titulos(), ['Confirme sua presença', 'Confirme sua presença'])  # push para os dois
+        self.assertEqual(self.titulos(), ['Confirma sua escala?', 'Confirma sua escala?'])  # push para os dois
 
     def test_aprovar_desistencia_e_troca_avisam_o_voluntario(self):
         desistencia = Desistencia.objects.create(escala=self.escala, usuario=self.user, motivo='Viagem')
@@ -215,7 +215,7 @@ class DisparosTests(PushTestCase):
         self.client.force_login(lider)
         with self.captureOnCommitCallbacks(execute=True):
             self.client.get(reverse('aprovar_membro', args=[self.equipe.pk, membro.pk]))
-        self.assertEqual(self.titulos(), ['Você entrou na equipe'])
+        self.assertEqual(self.titulos(), ['Boas-vindas à equipe! 🙌'])
 
 
 class NotificarPeloSiteTests(PushTestCase):

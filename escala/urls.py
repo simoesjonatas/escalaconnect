@@ -28,11 +28,13 @@ urlpatterns = [
     path('solicitacao-troca/detalhes-troca/<int:troca_id>/', detalhes_solicitacao_troca, name='detalhes_solicitacao_troca'),
     path('solicitacao-troca/<int:escala_id>/cancelar-troca', cancelar_solicitacao_troca, name='cancelar_solicitacao_troca'),
     path('solicitacao-troca/aprovar-troca/<int:troca_id>/', aprovar_solicitacao_troca, name='aprovar_solicitacao_troca'),
+    path('solicitacao-troca/recusar-troca/<int:troca_id>/', recusar_solicitacao_troca, name='recusar_solicitacao_troca'),
 
 
     
     path('escala/<int:escala_id>/desistencia/', DetalhesDesistenciaPorEscalaView.as_view(), name='detalhes_desistencia_escala'),
     path('desistencia/aprovar/<int:desistencia_id>/', aprovar_desistencia, name='aprovar_desistencia'),
+    path('desistencia/recusar/<int:desistencia_id>/', recusar_desistencia, name='recusar_desistencia'),
 
 
 

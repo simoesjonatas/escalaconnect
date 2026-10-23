@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 from django.contrib.auth.views import LogoutView, LoginView
 
 from .views import base_view, calendario_view, redirect_to_home, confirmar_presenca, view_enviar_confirmacao, privacidade
-from escala.views import carregar_funcoes
+from escala.views import agenda_ics, carregar_funcoes
 from usuario.views_monitor import monitoramento_uso, monitoramento_app
 
 urlpatterns = [
@@ -34,6 +34,8 @@ urlpatterns = [
     path('monitoramento/', monitoramento_uso, name='monitoramento_uso'),
     path('monitoramento/app/', monitoramento_app, name='monitoramento_app'),
     path('privacidade/', privacidade, name='privacidade'),
+    # Link de agenda sem login, assinado (botões "Adicionar à agenda" do app).
+    path('agenda/<str:token>.ics', agenda_ics, name='agenda_ics'),
 
     # API JSON do app mobile (as demais rotas api/... abaixo devolvem HTML).
     path('api/v1/', include('api.urls')),

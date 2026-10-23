@@ -1,11 +1,11 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
 
 import { periodo } from '../../lib/datas';
 import { situacaoDaEscala } from '../../lib/escala-ui';
 import { useTema } from '../../lib/tema';
-import { useAcaoDeEscala, useEscala } from '../../lib/hooks';
+import { useAcaoDeEscala, useAgenda, useEscala } from '../../lib/hooks';
 import { Botao, Campo, Cartao, Erro, Estado, Etiqueta, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
 
 export default function DetalheDaEscala() {
@@ -16,6 +16,7 @@ export default function DetalheDaEscala() {
   const [motivo, setMotivo] = useState('');
   const escala = consulta.data;
   const { cores } = useTema();
+  const agenda = useAgenda();
 
   const iniciou = escala ? new Date(escala.evento.data_inicio) <= new Date() : false;
   const encerrou = escala ? new Date(escala.evento.data_fim) < new Date() : false;
@@ -25,6 +26,14 @@ export default function DetalheDaEscala() {
       { text: 'Voltar', style: 'cancel' },
       { text: 'Pedir troca', onPress: () => acao.mutate({ tipo: 'pedir-troca' }) },
     ]);
+  }
+
+  function adicionarAgenda() {
+    if (!agenda.data) return;
+    // O sistema abre o .ics desta escala e oferece adicionar ao calendário.
+    Linking.openURL(`${agenda.data.https}?escala=${id}`).catch(() =>
+      Alert.alert('Agenda', 'Não foi possível abrir o calendário neste aparelho.'),
+    );
   }
 
   return (
@@ -92,6 +101,10 @@ export default function DetalheDaEscala() {
             />
           ) : (
             !iniciou && <Botao titulo="Pedir troca" variante="secundario" aoTocar={pedirTroca} />
+          )}
+
+          {!encerrou && agenda.data && (
+            <Botao titulo="Adicionar à agenda" variante="secundario" aoTocar={adicionarAgenda} />
           )}
         </>
       )}

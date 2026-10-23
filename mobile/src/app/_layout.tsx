@@ -93,6 +93,7 @@ function Telas({ estado }: { estado: EstadoDaSessao }) {
         <Stack.Screen name="equipes" options={{ title: 'Minhas equipes' }} />
         <Stack.Screen name="contato" options={{ title: 'Meu contato' }} />
         <Stack.Screen name="trocar-senha" options={{ title: 'Trocar senha' }} />
+        <Stack.Screen name="lider/vaga/[id]" options={{ title: 'Escalar na vaga' }} />
       </Stack.Protected>
     </Stack>
   );

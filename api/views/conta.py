@@ -6,6 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from escala.agenda import links_da_agenda
 from usuario.forms import PerfilContatoForm
 from usuario.services import aceitar_termo
 
@@ -116,3 +117,10 @@ class TrocarSenhaView(APIView):
         form.save()
         request.user.auth_token_set.exclude(pk=request.auth.pk).delete()
         return Response(status=204)
+
+
+class AgendaView(APIView):
+    """Links do .ics das escalas do usuário, sem login (assinados; trocar a senha invalida)."""
+
+    def get(self, request):
+        return Response(links_da_agenda(request.user))

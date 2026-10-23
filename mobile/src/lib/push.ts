@@ -60,11 +60,12 @@ type DadosDoPush = { tipo?: string; escala_id?: number | null };
 
 /** Tela que cada tipo de push abre ao toque (os tipos vêm do backend, ver escalaconnect/push.py). */
 function abrir({ tipo, escala_id }: DadosDoPush) {
-  if ((tipo === 'escalado' || tipo === 'confirmar_escala') && escala_id) {
+  if ((tipo === 'escalado' || tipo === 'confirmar_escala' || tipo === 'pedido_recusado') && escala_id) {
     router.push({ pathname: '/escala/[id]', params: { id: escala_id } });
   } else if (tipo === 'saiu_da_escala') router.navigate('/escalas');
   else if (tipo === 'disponibilidade') router.navigate('/disponibilidade');
   else if (tipo === 'membro_aprovado') router.push('/equipes');
+  else if (tipo === 'pendencia_lider') router.navigate('/lideranca');
 }
 
 /** Usado dentro da área logada: abre a tela do push tocado e atualiza os dados quando chega um push. */

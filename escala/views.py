@@ -1,11 +1,10 @@
-from datetime import timezone as datetime_timezone
-
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, Count
 from django.urls import reverse
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponseNotFound, JsonResponse, HttpResponse
+from escala import agenda
 from escala.models import Escala, Funcao
 from evento.models import Evento
 from escala.forms import EscalaForm, MultiEscalaForm, AplicarFuncoesEventosForm
@@ -437,20 +436,13 @@ def aplicar_funcoes_eventos(request):
     return render(request, 'escala/aplicar_funcoes_eventos.html', context)
 
 
-def _ics_escape(text):
-    """Escapa caracteres especiais de texto para o formato iCalendar."""
+def _escalas_para_agenda(usuario):
     return (
-        (text or '')
-        .replace('\\', '\\\\')
-        .replace(';', '\\;')
-        .replace(',', '\\,')
-        .replace('\n', '\\n')
+        Escala.objects
+        .filter(usuario=usuario)
+        .select_related('evento', 'funcao', 'funcao__equipe')
+        .order_by('evento__data_inicio')
     )
-
-
-def _ics_datetime(dt):
-    """Formata um datetime aware em UTC no padrão iCalendar (ex.: 20260611T130000Z)."""
-    return dt.astimezone(datetime_timezone.utc).strftime('%Y%m%dT%H%M%SZ')
 
 
 @login_required
@@ -459,48 +451,29 @@ def minha_agenda_ics(request):
 
     Só eventos de hoje para frente — não faz sentido importar escalas passadas.
     """
-    escalas = (
-        Escala.objects
-        .filter(usuario=request.user, evento__data_inicio__gte=now())
-        .select_related('evento', 'funcao', 'funcao__equipe')
-        .order_by('evento__data_inicio')
-    )
+    escalas = _escalas_para_agenda(request.user).filter(evento__data_inicio__gte=now())
+    return agenda.resposta_ics(agenda.gerar_ics(escalas), 'minhas-escalas.ics')
 
-    linhas = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//Escala Connect//PT-BR//',
-        'CALSCALE:GREGORIAN',
-        'METHOD:PUBLISH',
-        'X-WR-CALNAME:Minhas Escalas',
-    ]
-    carimbo = _ics_datetime(now())
 
-    for escala in escalas:
-        evento = escala.evento
-        if not (evento and evento.data_inicio and evento.data_fim):
-            continue
-        equipe = escala.funcao.equipe.nome if escala.funcao and escala.funcao.equipe else ''
-        funcao = escala.funcao.nome if escala.funcao else ''
-        titulo = ' - '.join(p for p in (funcao, equipe) if p) or evento.nome
-        situacao = 'Confirmada' if escala.confirmada else 'A confirmar'
-        linhas += [
-            'BEGIN:VEVENT',
-            f'UID:escala-{escala.pk}@connect.simoesti.com.br',
-            f'DTSTAMP:{carimbo}',
-            f'DTSTART:{_ics_datetime(evento.data_inicio)}',
-            f'DTEND:{_ics_datetime(evento.data_fim)}',
-            f'SUMMARY:{_ics_escape(titulo)}',
-            f'DESCRIPTION:{_ics_escape(f"{evento.nome} ({situacao})")}',
-            'END:VEVENT',
-        ]
+def agenda_ics(request, token):
+    """Mesmo .ics, por link assinado e sem login (botões de agenda do app).
 
-    linhas.append('END:VCALENDAR')
-    conteudo = '\r\n'.join(linhas) + '\r\n'
-
-    response = HttpResponse(conteudo, content_type='text/calendar; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename="minhas-escalas.ics"'
-    return response
+    `?escala=ID` gera só aquela escala, para o botão "Adicionar à agenda".
+    """
+    # 404 direto: o handler404 do site redirecionaria para a página inicial.
+    nao_encontrado = HttpResponseNotFound('Link de agenda inválido ou expirado.')
+    usuario = agenda.usuario_do_token(token)
+    if usuario is None:
+        return nao_encontrado
+    escalas = _escalas_para_agenda(usuario)
+    escala_id = request.GET.get('escala')
+    if escala_id:
+        escalas = escalas.filter(pk=escala_id if escala_id.isdigit() else 0)
+        if not escalas:
+            return nao_encontrado
+        return agenda.resposta_ics(agenda.gerar_ics(escalas, nome='Escala Connect'), f'escala-{escala_id}.ics')
+    escalas = escalas.filter(evento__data_inicio__gte=now())
+    return agenda.resposta_ics(agenda.gerar_ics(escalas), 'minhas-escalas.ics')
 
 
 @login_required

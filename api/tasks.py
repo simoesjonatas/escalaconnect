@@ -1,12 +1,12 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 import requests
 from celery import shared_task
 from django.conf import settings
-from django.db.models import Exists, OuterRef
-from django.utils import formats, timezone
+from django.utils import timezone
 
 from escala.models import Escala
+from escalaconnect import mensagens_push
 from escalaconnect.push import notificar_push
 from evento.models import Notification, NotificationAttempt
 
@@ -95,42 +95,68 @@ def verificar_recibos_push_task(devices_por_ticket):
     return Device.objects.filter(pk__in=invalidos).update(ativo=False)
 
 
-@shared_task
-def lembrar_escalas_proximas():
-    """Avisa pelo app quem está escalado em evento que começa nas próximas horas.
+def _avisos_da_escala(escala):
+    """[(momento, purpose, mensagem)] em ordem cronológica, conforme a confirmação atual.
 
-    Roda a cada 10 minutos (CELERY_BEAT_SCHEDULE). Cada voluntário recebe um único
-    aviso por escala: quem já teve envio bem-sucedido fica de fora nas rodadas
-    seguintes; se a escala mudar de pessoa, a nova é avisada. Só push, sem e-mail.
+    Quem não confirmou: pedido de confirmação na véspera, lembrete do dia (só cultos
+    da tarde/noite, já que os da manhã têm o pedido na véspera) e última chamada.
+    Quem confirmou: só o lembrete, sem tom de cobrança.
+    """
+    inicio = timezone.localtime(escala.evento.data_inicio)
+    vespera = inicio.date() - timedelta(days=1)
+
+    def no_horario(dia, hora):
+        return timezone.make_aware(datetime.combine(dia, time(hora)))
+
+    if inicio.hour < settings.LEMBRETE_CORTE_HORA:
+        lembrete = no_horario(vespera, settings.LEMBRETE_VESPERA_HORA)
+    else:
+        lembrete = no_horario(inicio.date(), settings.LEMBRETE_DIA_HORA)
+    lembrete = (lembrete, Notification.PURPOSE_DAY_REMINDER, mensagens_push.lembrete_da_escala)
+
+    if escala.confirmada:
+        return [lembrete]
+    avisos = [(no_horario(vespera, settings.CONFIRMACAO_VESPERA_HORA),
+               Notification.PURPOSE_CONFIRM_EVE, mensagens_push.pedido_de_confirmacao)]
+    if lembrete[0].date() == inicio.date():
+        avisos.append(lembrete)
+    avisos.append((inicio - timedelta(hours=settings.LEMBRETE_EVENTO_HORAS),
+                   Notification.PURPOSE_EVENT_SOON, mensagens_push.ultima_chamada))
+    return sorted(avisos, key=lambda aviso: aviso[0])
+
+
+@shared_task
+def lembretes_de_escala():
+    """Lembretes pelo app de quem está escalado nos próximos dois dias (ver settings).
+
+    Roda a cada 10 minutos (CELERY_BEAT_SCHEDULE). Em cada escala, só o aviso mais
+    recente que já venceu é enviado, e uma única vez: se o beat ficou parado ou a
+    pessoa foi escalada em cima da hora, ela recebe só o aviso que faz sentido agora,
+    não todos os atrasados. Se a escala mudar de pessoa, a nova é avisada. Só push.
     """
     agora = timezone.now()
-    ja_avisado = Notification.objects.filter(
-        escala=OuterRef('pk'), usuario=OuterRef('usuario_id'),
-        channel=Notification.CHANNEL_PUSH, purpose=Notification.PURPOSE_EVENT_SOON, success_count__gt=0,
-    )
-    escalas = (
+    escalas = list(
         Escala.objects
-        .filter(
-            usuario__isnull=False,
-            evento__data_inicio__gt=agora,
-            evento__data_inicio__lte=agora + timedelta(hours=settings.LEMBRETE_EVENTO_HORAS),
-        )
-        .annotate(ja_avisado=Exists(ja_avisado))
-        .filter(ja_avisado=False)
+        .filter(usuario__isnull=False, evento__data_inicio__gt=agora,
+                evento__data_inicio__lte=agora + timedelta(hours=48))
         .select_related('evento', 'funcao')
+    )
+    enviados = set(
+        Notification.objects
+        .filter(escala__in=escalas, channel=Notification.CHANNEL_PUSH, success_count__gt=0)
+        .values_list('escala_id', 'usuario_id', 'purpose')
     )
     enfileirados = 0
     for escala in escalas:
-        inicio = timezone.localtime(escala.evento.data_inicio)
-        hoje = 'hoje ' if inicio.date() == timezone.localdate(agora) else ''
-        corpo = f'{escala.evento.nome} · {escala.funcao.nome}'
-        if not escala.confirmada:
-            corpo += ' · Confirme sua presença'
+        vencidos = [aviso for aviso in _avisos_da_escala(escala) if aviso[0] <= agora]
+        if not vencidos:
+            continue
+        _, purpose, mensagem = vencidos[-1]
+        if (escala.pk, escala.usuario_id, purpose) in enviados:
+            continue
         enfileirados += notificar_push(
-            escala.usuario_id,
-            f"Você serve {hoje}às {formats.date_format(inicio, 'H:i')}",
-            corpo,
+            escala.usuario_id, *mensagem(escala),
             # 'escalado' é o tipo que o app já sabe abrir na tela da escala.
-            tipo='escalado', purpose=Notification.PURPOSE_EVENT_SOON, escala_id=escala.pk, throttle_horas=24,
+            tipo='escalado', purpose=purpose, escala_id=escala.pk, throttle_horas=24,
         )
     return enfileirados

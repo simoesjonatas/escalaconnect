@@ -5,8 +5,10 @@ from rest_framework.views import APIView
 
 from escala import services
 from escala.models import Desistencia, Escala, SolicitacaoTroca
+from equipe.services import total_pendencias_do_lider
 from escalaconnect.services import pendencias_home
 
+from .lideranca import pode_liderar
 from ..serializers.escala import EscalaSerializer, ImpedimentoSerializer
 
 
@@ -45,6 +47,7 @@ class HomeView(APIView):
         return Response({
             **pendencias_home(request.user),
             'proxima_escala': EscalaSerializer(proxima).data if proxima else None,
+            'pendencias_lider': total_pendencias_do_lider(request.user) if pode_liderar(request.user) else 0,
         })
 
 

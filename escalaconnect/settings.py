@@ -325,11 +325,19 @@ CELERY_TASK_TIME_LIMIT = int(os.getenv("CELERY_TASK_TIME_LIMIT", str(60 * 5)))
 CELERY_TIMEZONE = "America/Sao_Paulo"
 
 # Tarefas periódicas (serviço celerybeat no docker-compose).
-# Aviso pelo app a quem está escalado, X horas antes do evento começar.
+# Lembretes de escala pelo app (api.tasks.lembretes_de_escala), em horário local:
+# - quem não confirmou recebe o pedido de confirmação na véspera, às CONFIRMACAO_VESPERA_HORA;
+# - todos recebem o lembrete da escala: culto que começa antes de LEMBRETE_CORTE_HORA
+#   na véspera às LEMBRETE_VESPERA_HORA, os demais no próprio dia às LEMBRETE_DIA_HORA;
+# - quem ainda não confirmou recebe a última chamada LEMBRETE_EVENTO_HORAS antes do início.
 LEMBRETE_EVENTO_HORAS = config('LEMBRETE_EVENTO_HORAS', default=2, cast=int)
+CONFIRMACAO_VESPERA_HORA = config('CONFIRMACAO_VESPERA_HORA', default=18, cast=int)
+LEMBRETE_CORTE_HORA = config('LEMBRETE_CORTE_HORA', default=13, cast=int)
+LEMBRETE_VESPERA_HORA = config('LEMBRETE_VESPERA_HORA', default=20, cast=int)
+LEMBRETE_DIA_HORA = config('LEMBRETE_DIA_HORA', default=12, cast=int)
 CELERY_BEAT_SCHEDULE = {
-    'lembrar-escalas-proximas': {
-        'task': 'api.tasks.lembrar_escalas_proximas',
+    'lembretes-de-escala': {
+        'task': 'api.tasks.lembretes_de_escala',
         'schedule': crontab(minute='*/10'),
     },
 }

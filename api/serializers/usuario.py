@@ -33,7 +33,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
         return user.is_in_team()
 
     def get_lider(self, user):
-        return user.is_leader()
+        # Mostra o painel do líder no app (staff vê todas as equipes).
+        return user.is_staff or user.is_superuser or user.is_leader()
 
 
 class DefinirSenhaSerializer(serializers.Serializer):

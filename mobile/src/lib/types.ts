@@ -54,6 +54,8 @@ export type Home = {
   falta_email: boolean;
   falta_telefone: boolean;
   proxima_escala: Escala | null;
+  /** Impedimentos, trocas e candidaturas esperando o líder (0 para quem não lidera). */
+  pendencias_lider?: number;
 };
 
 export type Disponibilidade = {
@@ -67,3 +69,26 @@ export type Disponibilidade = {
 export type Equipe = { id: number; nome: string };
 
 export type Equipes = { aprovadas: Equipe[]; pendentes: Equipe[]; disponiveis: Equipe[] };
+
+/** Links do .ics das escalas (sem login; trocar a senha invalida). */
+export type Agenda = { https: string; webcal: string };
+
+// ── Painel do líder (/lider/) ──
+
+export type Pessoa = { id: number; nome: string };
+
+export type EscalaDaEquipe = Pick<Escala, 'id' | 'evento' | 'funcao' | 'equipe' | 'equipe_id' | 'confirmada'>;
+
+export type Impedimento = { id: number; motivo: string; data_solicitacao: string; pessoa: Pessoa; escala: EscalaDaEquipe };
+
+export type Troca = { id: number; data_solicitacao: string; pessoa: Pessoa; escala: EscalaDaEquipe };
+
+export type Candidatura = { id: number; pessoa: Pessoa; equipe: string; equipe_id: number };
+
+export type PendenciasDoLider = { impedimentos: Impedimento[]; trocas: Troca[]; candidaturas: Candidatura[] };
+
+export type Vaga = EscalaDaEquipe & { disponiveis: number };
+
+export type Candidato = Pessoa & { disponivel: boolean; servicos_no_mes: number };
+
+export type DetalheDaVaga = { vaga: Vaga; candidatos: Candidato[] };

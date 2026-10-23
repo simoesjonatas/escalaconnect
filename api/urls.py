@@ -4,7 +4,7 @@ from django.urls import path, re_path
 from disponivel.services import disponibilidades
 from ocupado.services import indisponibilidades
 
-from .views import conta, devices, equipes, escalas, eventos, periodos
+from .views import conta, devices, equipes, escalas, eventos, lideranca, periodos
 from .views.auth import LoginView, LogoutAllView, LogoutView
 from .views.conta import MeView, MetaView
 
@@ -34,6 +34,7 @@ urlpatterns = [
     path('me/definir-senha/', conta.DefinirSenhaView.as_view(), name='api_definir_senha'),
     path('me/trocar-senha/', conta.TrocarSenhaView.as_view(), name='api_trocar_senha'),
     path('me/aceitar-termo/', conta.AceitarTermoView.as_view(), name='api_aceitar_termo'),
+    path('me/agenda/', conta.AgendaView.as_view(), name='api_agenda'),
     path('termo/', conta.TermoView.as_view(), name='api_termo'),
     path('meta/', MetaView.as_view(), name='api_meta'),
 
@@ -50,6 +51,17 @@ urlpatterns = [
 
     path('equipes/', equipes.EquipeListView.as_view(), name='api_equipes'),
     path('equipes/<int:pk>/candidatura/', equipes.CandidaturaView.as_view(), name='api_candidatura'),
+
+    path('lider/pendencias/', lideranca.PendenciasView.as_view(), name='api_lider_pendencias'),
+    re_path(r'^lider/impedimentos/(?P<pk>\d+)/(?P<acao>aprovar|recusar)/$',
+            lideranca.ImpedimentoView.as_view(), name='api_lider_impedimento'),
+    re_path(r'^lider/trocas/(?P<pk>\d+)/(?P<acao>aprovar|recusar)/$',
+            lideranca.TrocaView.as_view(), name='api_lider_troca'),
+    re_path(r'^lider/candidaturas/(?P<pk>\d+)/(?P<acao>aprovar|recusar)/$',
+            lideranca.CandidaturaView.as_view(), name='api_lider_candidatura'),
+    path('lider/vagas/', lideranca.VagaListView.as_view(), name='api_lider_vagas'),
+    path('lider/vagas/<int:pk>/', lideranca.VagaDetailView.as_view(), name='api_lider_vaga'),
+    path('lider/vagas/<int:pk>/escalar/', lideranca.EscalarView.as_view(), name='api_lider_escalar'),
 
     path('devices/', devices.DeviceView.as_view(), name='api_devices'),
     path('devices/<str:token>/', devices.DeviceDetailView.as_view(), name='api_device'),

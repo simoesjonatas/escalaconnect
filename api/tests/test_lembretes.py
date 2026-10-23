@@ -1,5 +1,6 @@
-"""Lembrete de disponibilidade (e-mail e/ou app) e aviso pelo app 2 horas antes do evento."""
-from datetime import timedelta
+"""Lembrete de disponibilidade (e-mail e/ou app) e lembretes de escala pelo app."""
+from datetime import datetime, timedelta
+from unittest import mock
 
 from django.contrib.messages import get_messages
 from django.core import mail
@@ -8,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from api.models import Device
-from api.tasks import lembrar_escalas_proximas
+from api.tasks import lembretes_de_escala
 from equipe.models import Lideranca, MembrosEquipe
 from escala.models import Escala
 from escalaconnect.tasks_availability import disparar_pedido_disponibilidades
@@ -18,78 +19,119 @@ from .test_conta import criar_usuario
 from .test_push import OUTRO_TOKEN, PushTestCase
 
 
-class AvisoAntesDoEventoTests(PushTestCase):
-    """lembrar_escalas_proximas: um push por escala, só para eventos que começam em até 2 horas."""
+def local(dia, hora, minuto=0):
+    """Horário local em outubro de 2026 (25/10 é domingo)."""
+    return timezone.make_aware(datetime(2026, 10, dia, hora, minuto))
 
-    def escalar(self, horas, usuario=None, nome='Culto da noite', **extra):
-        inicio = timezone.now() + timedelta(hours=horas)
+
+class LembretesDeEscalaTests(PushTestCase):
+    """lembretes_de_escala: véspera/dia conforme o horário do culto; cobrança só para quem não confirmou."""
+
+    def setUp(self):
+        super().setUp()
+        self.escala.delete()  # a escala da base fica em "agora + 3 dias", fora do relógio destes testes
+
+    def escalar(self, inicio, usuario=None, nome='Culto da noite', **extra):
         evento = Evento.objects.create(nome=nome, data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
-        return Escala.objects.create(usuario=usuario or self.user, funcao=self.funcao, evento=evento, **extra)
+        escala = Escala.objects.create(usuario=usuario or self.user, funcao=self.funcao, evento=evento, **extra)
+        self.post.reset_mock()  # descarta o "Você foi escalado" da criação
+        return escala
 
-    def rodar(self):
-        with self.captureOnCommitCallbacks(execute=True):
-            resultado = lembrar_escalas_proximas()
-        return resultado
-
-    def avisos(self):
-        return [m for m in self.mensagens() if m['title'].startswith('Você serve')]
-
-    def test_avisa_so_eventos_dentro_da_janela(self):
-        proxima = self.escalar(1)
-        self.escalar(3, nome='Mais tarde')
-        self.escalar(-1, nome='Já começou')
-        self.post.reset_mock()  # descarta os pushes "Você foi escalado" da criação
-
-        self.assertEqual(self.rodar(), 1)
-        (msg,) = self.avisos()
-        self.assertIn('Culto da noite', msg['body'])
-        self.assertIn('Porta', msg['body'])
-        self.assertIn('Confirme sua presença', msg['body'])  # ainda não confirmou
-        self.assertEqual(msg['data'], {'tipo': 'escalado', 'escala_id': proxima.pk})  # o app abre a escala
-        self.assertEqual(mail.outbox, [])  # este aviso é só pelo app
-
-    def test_confirmado_nao_recebe_pedido_de_confirmacao(self):
-        self.escalar(1, confirmada=True)
+    def rodar(self, agora):
+        """Roda a task com o relógio em `agora` e devolve as mensagens enviadas nesta rodada."""
         self.post.reset_mock()
-        self.rodar()
-        (msg,) = self.avisos()
-        self.assertNotIn('Confirme', msg['body'])
+        with mock.patch('django.utils.timezone.now', return_value=agora), \
+                self.captureOnCommitCallbacks(execute=True):
+            lembretes_de_escala()
+        return self.mensagens()
 
-    def test_rodar_de_novo_nao_repete(self):
-        self.escalar(1)
-        self.post.reset_mock()
-        self.assertEqual(self.rodar(), 1)
-        self.assertEqual(self.rodar(), 0)
-        self.assertEqual(self.rodar(), 0)
-        self.assertEqual(len(self.avisos()), 1)
-        notif = Notification.objects.get(purpose=Notification.PURPOSE_EVENT_SOON)
-        self.assertEqual((notif.channel, notif.success_count), (Notification.CHANNEL_PUSH, 1))
+    def titulos(self, agora):
+        return [m['title'] for m in self.rodar(agora)]
+
+    def test_culto_da_manha_confirmado_lembra_na_vespera_as_20h(self):
+        escala = self.escalar(local(25, 9, 45), nome='Culto da manhã', confirmada=True)
+        self.assertEqual(self.rodar(local(24, 19, 50)), [])
+        (msg,) = self.rodar(local(24, 20, 0))
+        self.assertEqual(msg['title'], 'Amanhã é dia de servir 💚')
+        self.assertEqual(msg['body'], 'Culto da manhã · 09:45 · Porta')
+        self.assertEqual(msg['data'], {'tipo': 'escalado', 'escala_id': escala.pk})  # o app abre a escala
+        self.assertEqual(self.rodar(local(24, 20, 10)), [])  # não repete
+        self.assertEqual(self.rodar(local(25, 7, 50)), [])   # confirmado não tem última chamada
+        self.assertEqual(mail.outbox, [])  # só pelo app
+
+    def test_culto_da_noite_confirmado_lembra_no_dia_ao_meio_dia(self):
+        self.escalar(local(25, 19, 30), confirmada=True)
+        self.assertEqual(self.rodar(local(24, 20, 0)), [])
+        (msg,) = self.rodar(local(25, 12, 0))
+        self.assertEqual((msg['title'], msg['body']), ('Hoje você serve às 19:30 💚', 'Culto da noite · Porta'))
+        self.assertEqual(self.rodar(local(25, 17, 40)), [])
+
+    def test_nao_confirmado_culto_da_manha(self):
+        self.escalar(local(25, 9, 45), nome='Culto da manhã')
+        self.assertEqual(self.rodar(local(24, 17, 50)), [])
+        (msg,) = self.rodar(local(24, 18, 0))
+        self.assertEqual((msg['title'], msg['body']), ('Confirma sua escala?', 'Culto da manhã · amanhã, 09:45 · Porta'))
+        self.assertEqual(self.rodar(local(24, 20, 0)), [])  # quem recebeu o pedido das 18h não recebe o das 20h
+        (msg,) = self.rodar(local(25, 7, 45))
+        self.assertEqual(msg['title'], 'Sua escala começa às 09:45')
+        self.assertIn('confirmar', msg['body'])
+
+    def test_nao_confirmado_culto_da_noite(self):
+        self.escalar(local(25, 19, 30))
+        self.assertEqual(self.titulos(local(24, 18, 0)), ['Confirma sua escala?'])
+        (msg,) = self.rodar(local(25, 12, 0))
+        self.assertEqual((msg['title'], msg['body']), ('Hoje você serve às 19:30', 'Culto da noite · toque para confirmar'))
+        self.assertEqual(self.titulos(local(25, 17, 30)), ['Sua escala começa às 19:30'])
+        self.assertEqual(self.rodar(local(25, 18, 0)), [])
+
+    def test_quem_confirma_depois_do_pedido_recebe_so_lembrete_amigavel(self):
+        escala = self.escalar(local(25, 9, 45), nome='Culto da manhã')
+        self.assertEqual(self.titulos(local(24, 18, 0)), ['Confirma sua escala?'])
+        escala.confirmada = True
+        escala.save()
+        self.assertEqual(self.titulos(local(24, 20, 0)), ['Amanhã é dia de servir 💚'])
+        self.assertEqual(self.rodar(local(25, 7, 45)), [])
+
+    def test_quem_confirmou_nunca_recebe_cobranca(self):
+        self.escalar(local(25, 9, 45), nome='Culto da manhã', confirmada=True)
+        self.escalar(local(25, 19, 30), confirmada=True)
+        mensagens = []
+        for agora in (local(24, 18, 0), local(24, 20, 0), local(25, 7, 45), local(25, 12, 0), local(25, 17, 30)):
+            mensagens += self.rodar(agora)
+        self.assertEqual(len(mensagens), 2)
+        for msg in mensagens:
+            self.assertNotIn('confirm', f"{msg['title']} {msg['body']}".lower())
+
+    def test_beat_parado_manda_so_o_aviso_mais_recente(self):
+        self.escalar(local(25, 19, 30))
+        self.assertEqual(self.titulos(local(25, 17, 40)), ['Sua escala começa às 19:30'])
+        self.assertEqual(self.rodar(local(25, 17, 50)), [])
+
+    def test_aviso_da_vespera_atrasado_diz_hoje(self):
+        self.escalar(local(25, 9, 45), nome='Culto da manhã', confirmada=True)
+        self.assertEqual(self.titulos(local(25, 0, 10)), ['Hoje você serve às 09:45 💚'])
 
     def test_quem_nao_tem_o_app_nao_gera_envio(self):
-        self.escalar(1, usuario=criar_usuario(username='joao', cpf='11144477735'))
-        self.post.reset_mock()
-        self.assertEqual(self.rodar(), 0)
-        self.post.assert_not_called()
+        self.escalar(local(25, 19, 30), usuario=criar_usuario(username='joao', cpf='11144477735'))
+        self.assertEqual(self.rodar(local(25, 12, 0)), [])
 
     def test_troca_de_voluntario_avisa_o_novo(self):
-        escala = self.escalar(1)
-        self.post.reset_mock()
-        self.rodar()
-
+        escala = self.escalar(local(25, 19, 30), confirmada=True)
+        self.rodar(local(25, 12, 0))
         outro = criar_usuario(username='joao', cpf='11144477735')
         Device.objects.create(usuario=outro, expo_token=OUTRO_TOKEN, plataforma='ios')
         escala.usuario = outro
         escala.save()
-        self.post.reset_mock()
-        self.assertEqual(self.rodar(), 1)
-        (msg,) = self.avisos()
+        (msg,) = self.rodar(local(25, 12, 10))
         self.assertEqual(msg['to'], OUTRO_TOKEN)
+        notif = Notification.objects.get(usuario=self.user, purpose=Notification.PURPOSE_DAY_REMINDER)
+        self.assertEqual((notif.channel, notif.success_count), (Notification.CHANNEL_PUSH, 1))
 
-    @override_settings(LEMBRETE_EVENTO_HORAS=4)
-    def test_antecedencia_configuravel(self):
-        self.escalar(3)
-        self.post.reset_mock()
-        self.assertEqual(self.rodar(), 1)
+    @override_settings(LEMBRETE_DIA_HORA=10, LEMBRETE_EVENTO_HORAS=4)
+    def test_horarios_configuraveis(self):
+        self.escalar(local(25, 19, 30))
+        self.assertEqual(self.titulos(local(25, 10, 0)), ['Hoje você serve às 19:30'])
+        self.assertEqual(self.titulos(local(25, 15, 30)), ['Sua escala começa às 19:30'])
 
 
 class LembreteDeDisponibilidadeTests(PushTestCase):
@@ -117,7 +159,7 @@ class LembreteDeDisponibilidadeTests(PushTestCase):
         resultado = self.disparar()
         self.assertEqual(resultado['emails_enviados'], 2)
         self.assertEqual(resultado['push_enfileirados'], 1)
-        self.assertEqual([m['title'] for m in self.mensagens()], ['Informe sua disponibilidade'])
+        self.assertEqual([m['title'] for m in self.mensagens()], ['Quando você pode servir?'])
         self.assertEqual(self.mensagens()[0]['data']['tipo'], 'disponibilidade')
 
     def test_so_app_nao_manda_email(self):

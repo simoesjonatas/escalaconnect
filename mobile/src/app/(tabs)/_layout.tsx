@@ -3,6 +3,7 @@ import { Tabs } from 'expo-router/js-tabs';
 import { ComponentProps } from 'react';
 import { ColorValue } from 'react-native';
 
+import { useAuth } from '../../lib/auth';
 import { useHome } from '../../lib/hooks';
 import { useTema } from '../../lib/tema';
 
@@ -13,7 +14,12 @@ const icone =
 export default function TabsLayout() {
   const { cores } = useTema();
   // Contador de escalas a confirmar na aba Escalas (some quando zera).
-  const pendentes = useHome().data?.escalas_pendentes ?? 0;
+  const home = useHome().data;
+  const pendentes = home?.escalas_pendentes ?? 0;
+  // Aba Liderança só para quem lidera alguma equipe, com o total de pendências.
+  const lider = useAuth().usuario?.lider ?? false;
+  const pendenciasLider = home?.pendencias_lider ?? 0;
+  const selo = { backgroundColor: cores.perigo, color: '#fff' };
   return (
     <Tabs
       screenOptions={{
@@ -31,11 +37,21 @@ export default function TabsLayout() {
           title: 'Escalas',
           tabBarIcon: icone('clipboard-outline'),
           tabBarBadge: pendentes > 0 ? pendentes : undefined,
-          tabBarBadgeStyle: { backgroundColor: cores.perigo, color: '#fff' },
+          tabBarBadgeStyle: selo,
         }}
       />
       <Tabs.Screen name="calendario" options={{ title: 'Calendário', tabBarIcon: icone('calendar-outline') }} />
       <Tabs.Screen name="disponibilidade" options={{ title: 'Disponibilidade', tabBarIcon: icone('time-outline') }} />
+      <Tabs.Screen
+        name="lideranca"
+        options={{
+          title: 'Liderança',
+          href: lider ? undefined : null,
+          tabBarIcon: icone('people-outline'),
+          tabBarBadge: pendenciasLider > 0 ? pendenciasLider : undefined,
+          tabBarBadgeStyle: selo,
+        }}
+      />
       <Tabs.Screen name="perfil" options={{ title: 'Perfil', tabBarIcon: icone('person-outline') }} />
     </Tabs>
   );
