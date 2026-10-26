@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Vagas em aberto
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item">Vagas em aberto</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<style>
+    .vagas-intro { color: var(--connect-muted); margin-bottom: 12px; }
+    .vagas-filtro { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .vagas-filtro a {
+        display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
+        border: 1px solid var(--connect-border); color: var(--connect-text); font-size: 14px; font-weight: 600; text-decoration: none;
+    }
+    .vagas-filtro a.ativo { background: var(--connect-green); border-color: var(--connect-green); color: #0b1a05; }
+    .vagas-filtro .contagem { font-size: 12px; opacity: .75; }
+    .vagas-vazio { color: var(--connect-muted); text-align: center; padding: 24px 0; }
+</style>
+
+<div class="container">
+    {% if vagas %}
+    <p class="vagas-intro">
+        Ninguém da sua equipe marcou disponibilidade para estas funções. Se você puder servir, ofereça-se e a liderança confirma.
+    </p>
+    {% endif %}
+
+    {% if equipes|length > 1 %}
+    <nav class="vagas-filtro" aria-label="Filtrar por equipe">
+        <a href="{% url 'vagas_abertas' %}" class="{% if not equipe_id %}ativo{% endif %}">Todas</a>
+        {% for id, nome, total in equipes %}
+        <a href="?equipe={{ id }}" class="{% if equipe_id == id %}ativo{% endif %}">{{ nome }} <span class="contagem">{{ total }}</span></a>
+        {% endfor %}
+    </nav>
+    {% endif %}
+
+    <div class="minhas-escalas-lista">
+        {% for vaga in vagas %}
+        <div class="minha-escala-card">
+            <div class="me-data">
+                <span class="me-dia">{{ vaga.evento.data_inicio|date:"d" }}</span>
+                <span class="me-mes">{{ vaga.evento.data_inicio|date:"b" }}</span>
+                <span class="me-hora">{{ vaga.evento.data_inicio|date:"H:i" }}</span>
+            </div>
+
+            <div class="me-info">
+                <strong>{{ vaga.evento.nome }}</strong>
+                <small>{{ vaga.evento.data_inicio|date:"l, d/m/Y" }} · {{ vaga.evento.data_inicio|date:"H:i" }} – {{ vaga.evento.data_fim|date:"H:i" }}</small>
+                <div class="me-tags">
+                    <span class="badge badge-secondary">{{ vaga.funcao.equipe.nome }}</span>
+                    <span class="badge badge-info">{{ vaga.funcao.nome }}</span>
+                    {% if vaga.me_ofereci %}<span class="badge badge-primary">Você se ofereceu</span>{% endif %}
+                </div>
+            </div>
+
+            <div class="me-acoes">
+                {% if vaga.me_ofereci %}
+                <form method="post" action="{% url 'desistir_da_vaga' vaga.pk %}">
+                    {% csrf_token %}
+                    {% if equipe_id %}<input type="hidden" name="equipe" value="{{ equipe_id }}">{% endif %}
+                    <button type="submit" class="btn btn-secondary btn-sm">Desistir da oferta</button>
+                </form>
+                {% else %}
+                <form method="post" action="{% url 'oferecer_para_vaga' vaga.pk %}"
+                      onsubmit="return confirm('A liderança da equipe {{ vaga.funcao.equipe.nome|escapejs }} vai receber sua oferta para esta vaga. Continuar?');">
+                    {% csrf_token %}
+                    {% if equipe_id %}<input type="hidden" name="equipe" value="{{ equipe_id }}">{% endif %}
+                    <button type="submit" class="btn btn-success btn-sm"><i class="fa fa-hand-paper mr-1"></i> Quero servir</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p class="vagas-vazio">Nenhuma vaga precisando de gente na sua equipe agora. 🙌</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

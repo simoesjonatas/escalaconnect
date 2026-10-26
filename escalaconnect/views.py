@@ -9,6 +9,7 @@ from disponivel.models import Disponivel
 from equipe.models import Equipe, MembrosEquipe
 from django.db.models import Count
 from escalaconnect.tasks import enviar_email_confirmacao_task
+from escala import services as escala_services
 from escalaconnect.services import pendencias_home
 from escalaconnect.notificacoes import pedir_confirmacao
 from escalaconnect.confirmacao import usuario_do_token
@@ -44,6 +45,8 @@ def base_view(request):
         # Pendências do voluntário (as mesmas que a API do app devolve em /home/).
         **pendencias_home(request.user),
         'equipes_com_pendentes': equipes_com_pendentes,
+        # Vagas da equipe em que ninguém marcou disponibilidade (cartão "Sua equipe precisa de ajuda").
+        'vagas_abertas': sum(not v.me_ofereci for v in escala_services.vagas_visiveis_para(request.user)),
     })
 
 # View para renderizar o calendário

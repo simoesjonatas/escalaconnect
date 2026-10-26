@@ -2,6 +2,7 @@ from django.urls import path
 from .views import *
 from escala.desistencia_views import *
 from escala.solicitacao_troca_views import *
+from escala import vagas_views
 
 urlpatterns = [
     
@@ -9,6 +10,9 @@ urlpatterns = [
     path('minhas-escalas/<int:pk>/', minha_escala_detail, name='minha_escala_detail'),
     path('minhas-escalas/<int:pk>/confirmar/', confirmar_minha_escala, name='confirmar_minha_escala'),
     path('minhas-escalas/agenda.ics', minha_agenda_ics, name='minha_agenda_ics'),
+    path('vagas/', vagas_views.vagas_abertas, name='vagas_abertas'),
+    path('vagas/<int:pk>/oferecer/', vagas_views.oferecer_para_vaga, name='oferecer_para_vaga'),
+    path('vagas/<int:pk>/desistir/', vagas_views.desistir_da_vaga, name='desistir_da_vaga'),
     path('funcoes-eventos/', aplicar_funcoes_eventos, name='aplicar_funcoes_eventos'),
 
     

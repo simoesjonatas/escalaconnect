@@ -55,6 +55,17 @@
         {% endif %}
     </div>
 
+    {% if vagas_abertas %}
+    <div class="alert alert-success home-alert">
+        <i class="fa fa-hand-holding-heart"></i>
+        <span>
+            <strong>Sua equipe precisa de ajuda.</strong>
+            {% if vagas_abertas == 1 %}Tem 1 vaga em aberto{% else %}Tem {{ vagas_abertas }} vagas em aberto{% endif %} em que você pode se oferecer.
+        </span>
+        <a href="{% url 'vagas_abertas' %}" class="btn btn-success btn-sm">Ver vagas</a>
+    </div>
+    {% endif %}
+
     {% if escalas_pendentes %}
     <div class="alert alert-info home-alert">
         <i class="fa fa-clock"></i>

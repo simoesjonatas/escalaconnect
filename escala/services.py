@@ -1,6 +1,7 @@
 """Regras das escalas do voluntário, compartilhadas entre o site e a API do app."""
 from datetime import timedelta
 
+from django.db.models import Exists, OuterRef
 from django.utils import timezone
 
 from equipe.models import MembrosEquipe
@@ -210,6 +211,21 @@ def sem_ninguem_disponivel(vagas):
         if not tem_disponivel[chave]:
             saida.append(vaga)
     return saida
+
+
+def vagas_visiveis_para(usuario):
+    """Vagas que o voluntário vê (app e site): onde ninguém da equipe está disponível,
+    mais as que ele já se ofereceu. Cada vaga traz `me_ofereci`.
+    """
+    vagas = list(
+        vagas_abertas_para(usuario)
+        .select_related('evento', 'funcao__equipe')
+        .annotate(me_ofereci=Exists(
+            Rendimento.objects.filter(escala=OuterRef('pk'), candidato=usuario, aprovada=False)))
+        .order_by('evento__data_inicio', 'funcao__equipe__nome', 'funcao__nome')
+    )
+    sem_disponivel = {v.pk for v in sem_ninguem_disponivel([v for v in vagas if not v.me_ofereci])}
+    return [v for v in vagas if v.me_ofereci or v.pk in sem_disponivel]
 
 
 def ofertas_pendentes():

@@ -142,3 +142,49 @@ class TirarDaEscalaPelaEquipeTests(TestCase):
         self.client.get(self.cancelar)
         self.escala.refresh_from_db()
         self.assertEqual(self.escala.usuario, self.voluntario)
+
+
+class VagasAbertasNoSiteTests(TestCase):
+    """Página "Vagas em aberto" e cartão no Início: mesma regra do app (só vagas sem ninguém disponível)."""
+
+    def setUp(self):
+        from disponivel.models import Disponivel
+        self.user = criar_voluntario('maria', '52998224725')
+        self.recepcao = Equipe.objects.create(nome='Recepção')
+        self.louvor = Equipe.objects.create(nome='Louvor')
+        for equipe in (self.recepcao, self.louvor):
+            MembrosEquipe.objects.create(usuario=self.user, equipe=equipe, aprovado=True)
+        inicio = timezone.now() + timedelta(days=5)
+        self.culto = Evento.objects.create(nome='Culto', data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
+        self.vaga_recepcao = Escala.objects.create(funcao=Funcao.objects.create(nome='Porta', equipe=self.recepcao), evento=self.culto)
+        self.vaga_louvor = Escala.objects.create(funcao=Funcao.objects.create(nome='Vocal', equipe=self.louvor), evento=self.culto)
+        # Na Recepção alguém já está disponível: essa vaga não aparece.
+        outro = criar_voluntario('joao', '11144477735')
+        MembrosEquipe.objects.create(usuario=outro, equipe=self.recepcao, aprovado=True)
+        Disponivel.objects.create(usuario=outro, evento=self.culto, data_inicio=self.culto.data_inicio, data_fim=self.culto.data_fim)
+        self.client.force_login(self.user)
+
+    def test_lista_cartao_e_filtro_so_com_equipes_que_tem_vaga(self):
+        resp = self.client.get(reverse('vagas_abertas'))
+        self.assertEqual([v.pk for v in resp.context['vagas']], [self.vaga_louvor.pk])
+        self.assertEqual(resp.context['equipes'], [(self.louvor.pk, 'Louvor', 1)])
+        self.assertNotContains(resp, 'aria-label="Filtrar por equipe"')  # só uma equipe com vaga: sem filtro
+        self.assertContains(self.client.get('/'), 'Sua equipe precisa de ajuda')
+
+    def test_filtro_por_equipe_com_duas_equipes(self):
+        Escala.objects.create(funcao=Funcao.objects.create(nome='Café', equipe=self.recepcao),
+                              evento=Evento.objects.create(nome='Culto 2', data_inicio=self.culto.data_inicio + timedelta(days=7),
+                                                           data_fim=self.culto.data_fim + timedelta(days=7)))
+        resp = self.client.get(reverse('vagas_abertas'))
+        self.assertContains(resp, 'aria-label="Filtrar por equipe"')
+        resp = self.client.get(reverse('vagas_abertas'), {'equipe': self.louvor.pk})
+        self.assertEqual([v.pk for v in resp.context['vagas']], [self.vaga_louvor.pk])
+
+    def test_oferecer_e_desistir(self):
+        from escala.models import Rendimento
+        resp = self.client.post(reverse('oferecer_para_vaga', args=[self.vaga_louvor.pk]), {'equipe': self.louvor.pk})
+        self.assertRedirects(resp, reverse('vagas_abertas') + f'?equipe={self.louvor.pk}')
+        self.assertTrue(Rendimento.objects.filter(escala=self.vaga_louvor, candidato=self.user).exists())
+        self.assertNotContains(self.client.get('/'), 'Sua equipe precisa de ajuda')  # já se ofereceu
+        self.client.post(reverse('desistir_da_vaga', args=[self.vaga_louvor.pk]))
+        self.assertFalse(Rendimento.objects.exists())
