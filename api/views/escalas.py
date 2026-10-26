@@ -51,6 +51,13 @@ def vagas_abertas(usuario):
     )
 
 
+def vagas_para_mostrar(usuario):
+    """Vagas que o voluntário vê: onde ninguém da equipe está disponível, mais as que ele já se ofereceu."""
+    vagas = list(vagas_abertas(usuario))
+    sem_disponivel = {v.pk for v in services.sem_ninguem_disponivel([v for v in vagas if not v.me_ofereci])}
+    return [v for v in vagas if v.me_ofereci or v.pk in sem_disponivel]
+
+
 class HomeView(APIView):
     """Pendências do voluntário e a próxima escala, para a tela inicial."""
 
@@ -63,7 +70,7 @@ class HomeView(APIView):
             'em_equipe': request.user.is_in_team(),
             'avisos_nao_lidos': nao_lidos(request.user),
             # Vagas da equipe em que o voluntário ainda pode se oferecer.
-            'vagas_abertas': vagas_abertas(request.user).filter(me_ofereci=False).count(),
+            'vagas_abertas': sum(not v.me_ofereci for v in vagas_para_mostrar(request.user)),
             'pendencias_lider': total_pendencias_do_lider(request.user) if pode_liderar(request.user) else 0,
         })
 
@@ -103,10 +110,10 @@ class TrocaView(EscalaDoUsuarioView):
 
 
 class VagaAbertaListView(APIView):
-    """Vagas em aberto das equipes do voluntário, para ele se oferecer."""
+    """Vagas em aberto das equipes do voluntário em que ninguém marcou disponibilidade, para ele se oferecer."""
 
     def get(self, request):
-        return Response(VagaAbertaSerializer(vagas_abertas(request.user), many=True).data)
+        return Response(VagaAbertaSerializer(vagas_para_mostrar(request.user), many=True).data)
 
 
 class OfertaView(APIView):

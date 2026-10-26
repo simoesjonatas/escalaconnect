@@ -321,6 +321,20 @@ class OfertaParaVagaTests(LiderancaTestCase):
         self.assertFalse(self.oferecer('delete').data['me_ofereci'])
         self.assertFalse(Rendimento.objects.exists())
 
+    def test_vaga_com_alguem_disponivel_some_da_lista(self):
+        joao = criar_usuario(username='joao', cpf='11144477735')
+        MembrosEquipe.objects.create(usuario=joao, equipe=self.equipe, aprovado=True)
+        Disponivel.objects.create(usuario=joao, evento=self.outro_culto,
+                                  data_inicio=self.outro_culto.data_inicio, data_fim=self.outro_culto.data_fim)
+        self.autenticar(self.user)
+        self.assertEqual(self.client.get('/api/v1/vagas/').data, [])  # o líder já tem quem escalar
+        self.assertEqual(self.client.get('/api/v1/home/').data['vagas_abertas'], 0)
+
+        # Quem já tinha se oferecido continua vendo a vaga, para acompanhar ou desistir.
+        Rendimento.objects.create(escala=self.vaga, candidato=self.user)
+        self.assertEqual([v['id'] for v in self.client.get('/api/v1/vagas/').data], [self.vaga.pk])
+        self.assertEqual(self.client.get('/api/v1/home/').data['vagas_abertas'], 0)
+
     def test_lider_aprova_e_os_outros_sao_avisados(self):
         self.oferecer()
         joao = criar_usuario(username='joao', cpf='11144477735')

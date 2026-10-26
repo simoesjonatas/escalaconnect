@@ -192,6 +192,26 @@ def vagas_abertas_para(usuario):
     )
 
 
+def sem_ninguem_disponivel(vagas):
+    """Só as vagas em que nenhum membro da equipe marcou disponibilidade para o culto.
+
+    As demais o líder já consegue preencher; mostrar só estas ao voluntário destaca
+    onde realmente falta gente. Calcula uma vez por equipe e evento.
+    """
+    from .utils import usuarios_disponiveis_para_evento
+
+    tem_disponivel = {}
+    saida = []
+    for vaga in vagas:
+        chave = (vaga.funcao.equipe_id, vaga.evento_id)
+        if chave not in tem_disponivel:
+            tem_disponivel[chave] = bool(
+                usuarios_disponiveis_para_evento(vaga.funcao.equipe, vaga.evento, excluir_escala_id=vaga.pk))
+        if not tem_disponivel[chave]:
+            saida.append(vaga)
+    return saida
+
+
 def ofertas_pendentes():
     """Ofertas que ainda valem: não aprovadas, de vaga ainda aberta em evento futuro."""
     return Rendimento.objects.filter(

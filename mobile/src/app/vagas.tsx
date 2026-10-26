@@ -23,9 +23,12 @@ export default function VagasAbertas() {
 
   return (
     <Tela aoAtualizar={() => vagas.refetch()}>
-      <Texto>Estas funções ainda estão sem ninguém. Se você puder servir, ofereça-se e a liderança confirma.</Texto>
+      <Texto>
+        Ninguém da sua equipe marcou disponibilidade para estas funções. Se você puder servir, ofereça-se e a
+        liderança confirma.
+      </Texto>
       <Erro erro={oferta.error} />
-      <Estado consulta={vagas} vazio={vagas.data?.length === 0 && 'Nenhuma vaga em aberto na sua equipe agora.'} />
+      <Estado consulta={vagas} vazio={vagas.data?.length === 0 && 'Nenhuma vaga precisando de gente na sua equipe agora.'} />
       {vagas.data?.map((vaga) => (
         <Cartao key={vaga.id}>
           {vaga.me_ofereci && <Etiqueta texto="Você se ofereceu" cor={cores.neutra} />}
