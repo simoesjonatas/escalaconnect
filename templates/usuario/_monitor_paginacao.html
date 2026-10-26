@@ -1,0 +1,16 @@
+{% load paginacao %}
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="monitor-paginacao" aria-label="Páginas">
+    {% if page_obj.has_previous %}
+    <a href="?{% url_replace page=page_obj.previous_page_number %}">‹ Anterior</a>
+    {% else %}
+    <span class="desabilitado">‹ Anterior</span>
+    {% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?{% url_replace page=page_obj.next_page_number %}">Próxima ›</a>
+    {% else %}
+    <span class="desabilitado">Próxima ›</span>
+    {% endif %}
+</nav>
+{% endif %}

@@ -1,0 +1,4 @@
+<nav class="monitor-nav" aria-label="Monitoramento">
+    <a href="{% url 'monitoramento_uso' %}" class="{% if request.resolver_match.url_name == 'monitoramento_uso' %}ativo{% endif %}">Uso do sistema</a>
+    <a href="{% url 'monitoramento_app' %}" class="{% if request.resolver_match.url_name == 'monitoramento_app' %}ativo{% endif %}">Aplicativo</a>
+</nav>

@@ -12,156 +12,25 @@ Monitoramento de Uso
 {% endblock breadcrumb %}
 
 {% block content %}
+{% include 'usuario/_monitor_estilo.html' %}
 <style>
-    .monitor-page {
-        display: grid;
-        gap: 16px;
-    }
+    .grafico-barras { display: flex; align-items: flex-end; gap: 6px; height: 140px; }
+    .grafico-barras .barra-grupo { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 4px; }
+    .grafico-barras .barra { width: 100%; max-width: 34px; min-height: 2px; border-radius: 4px 4px 0 0; background: var(--connect-green); opacity: 0.85; }
+    .grafico-barras .barra-qtd { font-size: 11px; font-weight: 700; color: var(--connect-text); }
+    .grafico-barras .barra-dia { font-size: 10px; color: var(--connect-muted); white-space: nowrap; }
 
-    .monitor-cards {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-        gap: 12px;
-    }
-
-    .monitor-card {
-        padding: 16px;
-        border: 1px solid var(--connect-border);
-        border-radius: 12px;
-        background: var(--connect-surface);
-    }
-
-    .monitor-card .monitor-rotulo {
-        margin: 0;
-        font-size: 13px;
-        font-weight: 700;
-        color: var(--connect-muted);
-    }
-
-    .monitor-card .monitor-valor {
-        margin: 4px 0 0;
-        font-size: 30px;
-        font-weight: 900;
-        color: var(--connect-text);
-        line-height: 1.1;
-    }
-
-    .monitor-card .monitor-detalhe {
-        margin: 4px 0 0;
-        font-size: 12px;
-        color: var(--connect-muted);
-    }
-
-    .monitor-card.destaque .monitor-valor {
-        color: var(--connect-green);
-    }
-
-    .monitor-painel {
-        padding: 16px;
-        border: 1px solid var(--connect-border);
-        border-radius: 12px;
-        background: var(--connect-surface);
-    }
-
-    .monitor-painel h3 {
-        margin: 0 0 12px;
-        font-size: 16px;
-        color: var(--connect-text);
-    }
-
-    .monitor-painel h3 small {
-        font-weight: 400;
-        color: var(--connect-muted);
-    }
-
-    .monitor-colunas {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 16px;
-    }
-
-    .grafico-barras {
-        display: flex;
-        align-items: flex-end;
-        gap: 6px;
-        height: 140px;
-    }
-
-    .grafico-barras .barra-grupo {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-end;
-        height: 100%;
-        gap: 4px;
-    }
-
-    .grafico-barras .barra {
-        width: 100%;
-        max-width: 34px;
-        min-height: 2px;
-        border-radius: 4px 4px 0 0;
-        background: var(--connect-green);
-        opacity: 0.85;
-    }
-
-    .grafico-barras .barra-qtd {
-        font-size: 11px;
-        font-weight: 700;
-        color: var(--connect-text);
-    }
-
-    .grafico-barras .barra-dia {
-        font-size: 10px;
-        color: var(--connect-muted);
-        white-space: nowrap;
-    }
-
-    .monitor-lista {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-    }
-
-    .monitor-lista li {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 2px;
-        border-bottom: 1px solid var(--connect-border);
-        color: var(--connect-text);
-        font-size: 14px;
-    }
-
-    .monitor-lista li:last-child {
-        border-bottom: none;
-    }
-
-    .monitor-lista .lista-extra {
-        color: var(--connect-muted);
-        font-size: 12px;
-        white-space: nowrap;
-    }
-
-    .monitor-vazio {
-        color: var(--connect-muted);
-        font-size: 14px;
-        margin: 0;
-    }
-
-    .ponto-online {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        margin-right: 6px;
-        border-radius: 50%;
-        background: var(--connect-green);
+    @media (max-width: 640px) {
+        .grafico-barras { gap: 3px; height: 120px; }
+        /* No celular, rótulo de data só em dias alternados para não encavalar. */
+        .grafico-barras .barra-grupo:nth-child(even) .barra-dia { visibility: hidden; }
+        .grafico-barras .barra-qtd { font-size: 10px; }
     }
 </style>
 
 <div class="monitor-page">
+    {% include 'usuario/_monitor_nav.html' %}
+
     <div class="monitor-cards">
         <div class="monitor-card destaque">
             <p class="monitor-rotulo">Online agora</p>
@@ -169,7 +38,7 @@ Monitoramento de Uso
             <p class="monitor-detalhe">atividade nos últimos {{ limite_online_minutos }} min</p>
         </div>
         <div class="monitor-card">
-            <p class="monitor-rotulo">Logados (sessões ativas)</p>
+            <p class="monitor-rotulo">Logados no site</p>
             <p class="monitor-valor">{{ usuarios_com_sessao }}</p>
             <p class="monitor-detalhe">{{ sessoes_ativas }} sessõe{{ sessoes_ativas|pluralize:"s" }} não expiradas</p>
         </div>
@@ -184,9 +53,9 @@ Monitoramento de Uso
             <p class="monitor-detalhe">usuários distintos</p>
         </div>
         <div class="monitor-card">
-            <p class="monitor-rotulo">Já usaram o sistema</p>
+            <p class="monitor-rotulo">Já usaram</p>
             <p class="monitor-valor">{{ ja_usaram }}</p>
-            <p class="monitor-detalhe">de {{ total_usuarios }} cadastrados · {{ nunca_usaram }} nunca entraram</p>
+            <p class="monitor-detalhe">de {{ total_usuarios }} · {{ nunca_usaram }} nunca entraram</p>
         </div>
         <div class="monitor-card">
             <p class="monitor-rotulo">Novos cadastros</p>
@@ -220,24 +89,9 @@ Monitoramento de Uso
                 </li>
                 {% endfor %}
             </ul>
+            {% if online_alem_da_lista %}<p class="monitor-resumo" style="margin: 8px 0 0;">e mais {{ online_alem_da_lista }}</p>{% endif %}
             {% else %}
             <p class="monitor-vazio">Ninguém ativo nos últimos {{ limite_online_minutos }} minutos.</p>
-            {% endif %}
-        </div>
-
-        <div class="monitor-painel">
-            <h3>Últimos logins</h3>
-            {% if ultimos_logins %}
-            <ul class="monitor-lista">
-                {% for registro in ultimos_logins %}
-                <li>
-                    <span>{{ registro.usuario.get_full_name|default:registro.usuario.username }}</span>
-                    <span class="lista-extra">{{ registro.data_hora|date:"d/m H:i" }}</span>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="monitor-vazio">Nenhum login registrado ainda — os registros começam a partir de agora.</p>
             {% endif %}
         </div>
 
@@ -253,9 +107,45 @@ Monitoramento de Uso
                 {% endfor %}
             </ul>
             {% else %}
-            <p class="monitor-vazio">Sem registros de atividade ainda — os registros começam a partir de agora.</p>
+            <p class="monitor-vazio">Sem registros de atividade ainda.</p>
             {% endif %}
         </div>
+    </div>
+
+    <div class="monitor-painel" id="acessos">
+        <h3>Acessos <small>· logins no site e no app</small></h3>
+        <form method="get" action="#acessos" class="monitor-filtros">
+            <input type="search" name="q" value="{{ busca }}" placeholder="Buscar por nome ou usuário" aria-label="Buscar por nome ou usuário">
+            <select name="periodo" aria-label="Período" onchange="this.form.submit()">
+                {% for valor, rotulo in periodos %}
+                <option value="{{ valor }}" {% if periodo == valor %}selected{% endif %}>{{ rotulo }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Filtrar</button>
+            {% if busca or periodo != '7' %}<a class="limpar" href="{% url 'monitoramento_uso' %}#acessos">Limpar</a>{% endif %}
+        </form>
+        <p class="monitor-resumo">
+            {{ page_obj.paginator.count }} login{{ page_obj.paginator.count|pluralize:"s" }}
+            · {{ acessos_pessoas }} pessoa{{ acessos_pessoas|pluralize:"s" }}
+        </p>
+        {% if page_obj.object_list %}
+        <table class="monitor-tabela compacta">
+            <thead>
+                <tr><th>Pessoa</th><th>Data e hora</th></tr>
+            </thead>
+            <tbody>
+                {% for registro in page_obj %}
+                <tr>
+                    <td class="principal">{{ registro.usuario.get_full_name|default:registro.usuario.username }}<br><span class="muted">{{ registro.usuario.username }}</span></td>
+                    <td>{{ registro.data_hora|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% include 'usuario/_monitor_paginacao.html' %}
+        {% else %}
+        <p class="monitor-vazio">Nenhum login encontrado com esses filtros.</p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

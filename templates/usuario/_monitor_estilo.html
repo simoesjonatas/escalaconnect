@@ -1,0 +1,82 @@
+<style>
+    .monitor-page { display: grid; gap: 16px; min-width: 0; }
+    .monitor-nav { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: var(--connect-surface); border: 1px solid var(--connect-border); width: fit-content; max-width: 100%; }
+    .monitor-nav a { padding: 8px 14px; border-radius: 9px; font-size: 14px; font-weight: 700; color: var(--connect-muted); text-decoration: none; white-space: nowrap; }
+    .monitor-nav a.ativo { background: var(--connect-green); color: #0b1a05; }
+    .monitor-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+    .monitor-card, .monitor-painel { padding: 16px; border: 1px solid var(--connect-border); border-radius: 12px; background: var(--connect-surface); min-width: 0; }
+    .monitor-card .monitor-rotulo { margin: 0; font-size: 13px; font-weight: 700; color: var(--connect-muted); }
+    .monitor-card .monitor-valor { margin: 4px 0 0; font-size: 30px; font-weight: 900; color: var(--connect-text); line-height: 1.1; }
+    .monitor-card .monitor-detalhe { margin: 4px 0 0; font-size: 12px; color: var(--connect-muted); }
+    .monitor-card.destaque .monitor-valor { color: var(--connect-green); }
+    .monitor-painel h3 { margin: 0 0 12px; font-size: 16px; color: var(--connect-text); }
+    .monitor-painel h3 small { font-weight: 400; color: var(--connect-muted); }
+    .monitor-colunas { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+    .monitor-vazio { margin: 0; color: var(--connect-muted); font-size: 14px; }
+    .monitor-resumo { margin: 0 0 8px; font-size: 13px; color: var(--connect-muted); }
+
+    /* Filtros */
+    .monitor-filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .monitor-filtros input[type="search"], .monitor-filtros select {
+        min-height: 38px; padding: 6px 10px; border-radius: 9px; border: 1px solid var(--connect-border);
+        background: var(--connect-bg, transparent); color: var(--connect-text); font-size: 14px;
+    }
+    .monitor-filtros input[type="search"] { flex: 1 1 200px; min-width: 0; }
+    .monitor-filtros button { min-height: 38px; padding: 6px 14px; border-radius: 9px; border: 1px solid var(--connect-green); background: var(--connect-green); color: #0b1a05; font-weight: 700; font-size: 14px; }
+    .monitor-filtros .limpar { font-size: 13px; color: var(--connect-muted); }
+
+    /* Tabela que vira lista de cartões no celular */
+    .monitor-tabela { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--connect-text); }
+    .monitor-tabela th, .monitor-tabela td { padding: 8px 6px; border-bottom: 1px solid var(--connect-border); text-align: left; vertical-align: top; }
+    .monitor-tabela th { font-size: 12px; color: var(--connect-muted); text-transform: uppercase; letter-spacing: .03em; }
+    .monitor-tabela tr:last-child td { border-bottom: none; }
+    .monitor-tabela .muted { color: var(--connect-muted); font-size: 12px; }
+    .selo { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .selo-ok { background: rgba(57, 255, 20, .15); color: var(--connect-green); }
+    .selo-off { background: rgba(127, 127, 127, .15); color: var(--connect-muted); }
+
+    /* Lista simples (online, mais ativos) */
+    .monitor-lista { margin: 0; padding: 0; list-style: none; }
+    .monitor-lista li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 2px; border-bottom: 1px solid var(--connect-border); color: var(--connect-text); font-size: 14px; }
+    .monitor-lista li:last-child { border-bottom: none; }
+    .monitor-lista li > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .monitor-lista .lista-extra { color: var(--connect-muted); font-size: 12px; white-space: nowrap; }
+    .ponto-online { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--connect-green); }
+
+    /* Paginação compacta */
+    .monitor-paginacao { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; font-size: 14px; color: var(--connect-muted); }
+    .monitor-paginacao a, .monitor-paginacao span.desabilitado { padding: 6px 12px; border-radius: 9px; border: 1px solid var(--connect-border); color: var(--connect-text); text-decoration: none; white-space: nowrap; }
+    .monitor-paginacao span.desabilitado { opacity: .4; }
+
+    @media (max-width: 640px) {
+        .monitor-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .monitor-card { padding: 12px; }
+        .monitor-card .monitor-valor { font-size: 24px; }
+        .monitor-painel { padding: 12px; }
+        .monitor-nav { width: 100%; }
+        .monitor-nav a { flex: 1; text-align: center; padding: 8px 6px; }
+        .monitor-filtros input[type="search"] { flex-basis: 100%; }
+        .monitor-filtros select, .monitor-filtros button { flex: 1 1 calc(50% - 4px); min-width: 0; }
+        .so-desktop { display: none !important; }
+        .monitor-tabela thead { display: none; }
+        .monitor-tabela, .monitor-tabela tbody, .monitor-tabela tr, .monitor-tabela td { display: block; width: 100%; }
+        .monitor-tabela tr { padding: 10px 0; border-bottom: 1px solid var(--connect-border); }
+        .monitor-tabela tr:last-child { border-bottom: none; }
+        .monitor-tabela td { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; border: none; text-align: right; }
+        .monitor-tabela td::before { content: attr(data-rotulo); color: var(--connect-muted); font-size: 12px; text-align: left; flex-shrink: 0; }
+        .monitor-tabela td.principal { display: block; text-align: left; font-weight: 700; }
+        .monitor-tabela td.principal::before { content: none; }
+        /* Grade: nome e detalhes em linhas inteiras; dois dados lado a lado embaixo. */
+        .monitor-tabela.grade tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; align-items: center; }
+        .monitor-tabela.grade td { width: auto; padding: 0; }
+        .monitor-tabela.grade td.inteira { grid-column: 1 / -1; text-align: left; }
+        .monitor-tabela.grade td.sem-rotulo::before { content: none; }
+        .monitor-tabela.grade td.sem-rotulo { justify-content: flex-start; }
+        .monitor-tabela.grade td.direita { justify-content: flex-end; color: var(--connect-muted); font-size: 13px; }
+        /* Tabela de duas colunas: uma linha por registro (nome à esquerda, data à direita). */
+        .monitor-tabela.compacta tr { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .monitor-tabela.compacta td { width: auto; }
+        .monitor-tabela.compacta td.principal { min-width: 0; font-weight: 600; }
+        .monitor-tabela.compacta td:not(.principal) { white-space: nowrap; color: var(--connect-muted); font-size: 13px; }
+    }
+</style>
