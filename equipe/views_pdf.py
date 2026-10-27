@@ -78,7 +78,7 @@ def _pdf_com_reportlab(equipe, escalas, mes_nome, ano):
             usuario = "Vaga em aberto"
         status = "Confirmada" if escala.confirmada else "A confirmar"
         data.append([
-            escala.evento.data_inicio.strftime("%d/%m/%Y %H:%M"),
+            timezone.localtime(escala.evento.data_inicio).strftime("%d/%m/%Y %H:%M"),
             Paragraph(escala.evento.nome, small_style),
             Paragraph(escala.funcao.nome, small_style),
             Paragraph(usuario, small_style),

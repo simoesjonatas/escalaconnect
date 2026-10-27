@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from django.utils.formats import date_format
 
 
@@ -53,7 +54,7 @@ class Evento(models.Model):
         Retorna a data de início do evento incluindo o nome do dia da semana.
         """
         # Formatando a data para incluir o dia da semana em português
-        return date_format(self.data_inicio, format="l, d F Y", use_l10n=True)
+        return date_format(timezone.localtime(self.data_inicio), format="l, d F Y", use_l10n=True)
     def has_issues(self):
         """
         Verifica se há solicitações de troca não aprovadas ou desistências não aprovadas

@@ -285,6 +285,19 @@ class LinkDeConfirmacaoTests(TestCase):
         self.client.get(self.url)
         self.assertTrue(self.confirmada(self.escala))
 
+    def test_email_mostra_o_horario_de_brasilia(self):
+        from datetime import datetime
+        from django.utils import timezone
+        from escalaconnect.tasks import enviar_email_confirmacao_task
+        dia = timezone.localdate() + timedelta(days=10)
+        inicio = timezone.make_aware(datetime(dia.year, dia.month, dia.day, 9, 45))  # 12:45 em UTC
+        self.escala.evento.data_inicio, self.escala.evento.data_fim = inicio, inicio + timedelta(hours=2)
+        self.escala.evento.save()
+        enviar_email_confirmacao_task(self.escala.pk)
+        html = mail.outbox[0].alternatives[0][0]
+        self.assertIn('às 09:45', html)
+        self.assertNotIn('12:45', html)
+
     def test_email_leva_o_link_assinado(self):
         from escalaconnect.tasks import enviar_email_confirmacao_task
         enviar_email_confirmacao_task(self.escala.pk)

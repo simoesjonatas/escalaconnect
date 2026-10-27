@@ -33,9 +33,9 @@ class EventoForm(forms.ModelForm):
         # Formatar as datas corretamente para preencher o input datetime-local
         if self.instance and self.instance.pk:
             if self.instance.data_inicio:
-                self.fields['data_inicio'].initial = self.instance.data_inicio.strftime('%Y-%m-%dT%H:%M')
+                self.fields['data_inicio'].initial = timezone.localtime(self.instance.data_inicio).strftime('%Y-%m-%dT%H:%M')
             if self.instance.data_fim:
-                self.fields['data_fim'].initial = self.instance.data_fim.strftime('%Y-%m-%dT%H:%M')
+                self.fields['data_fim'].initial = timezone.localtime(self.instance.data_fim).strftime('%Y-%m-%dT%H:%M')
 
         # Definir o campo observação como opcional
         self.fields['observacao'].required = False

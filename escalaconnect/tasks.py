@@ -42,9 +42,11 @@ def enviar_email_confirmacao_task(self, escala_id: int):
         notif.save(update_fields=["last_status", "last_error", "updated_at"])
         return "throttled"
 
-    # 2) contexto do e-mail (formatos pt-BR)
-    evento_data = formats.date_format(evento.data_inicio, "l, d \\d\\e F \\d\\e Y", use_l10n=True)
-    evento_hora = formats.date_format(evento.data_inicio, "H:i", use_l10n=True)
+    # 2) contexto do e-mail (formatos pt-BR), no horário de Brasília: o banco guarda em UTC
+    # e date_format não converte (sem isto, culto das 09:45 saía como 12:45).
+    inicio = timezone.localtime(evento.data_inicio)
+    evento_data = formats.date_format(inicio, "l, d \\d\\e F \\d\\e Y", use_l10n=True)
+    evento_hora = formats.date_format(inicio, "H:i", use_l10n=True)
 
     confirm_url = _build_confirm_url(escala)
 
