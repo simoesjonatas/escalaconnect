@@ -336,6 +336,54 @@ class OfertaParaVagaTests(LiderancaTestCase):
         self.assertEqual(self.client.get('/api/v1/vagas/').data, [])
         self.assertEqual(self.client.get('/api/v1/home/').data['vagas_abertas'], 0)
 
+    def ofertas_de(self, *nomes, vaga=None):
+        """Outras pessoas da equipe se oferecem (direto no banco, como pelo site)."""
+        cpfs = {'joao': '11144477735', 'pedro': '12345678909'}
+        with self.captureOnCommitCallbacks(execute=True):
+            for nome in nomes:
+                pessoa = criar_usuario(username=nome, cpf=cpfs[nome])
+                MembrosEquipe.objects.create(usuario=pessoa, equipe=self.equipe, aprovado=True)
+                Rendimento.objects.create(escala=vaga or self.vaga, candidato=pessoa)
+
+    def aviso_de_ofertas(self):
+        from api.models import Aviso
+        return Aviso.objects.get(usuario=self.lider, purpose='oferta_lider')
+
+    def test_varias_ofertas_no_mesmo_culto_tocam_o_celular_do_lider_uma_vez(self):
+        self.oferecer()
+        self.ofertas_de('joao', 'pedro')
+        self.assertEqual([t for t, _ in self.enviadas_para(TOKEN_LIDER)], ['Voluntário para a vaga'])
+        aviso = self.aviso_de_ofertas()  # um aviso só na caixa, atualizado e de novo não lido
+        self.assertEqual((aviso.titulo, aviso.lido_em), ('3 pessoas querem servir', None))
+        self.assertTrue(aviso.corpo.startswith('Culto de Quarta · '))
+
+    def test_aviso_de_oferta_abre_o_culto_com_quem_se_ofereceu(self):
+        self.oferecer()
+        self.ofertas_de('joao')
+        # Push e caixa de avisos levam o culto, para o app abrir a tela dele.
+        (push,) = [m for m in self.mensagens() if m['to'] == TOKEN_LIDER]
+        self.assertEqual(push['data'], {'tipo': 'oferta_lider', 'escala_id': self.vaga.pk, 'evento_id': self.outro_culto.pk})
+        (aviso,) = [a for a in self.como(self.lider).get('/api/v1/avisos/').data['avisos'] if a['tipo'] == 'oferta_lider']
+        self.assertEqual(aviso['evento_id'], self.outro_culto.pk)
+
+        escalas = self.client.get(f'/api/v1/lider/cultos/{self.outro_culto.pk}/').data['escalas']
+        (vaga,) = [e for e in escalas if e['id'] == self.vaga.pk]
+        self.assertEqual([p['nome'] for p in vaga['ofertas']], ['Maria Silva', 'joao'])
+        self.assertEqual(vaga['disponiveis'], 0)
+
+    def test_outro_culto_ou_depois_de_12h_avisa_de_novo(self):
+        from api.models import Aviso
+        self.oferecer()
+        outro = Escala.objects.create(funcao=self.funcao, evento=Evento.objects.create(
+            nome='Culto de Sexta', data_inicio=self.outro_culto.data_inicio + timedelta(days=2),
+            data_fim=self.outro_culto.data_fim + timedelta(days=2)))
+        self.ofertas_de('joao', vaga=outro)
+        self.assertEqual(len(self.enviadas_para(TOKEN_LIDER)), 2)
+
+        Aviso.objects.filter(usuario=self.lider).update(criado_em=timezone.now() - timedelta(hours=13))
+        self.ofertas_de('pedro')
+        self.assertEqual(len(self.enviadas_para(TOKEN_LIDER)), 3)
+
     def test_lider_aprova_e_os_outros_sao_avisados(self):
         self.oferecer()
         joao = criar_usuario(username='joao', cpf='11144477735')

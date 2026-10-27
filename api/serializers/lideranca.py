@@ -96,10 +96,20 @@ class EscalaDoCultoSerializer(serializers.ModelSerializer):
     pessoa = PessoaSerializer(source='usuario', allow_null=True)
     tem_impedimento = serializers.BooleanField(read_only=True)
     troca_pendente = serializers.BooleanField(read_only=True)
+    # Só nas vagas (sem pessoa): quem se ofereceu e quantos membros marcaram disponibilidade.
+    ofertas = serializers.SerializerMethodField()
+    disponiveis = serializers.SerializerMethodField()
 
     class Meta:
         model = Escala
-        fields = ['id', 'funcao', 'equipe', 'pessoa', 'confirmada', 'tem_impedimento', 'troca_pendente']
+        fields = ['id', 'funcao', 'equipe', 'pessoa', 'confirmada', 'tem_impedimento', 'troca_pendente',
+                  'ofertas', 'disponiveis']
+
+    def get_ofertas(self, escala):
+        return PessoaSerializer(getattr(escala, 'ofertas', []), many=True).data
+
+    def get_disponiveis(self, escala):
+        return getattr(escala, 'disponiveis', None)
 
 
 class PedirDisponibilidadeSerializer(serializers.Serializer):

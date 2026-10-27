@@ -10,13 +10,17 @@ LIMITE = 100
 
 class AvisoSerializer(serializers.ModelSerializer):
     lido = serializers.SerializerMethodField()
+    evento_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Aviso
-        fields = ['id', 'titulo', 'corpo', 'tipo', 'escala_id', 'criado_em', 'lido']
+        fields = ['id', 'titulo', 'corpo', 'tipo', 'escala_id', 'evento_id', 'criado_em', 'lido']
 
     def get_lido(self, aviso):
         return aviso.lido_em is not None
+
+    def get_evento_id(self, aviso):
+        return aviso.escala.evento_id if aviso.escala else None
 
 
 def nao_lidos(usuario):
@@ -27,7 +31,7 @@ class AvisoListView(APIView):
     """Caixa de avisos do app: as notificações recebidas, das mais novas para as mais antigas."""
 
     def get(self, request):
-        avisos = Aviso.objects.filter(usuario=request.user)[:LIMITE]
+        avisos = Aviso.objects.filter(usuario=request.user).select_related('escala')[:LIMITE]
         return Response({'nao_lidos': nao_lidos(request.user), 'avisos': AvisoSerializer(avisos, many=True).data})
 
 

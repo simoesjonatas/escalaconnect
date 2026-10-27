@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -67,8 +69,38 @@ def avisar_lider_candidatura(sender, instance, created, **kwargs):
         _avisar_lideres(instance.equipe, instance.usuario_id, mensagens_push.lider_candidatura(instance))
 
 
+# Várias pessoas se oferecendo para o mesmo culto não devem tocar o celular do líder a cada uma.
+JANELA_DE_OFERTAS = timedelta(hours=12)
+
+
 @receiver(post_save, sender=Rendimento)
 def avisar_lider_oferta(sender, instance, created, **kwargs):
-    if created and not instance.aprovada:
-        _avisar_lideres(instance.escala.equipe, instance.candidato_id,
-                        mensagens_push.lider_oferta(instance), escala_id=instance.escala_id)
+    """Primeira oferta de um culto: push na hora. As seguintes, por 12h, só atualizam o mesmo
+    aviso da caixa ("3 pessoas querem servir") e o deixam como não lido, sem novo push."""
+    if not created or instance.aprovada:
+        return
+    from api.models import Aviso
+    from escala.services import ofertas_pendentes
+
+    evento = instance.escala.evento
+    lideres = (
+        Lideranca.objects.filter(equipe=instance.escala.equipe).exclude(usuario_id=instance.candidato_id)
+        .values_list('usuario_id', flat=True).distinct()
+    )
+    for lider_id in lideres:
+        recente = Aviso.objects.filter(
+            usuario_id=lider_id, purpose=Notification.PURPOSE_LEADER_OFFER, escala__evento=evento,
+            criado_em__gte=timezone.now() - JANELA_DE_OFERTAS,
+        ).first()
+        if recente is None:
+            notificar_push(
+                lider_id, *mensagens_push.lider_oferta(instance),
+                # 'oferta_lider' abre a tela do culto no app (quem se ofereceu e quem está disponível).
+                tipo='oferta_lider', purpose=Notification.PURPOSE_LEADER_OFFER, escala_id=instance.escala_id,
+            )
+            continue
+        quantas = ofertas_pendentes().filter(
+            escala__evento=evento, escala__funcao__equipe__lideranca__usuario_id=lider_id).distinct().count()
+        recente.titulo, recente.corpo = mensagens_push.lider_ofertas(evento, quantas)
+        recente.lido_em = None
+        recente.save(update_fields=['titulo', 'corpo', 'lido_em'])

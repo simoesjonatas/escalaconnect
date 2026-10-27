@@ -136,6 +136,9 @@ export type EscalaDoCulto = {
   confirmada: boolean;
   tem_impedimento: boolean;
   troca_pendente: boolean;
+  /** Só nas vagas: quem se ofereceu e quantos marcaram disponibilidade (ausentes em servidor antigo). */
+  ofertas?: Pessoa[];
+  disponiveis?: number | null;
 };
 
 export type DetalheDoCulto = { evento: EventoComEquipe; escalas: EscalaDoCulto[] };
@@ -156,6 +159,8 @@ export type Aviso = {
   corpo: string;
   tipo: string;
   escala_id: number | null;
+  /** Culto da escala (avisos de oferta abrem a tela do culto). Ausente em servidor antigo. */
+  evento_id?: number | null;
   criado_em: string;
   lido: boolean;
 };

@@ -49,7 +49,7 @@ function ItemDeAviso({ aviso, novo }: { aviso: Aviso; novo?: boolean }) {
   const quando = formatDistanceToNow(new Date(aviso.criado_em), { locale: ptBR, addSuffix: true });
   return (
     <Pressable
-      onPress={() => abrir({ tipo: aviso.tipo, escala_id: aviso.escala_id })}
+      onPress={() => abrir({ tipo: aviso.tipo, escala_id: aviso.escala_id, evento_id: aviso.evento_id })}
       accessibilityRole="button"
       style={({ pressed }) => [
         {

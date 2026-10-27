@@ -54,7 +54,7 @@ class LembretesDeEscalaTests(PushTestCase):
         (msg,) = self.rodar(local(24, 20, 0))
         self.assertEqual(msg['title'], 'Amanhã é dia de servir 💚')
         self.assertEqual(msg['body'], 'Culto da manhã · 09:45 · Porta')
-        self.assertEqual(msg['data'], {'tipo': 'escalado', 'escala_id': escala.pk})  # o app abre a escala
+        self.assertEqual(msg['data'], {'tipo': 'escalado', 'escala_id': escala.pk, 'evento_id': escala.evento_id})  # o app abre a escala
         self.assertEqual(self.rodar(local(24, 20, 10)), [])  # não repete
         self.assertEqual(self.rodar(local(25, 7, 50)), [])   # confirmado não tem última chamada
         self.assertEqual(mail.outbox, [])  # só pelo app

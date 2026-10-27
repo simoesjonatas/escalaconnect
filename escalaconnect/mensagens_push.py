@@ -112,6 +112,12 @@ def lider_candidatura(membro):
     return 'Nova candidatura', f'{_nome(membro.usuario)} quer entrar na {nome_da_equipe(membro.equipe.nome)}'
 
 
+def lider_ofertas(evento, quantas):
+    """Várias ofertas para o mesmo culto, num aviso só."""
+    pessoas = '1 pessoa quer servir' if quantas == 1 else f'{quantas} pessoas querem servir'
+    return pessoas, f'{evento.nome} · {_quando(evento.data_inicio)}'
+
+
 def lider_oferta(oferta):
     escala = oferta.escala
     return (

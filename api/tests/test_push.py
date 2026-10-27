@@ -116,7 +116,7 @@ class EnvioTests(PushTestCase):
         self.assertEqual(self.enviar(), 'sent')
         (msg,) = self.mensagens()
         self.assertEqual(msg['to'], TOKEN)
-        self.assertEqual(msg['data'], {'tipo': 'escalado', 'escala_id': self.escala.pk})
+        self.assertEqual(msg['data'], {'tipo': 'escalado', 'escala_id': self.escala.pk, 'evento_id': self.escala.evento_id})
         notif = Notification.objects.get(channel=Notification.CHANNEL_PUSH)
         self.assertEqual((notif.usuario, notif.escala, notif.last_status, notif.success_count),
                          (self.user, self.escala, 'sent', 1))

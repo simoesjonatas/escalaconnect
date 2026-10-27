@@ -39,6 +39,8 @@ def enviar_push_task(self, usuario_id, titulo, corpo, tipo, purpose, escala_id=N
 
     # Número no ícone do app: avisos ainda não lidos na caixa do app.
     nao_lidos = Aviso.objects.filter(usuario_id=usuario_id, lido_em__isnull=True).count()
+    # O culto da escala, para avisos que abrem a tela do culto (ofertas para o líder).
+    evento_id = Escala.objects.filter(pk=escala_id).values_list('evento_id', flat=True).first() if escala_id else None
     mensagens = [
         {
             'to': device.expo_token,
@@ -46,7 +48,7 @@ def enviar_push_task(self, usuario_id, titulo, corpo, tipo, purpose, escala_id=N
             'body': corpo,
             'sound': 'default',
             'badge': nao_lidos,
-            'data': {'tipo': tipo, 'escala_id': escala_id},
+            'data': {'tipo': tipo, 'escala_id': escala_id, 'evento_id': evento_id},
         }
         for device in devices
     ]

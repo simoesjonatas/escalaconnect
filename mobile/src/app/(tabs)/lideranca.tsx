@@ -20,6 +20,7 @@ type Pendencia = {
   pedido: Omit<AcaoDoLider, 'acao'>;
   tipo: { texto: string; cor: string };
   pessoa: Pessoa;
+  equipe: { id: number; nome: string };
   escala?: EscalaDaEquipe;
   detalhe?: string;
   aprovar: string;
@@ -36,6 +37,7 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
       pedido: { tipo: 'impedimentos' as const, id: i.id },
       tipo: { texto: 'Impedimento', cor: cores.perigo },
       pessoa: i.pessoa,
+      equipe: { id: i.escala.equipe_id, nome: i.escala.equipe },
       escala: i.escala,
       detalhe: `Motivo: ${i.motivo}`,
       aprovar: saida(i.pessoa.nome),
@@ -46,6 +48,7 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
       pedido: { tipo: 'trocas' as const, id: t.id },
       tipo: { texto: 'Troca', cor: cores.neutra },
       pessoa: t.pessoa,
+      equipe: { id: t.escala.equipe_id, nome: t.escala.equipe },
       escala: t.escala,
       aprovar: saida(t.pessoa.nome),
       recusar: continua(t.pessoa.nome),
@@ -55,6 +58,7 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
       pedido: { tipo: 'ofertas' as const, id: o.id },
       tipo: { texto: 'Quer servir', cor: cores.confirmada },
       pessoa: o.pessoa,
+      equipe: { id: o.escala.equipe_id, nome: o.escala.equipe },
       escala: o.escala,
       aprovar: `${o.pessoa.nome} fica com a vaga e recebe o aviso de escala.`,
       recusar: `${o.pessoa.nome} recebe um agradecimento e a vaga continua aberta.`,
@@ -65,6 +69,7 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
     pedido: { tipo: 'candidaturas', id: c.id },
     tipo: { texto: 'Candidatura', cor: cores.pendente },
     pessoa: c.pessoa,
+    equipe: { id: c.equipe_id, nome: c.equipe },
     detalhe: `Quer entrar na equipe ${c.equipe}`,
     aprovar: `${c.pessoa.nome} passa a fazer parte da equipe ${c.equipe}.`,
     recusar: `O pedido de ${c.pessoa.nome} para a equipe ${c.equipe} será descartado.`,
@@ -77,6 +82,31 @@ function filtrosDeEquipe<T>(equipes: [number, string][], daEquipe: (item: T, id:
   return [...new Map(equipes)]
     .sort(([, a], [, b]) => a.localeCompare(b))
     .map(([id, nome]) => ({ valor: String(id), rotulo: nome, aplica: (item: T) => daEquipe(item, id) }));
+}
+
+const TIPOS_DE_PENDENCIA: Filtro<Pendencia>[] = (
+  [
+    ['impedimentos', 'Impedimentos'],
+    ['trocas', 'Trocas'],
+    ['ofertas', 'Quer servir'],
+    ['candidaturas', 'Candidaturas'],
+  ] as const
+).map(([valor, rotulo]) => ({ valor, rotulo, aplica: (p: Pendencia) => p.pedido.tipo === valor }));
+
+/** Pendências por tipo (impedimento, troca, oferta, candidatura) e, dentro dele, por equipe. */
+function filtrarPendencias(pendencias: Pendencia[], equipe: string, tipo: string) {
+  const porTipo = escolher(TIPOS_DE_PENDENCIA, pendencias, tipo);
+  const doTipo = aplicar(pendencias, porTipo.ativo);
+  const porEquipe = escolher(
+    filtrosDeEquipe<Pendencia>(
+      doTipo.map((p) => [p.equipe.id, p.equipe.nome]),
+      (p, id) => p.equipe.id === id,
+    ),
+    doTipo,
+    equipe,
+    true,
+  );
+  return { porTipo, porEquipe, lista: aplicar(doTipo, porEquipe.ativo) };
 }
 
 /** Filtros dos cultos em sequência (equipe → período → situação): cada linha só oferece o que existe na anterior. */
@@ -181,6 +211,7 @@ export default function Lideranca() {
   const [quando, setQuando] = useState(TODOS);
   const [situacaoDoCulto, setSituacaoDoCulto] = useState(TODOS);
   const [situacaoDaVaga, setSituacaoDaVaga] = useState(TODOS);
+  const [tipoDaPendencia, setTipoDaPendencia] = useState(TODOS);
   // Push e caixa de avisos abrem a aba já em Pendências (ver lib/push.ts).
   const { aba: abaDoLink, t } = useLocalSearchParams<{ aba?: Aba; t?: string }>();
   useEffect(() => {
@@ -191,6 +222,7 @@ export default function Lideranca() {
   // Abre em Pendências quando há algo para decidir; senão, em Cultos.
   const aba: Aba = escolhida ?? (pendencias.data && lista.length === 0 ? 'cultos' : 'pendencias');
   const consulta = { pendencias, cultos, vagas }[aba];
+  const daPendencia = filtrarPendencias(lista, equipe, tipoDaPendencia);
   const doCulto = filtrarCultos(cultos.data ?? [], equipe, quando, situacaoDoCulto);
   const daVaga = filtrarVagas(vagas.data ?? [], equipe, quando, situacaoDaVaga);
   function limparFiltros() {
@@ -198,6 +230,7 @@ export default function Lideranca() {
     setQuando(TODOS);
     setSituacaoDoCulto(TODOS);
     setSituacaoDaVaga(TODOS);
+    setTipoDaPendencia(TODOS);
   }
 
   function decidir(item: Pendencia, qual: AcaoDoLider['acao']) {
@@ -247,7 +280,18 @@ export default function Lideranca() {
               <Suave>Nenhum impedimento, troca, oferta ou candidatura esperando você.</Suave>
             </Cartao>
           )}
-          {lista.map((item) => {
+          <FiltrosDoLider
+            titulo="Filtrar pendências"
+            nome="pendências"
+            linhas={[
+              { titulo: 'Tipo', todos: 'Todas', escolha: daPendencia.porTipo, aoEscolher: setTipoDaPendencia },
+              { titulo: 'Equipe', todos: 'Todas', escolha: daPendencia.porEquipe, aoEscolher: setEquipe },
+            ]}
+            total={lista.length}
+            mostrando={daPendencia.lista.length}
+            aoLimpar={limparFiltros}
+          />
+          {daPendencia.lista.map((item) => {
             const emAndamento =
               acao.isPending && acao.variables?.tipo === item.pedido.tipo && acao.variables.id === item.pedido.id;
             return (

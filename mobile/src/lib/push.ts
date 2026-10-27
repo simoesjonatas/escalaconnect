@@ -56,13 +56,13 @@ export async function removerAparelho(): Promise<void> {
   tokenRegistrado = null;
 }
 
-type DadosDoPush = { tipo?: string; escala_id?: number | null };
+type DadosDoPush = { tipo?: string; escala_id?: number | null; evento_id?: number | null };
 
 /**
  * Tela que cada tipo de push abre ao toque (os tipos vêm do backend, ver escalaconnect/push.py).
  * Também usada ao tocar num aviso da caixa de avisos.
  */
-export function abrir({ tipo, escala_id }: DadosDoPush) {
+export function abrir({ tipo, escala_id, evento_id }: DadosDoPush) {
   if ((tipo === 'escalado' || tipo === 'confirmar_escala' || tipo === 'pedido_recusado') && escala_id) {
     router.push({ pathname: '/escala/[id]', params: { id: escala_id } });
   } else if (tipo === 'saiu_da_escala') router.navigate('/escalas');
@@ -71,6 +71,11 @@ export function abrir({ tipo, escala_id }: DadosDoPush) {
   // `t` muda a cada toque, para a aba Liderança voltar para Pendências mesmo se já estiver aberta.
   else if (tipo === 'pendencia_lider') router.navigate({ pathname: '/lideranca', params: { aba: 'pendencias', t: Date.now() } });
   else if (tipo === 'oferta_recusada') router.push('/vagas');
+  // Ofertas para o líder: o culto, com quem se ofereceu e quem está disponível em cada vaga.
+  else if (tipo === 'oferta_lider') {
+    if (evento_id) router.push({ pathname: '/lider/culto/[id]', params: { id: evento_id } });
+    else router.navigate({ pathname: '/lideranca', params: { aba: 'pendencias', t: Date.now() } });
+  }
 }
 
 /** Usado dentro da área logada: abre a tela do push tocado e atualiza os dados quando chega um push. */

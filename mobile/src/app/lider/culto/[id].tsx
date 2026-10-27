@@ -8,12 +8,19 @@ import { EscalaDoCulto } from '../../../lib/types';
 import { Botao, Cartao, Erro, Estado, Etiqueta, Suave, Subtitulo, Tela, Texto } from '../../../lib/ui';
 
 function situacao(escala: EscalaDoCulto, cores: Cores): { texto: string; cor: string } {
+  const ofertas = escala.ofertas?.length ?? 0;
+  if (!escala.pessoa && ofertas) {
+    return { texto: ofertas === 1 ? '1 quer servir' : `${ofertas} querem servir`, cor: cores.confirmada };
+  }
   if (!escala.pessoa) return { texto: 'Vaga em aberto', cor: cores.pendente };
   if (escala.tem_impedimento) return { texto: 'Impedimento', cor: cores.perigo };
   if (escala.troca_pendente) return { texto: 'Troca pedida', cor: cores.neutra };
   if (escala.confirmada) return { texto: 'Confirmada', cor: cores.confirmada };
   return { texto: 'A confirmar', cor: cores.pendente };
 }
+
+/** O que pede ação vem primeiro: vagas com alguém querendo servir, depois as demais vagas. */
+const prioridade = (e: EscalaDoCulto) => (e.pessoa ? 2 : e.ofertas?.length ? 0 : 1);
 
 /** Um culto visto pelo líder: quem confirmou, quem falta e as vagas das equipes que ele lidera. */
 export default function CultoDoLider() {
@@ -74,6 +81,7 @@ export default function CultoDoLider() {
               {equipes.length > 1 && <Subtitulo style={{ marginTop: 8 }}>{equipe}</Subtitulo>}
               {escalas
                 .filter((e) => e.equipe === equipe)
+                .sort((a, b) => prioridade(a) - prioridade(b))
                 .map((escala) => {
                   const cartao = (
                     <Cartao>
@@ -82,7 +90,16 @@ export default function CultoDoLider() {
                       {escala.pessoa ? (
                         <Texto>{escala.pessoa.nome}</Texto>
                       ) : (
-                        <Suave>Tocar para escalar alguém</Suave>
+                        <>
+                          {!!escala.ofertas?.length && (
+                            <Texto>Se ofereceram: {escala.ofertas.map((p) => p.nome).join(', ')}</Texto>
+                          )}
+                          <Suave>
+                            {escala.disponiveis == null
+                              ? 'Tocar para escalar alguém'
+                              : `${escala.disponiveis === 0 ? 'Ninguém marcou disponibilidade' : `${escala.disponiveis} ${escala.disponiveis === 1 ? 'disponível' : 'disponíveis'}`} · Tocar para escalar`}
+                          </Suave>
+                        </>
                       )}
                     </Cartao>
                   );

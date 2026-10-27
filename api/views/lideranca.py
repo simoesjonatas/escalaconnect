@@ -257,7 +257,15 @@ class CultoDetailView(CultoView):
     """Escalas das equipes lideradas num evento."""
 
     def get(self, request, pk):
-        escalas = self.get_escalas(pk)
+        escalas = list(self.get_escalas(pk))
+        vagas = [e for e in escalas if not e.usuario_id]
+        ofertas = {}
+        for oferta in (Rendimento.objects.filter(escala__in=vagas, aprovada=False)
+                       .select_related('candidato').order_by('data_candidatura')):
+            ofertas.setdefault(oferta.escala_id, []).append(oferta.candidato)
+        for vaga in vagas:
+            vaga.ofertas = ofertas.get(vaga.pk, [])
+            vaga.disponiveis = len(usuarios_disponiveis_para_evento(vaga.equipe, vaga.evento, excluir_escala_id=vaga.pk))
         return Response({
             'evento': EventoSerializer(escalas[0].evento).data,
             'escalas': EscalaDoCultoSerializer(escalas, many=True).data,
