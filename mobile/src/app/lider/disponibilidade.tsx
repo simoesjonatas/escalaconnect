@@ -1,27 +1,18 @@
 import { addMonths } from 'date-fns';
 import { useState } from 'react';
-import { Alert, Text, View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { mesPorExtenso } from '../../lib/datas';
 import { LinhaDeFiltro } from '../../lib/filtros';
 import { PedidoDeDisponibilidade, useDisponibilidadeDaEquipe, usePedirDisponibilidade } from '../../lib/hooks';
 import { useTema } from '../../lib/tema';
-import { Botao, Cartao, Erro, Estado, Rotulo, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
+import { Avatar, Botao, Cartao, Erro, Estado, Rotulo, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
 
 /** Este mês e os dois seguintes, no formato da API (ano e mês 1–12). */
 const MESES = [0, 1, 2].map((n) => {
   const data = addMonths(new Date(), n);
   return { valor: `${data.getFullYear()}-${data.getMonth() + 1}`, rotulo: mesPorExtenso(data) };
 });
-
-/** "Maria Silva" -> "MS" */
-const iniciais = (nome: string) =>
-  nome
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((parte) => parte[0].toUpperCase())
-    .join('');
 
 /** Quantos já marcaram, em barra. */
 function Progresso({ feito, total }: { feito: number; total: number }) {
@@ -35,22 +26,9 @@ function Progresso({ feito, total }: { feito: number; total: number }) {
 }
 
 function Pessoa({ nome }: { nome: string }) {
-  const { cores } = useTema();
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <View
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 16,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: cores.fundo,
-          borderWidth: 1,
-          borderColor: cores.borda,
-        }}>
-        <Text style={{ color: cores.textoSuave, fontSize: 12, fontWeight: '700' }}>{iniciais(nome)}</Text>
-      </View>
+      <Avatar nome={nome} />
       <Texto style={{ flex: 1 }}>{nome}</Texto>
     </View>
   );

@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ReactNode, useState } from 'react';
+import { ComponentProps, ReactNode, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -280,6 +280,93 @@ export function Linha({
   );
 }
 
+/** "Maria da Silva" -> "MS" */
+export const iniciais = (nome: string) =>
+  nome
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0].toUpperCase())
+    .join('');
+
+/** Círculo com as iniciais da pessoa; `destaque` usa o verde da marca (Perfil). */
+export function Avatar({ nome, tamanho = 32, destaque }: { nome: string; tamanho?: number; destaque?: boolean }) {
+  const { cores } = useTema();
+  return (
+    <View
+      style={{
+        width: tamanho,
+        height: tamanho,
+        borderRadius: tamanho / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: destaque ? cores.primaria : cores.fundo,
+        borderWidth: destaque ? 0 : 1,
+        borderColor: cores.borda,
+      }}>
+      <Text
+        style={{
+          color: destaque ? cores.sobrePrimaria : cores.textoSuave,
+          fontSize: Math.round(tamanho * 0.37),
+          fontWeight: '700',
+        }}>
+        {iniciais(nome)}
+      </Text>
+    </View>
+  );
+}
+
+export type Icone = ComponentProps<typeof Ionicons>['name'];
+
+/** Grupo de opções numa caixa só, com título opcional (como nos ajustes do celular). */
+export function Grupo({ titulo, children }: { titulo?: string; children: ReactNode }) {
+  return (
+    <View style={{ gap: 6 }}>
+      {titulo && <Rotulo style={{ marginLeft: 4 }}>{titulo}</Rotulo>}
+      <Cartao style={{ padding: 0, gap: 0, overflow: 'hidden' }}>
+        {/* A margem negativa esconde a linha divisória do último item. */}
+        <View style={{ marginBottom: -1 }}>{children}</View>
+      </Cartao>
+    </View>
+  );
+}
+
+/** Uma linha de um Grupo: ícone, título e seta (ou rodinha enquanto `carregando`). */
+export function ItemDeGrupo({
+  icone,
+  titulo,
+  aoTocar,
+  perigo,
+  carregando,
+}: {
+  icone: Icone;
+  titulo: string;
+  aoTocar: () => void;
+  perigo?: boolean;
+  carregando?: boolean;
+}) {
+  const { cores } = useTema();
+  return (
+    <Pressable
+      onPress={aoTocar}
+      disabled={carregando}
+      accessibilityRole="button"
+      style={({ pressed }) => [
+        estilos.itemDeGrupo,
+        { borderBottomColor: cores.borda },
+        pressed && { backgroundColor: cores.fundo },
+      ]}>
+      <Ionicons name={icone} size={20} color={perigo ? cores.perigo : cores.primaria} />
+      <Text style={{ flex: 1, fontSize: 16, color: perigo ? cores.perigo : cores.texto }}>{titulo}</Text>
+      {carregando ? (
+        <ActivityIndicator size="small" color={cores.textoSuave} />
+      ) : (
+        !perigo && <Ionicons name="chevron-forward" size={18} color={cores.textoSuave} />
+      )}
+    </Pressable>
+  );
+}
+
 export function Etiqueta({ texto, cor }: { texto: string; cor: string }) {
   return (
     <View style={[estilos.etiqueta, { backgroundColor: cor }]}>
@@ -353,6 +440,14 @@ const estilos = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: espaco.m,
     paddingVertical: 10,
+  },
+  itemDeGrupo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: espaco.g,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
   },
   etiqueta: { alignSelf: 'flex-start', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   etiquetaTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
