@@ -22,6 +22,41 @@
         </a>
     </div>
 
+    {% if ofertas %}
+    <section class="ofertas-section" aria-labelledby="ofertas-titulo">
+        <span class="availability-eyebrow" id="ofertas-titulo">Vagas em que você se ofereceu</span>
+        <p class="ofertas-dica">A liderança ainda vai decidir. Você recebe um aviso quando ela confirmar.</p>
+        <div class="minhas-escalas-lista">
+            {% for vaga in ofertas %}
+            <div class="minha-escala-card">
+                <div class="me-data">
+                    <span class="me-dia">{{ vaga.evento.data_inicio|date:"d" }}</span>
+                    <span class="me-mes">{{ vaga.evento.data_inicio|date:"b" }}</span>
+                    <span class="me-hora">{{ vaga.evento.data_inicio|date:"H:i" }}</span>
+                </div>
+                <div class="me-info">
+                    <strong>{{ vaga.evento.nome }}</strong>
+                    <small>{{ vaga.evento.data_inicio|date:"l, d/m/Y" }} · {{ vaga.evento.data_inicio|date:"H:i" }} – {{ vaga.evento.data_fim|date:"H:i" }}</small>
+                    <div class="me-tags">
+                        <span class="badge badge-secondary">{{ vaga.funcao.equipe.nome }}</span>
+                        <span class="badge badge-info">{{ vaga.funcao.nome }}</span>
+                        <span class="badge badge-primary">Aguardando a liderança</span>
+                    </div>
+                </div>
+                <div class="me-acoes">
+                    <form method="post" action="{% url 'desistir_da_vaga' vaga.pk %}"
+                          onsubmit="return confirm('Desistir da oferta para esta vaga?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="origem" value="disponibilidade">
+                        <button type="submit" class="btn btn-secondary btn-sm">Desistir da oferta</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
     <form method="GET" class="availability-toolbar">
         <input type="text" name="q" class="form-control" placeholder="Buscar por data..." value="{{ query }}">
         <button type="submit" class="btn btn-primary">Buscar</button>
@@ -91,6 +126,8 @@
     .availability-header h3 { margin: 4px 0 6px; }
     .availability-header p { color: var(--connect-muted, #9aa4ad); margin: 0; }
     .availability-primary-action { margin: 0; }
+    .ofertas-section { margin-bottom: 22px; }
+    .ofertas-dica { color: var(--connect-muted, #9aa4ad); margin: 4px 0 12px; }
     .availability-toolbar {
         display: grid;
         grid-template-columns: minmax(180px, 1fr) auto auto;

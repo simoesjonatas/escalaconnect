@@ -206,6 +206,11 @@ def vagas_visiveis_para(usuario):
     )
 
 
+def ofertas_do_voluntario(usuario):
+    """Vagas em que o voluntário se ofereceu e a liderança ainda não decidiu (aba Disponibilidade)."""
+    return [v for v in vagas_visiveis_para(usuario) if v.me_ofereci]
+
+
 def ofertas_pendentes():
     """Ofertas que ainda valem: não aprovadas, de vaga ainda aberta em evento futuro."""
     return Rendimento.objects.filter(

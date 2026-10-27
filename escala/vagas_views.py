@@ -78,7 +78,9 @@ def vagas_abertas(request):
 
 
 def _voltar(request):
-    """Volta para a lista na mesma página e com os mesmos filtros."""
+    """Volta para a lista na mesma página e com os mesmos filtros (ou para Minhas Disponibilidades)."""
+    if request.POST.get('origem') == 'disponibilidade':
+        return redirect('lista_disponivel')
     url = redirect('vagas_abertas')
     anteriores = QueryDict(request.POST.get('voltar', ''))
     params = QueryDict(mutable=True)

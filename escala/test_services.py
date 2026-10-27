@@ -198,6 +198,19 @@ class VagasAbertasNoSiteTests(TestCase):
         self.client.post(reverse('desistir_da_vaga', args=[self.vaga_louvor.pk]))
         self.assertFalse(Rendimento.objects.exists())
 
+    def test_oferta_aparece_em_minhas_disponibilidades(self):
+        from escala.models import Rendimento
+        lista = reverse('lista_disponivel')
+        self.assertNotContains(self.client.get(lista), 'Vagas em que você se ofereceu')
+        Rendimento.objects.create(escala=self.vaga_louvor, candidato=self.user)
+        resp = self.client.get(lista)
+        self.assertEqual([v.pk for v in resp.context['ofertas']], [self.vaga_louvor.pk])
+        self.assertContains(resp, 'Aguardando a liderança')
+        # Desistir por ali volta para a mesma página.
+        resp = self.client.post(reverse('desistir_da_vaga', args=[self.vaga_louvor.pk]), {'origem': 'disponibilidade'})
+        self.assertRedirects(resp, lista)
+        self.assertFalse(Rendimento.objects.exists())
+
     def test_filtro_de_data_so_com_periodos_que_separam_a_lista(self):
         inicio = timezone.now() + timedelta(days=40)  # nunca nesta semana nem na próxima
         distante = Evento.objects.create(nome='Culto distante', data_inicio=inicio, data_fim=inicio + timedelta(hours=2))

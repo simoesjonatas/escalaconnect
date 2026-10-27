@@ -212,6 +212,15 @@ class HistoricoTests(EscalasApiTestCase):
         self.assertEqual([e['id'] for e in resp.data['ultimas']], [passada.pk, resp.data['ultimas'][1]['id']])
         self.assertEqual(resp.data['ultimas'][0]['evento']['nome'], 'Culto')
 
+    def test_ultimas_escalas_limitadas_a_10(self):
+        from api.views.escalas import ULTIMAS_DO_HISTORICO
+        for dias in range(1, 13):
+            self.criar_escala(self.user, dias=-dias, nome=f'Culto {dias}')
+        resp = self.client.get('/api/v1/me/historico/')
+        self.assertEqual(resp.data['total'], 12)
+        self.assertEqual(len(resp.data['ultimas']), ULTIMAS_DO_HISTORICO)
+        self.assertEqual(resp.data['ultimas'][0]['evento']['nome'], 'Culto 1')  # a mais recente primeiro
+
     def test_sem_historico(self):
         resp = self.client.get('/api/v1/me/historico/')
         self.assertEqual((resp.data['total'], resp.data['mes'], resp.data['desde'], resp.data['ultimas']), (0, 0, None, []))

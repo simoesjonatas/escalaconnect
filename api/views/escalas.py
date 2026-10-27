@@ -117,6 +117,9 @@ class ColegasView(EscalaDoUsuarioView):
         ])
 
 
+ULTIMAS_DO_HISTORICO = 10
+
+
 class HistoricoView(APIView):
     """Quantas vezes o voluntário já serviu (cultos que já começaram), por função, e as últimas escalas."""
 
@@ -141,7 +144,8 @@ class HistoricoView(APIView):
                 for f in por_funcao
             ],
             'ultimas': EscalaSerializer(
-                escalas_do_usuario(request.user, servidas).order_by('-evento__data_inicio')[:20], many=True).data,
+                escalas_do_usuario(request.user, servidas).order_by('-evento__data_inicio')[:ULTIMAS_DO_HISTORICO],
+                many=True).data,
         })
 
 

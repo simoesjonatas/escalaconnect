@@ -6,6 +6,9 @@ import { useHistorico } from '../lib/hooks';
 import { useTema } from '../lib/tema';
 import { Cartao, Estado, Linha, Suave, Subtitulo, Tela } from '../lib/ui';
 
+/** Quantas escalas mostrar em "Últimas escalas" (o servidor também manda só 10). */
+const ULTIMAS = 10;
+
 function Numero({ valor, rotulo }: { valor: number; rotulo: string }) {
   const { cores } = useTema();
   return (
@@ -47,7 +50,7 @@ export default function MeuHistorico() {
           ))}
 
           <Subtitulo style={{ marginTop: 8 }}>Últimas escalas</Subtitulo>
-          {dados.ultimas.map((escala) => (
+          {dados.ultimas.slice(0, ULTIMAS).map((escala) => (
             <Linha
               key={escala.id}
               titulo={escala.evento.nome}

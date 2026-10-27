@@ -9,6 +9,7 @@ from evento.models import Evento
 from django.utils import timezone
 from escalaconnect.regras import RegraDeNegocio
 from .services import disponibilidades
+from escala.services import ofertas_do_voluntario
 
 from django.core.paginator import Paginator
 
@@ -33,6 +34,7 @@ def lista_disponivel(request):
     page_obj = paginator.get_page(page_number)
 
     return render(request, 'disponivel/lista.html', {
+        'ofertas': ofertas_do_voluntario(request.user),
         'page_obj': page_obj,
         'query': query,
         'order_by': order_by.strip('-'),
