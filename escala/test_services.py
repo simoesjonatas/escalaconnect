@@ -170,27 +170,58 @@ class VagasAbertasNoSiteTests(TestCase):
 
     def test_vaga_com_alguem_disponivel_continua_na_lista(self):
         resp = self.client.get(reverse('vagas_abertas'))
-        self.assertEqual({v.pk for v in resp.context['vagas']}, {self.vaga_recepcao.pk, self.vaga_louvor.pk})
+        self.assertEqual({v.pk for v in resp.context['page_obj']}, {self.vaga_recepcao.pk, self.vaga_louvor.pk})
         self.assertContains(self.client.get('/'), 'Sua equipe precisa de ajuda')
 
     def test_filtro_so_com_equipes_que_tem_vaga(self):
         resp = self.client.get(reverse('vagas_abertas'))
         self.assertContains(resp, 'aria-label="Filtrar por equipe"')
         resp = self.client.get(reverse('vagas_abertas'), {'equipe': self.louvor.pk})
-        self.assertEqual([v.pk for v in resp.context['vagas']], [self.vaga_louvor.pk])
+        self.assertEqual([v.pk for v in resp.context['page_obj']], [self.vaga_louvor.pk])
 
         self.preencher_recepcao()  # escalado: a vaga some, e com uma equipe só não há filtro
         resp = self.client.get(reverse('vagas_abertas'))
-        self.assertEqual([v.pk for v in resp.context['vagas']], [self.vaga_louvor.pk])
+        self.assertEqual([v.pk for v in resp.context['page_obj']], [self.vaga_louvor.pk])
         self.assertEqual(resp.context['equipes'], [(self.louvor.pk, 'Louvor', 1)])
         self.assertNotContains(resp, 'aria-label="Filtrar por equipe"')
 
     def test_oferecer_e_desistir(self):
         from escala.models import Rendimento
         self.preencher_recepcao()
-        resp = self.client.post(reverse('oferecer_para_vaga', args=[self.vaga_louvor.pk]), {'equipe': self.louvor.pk})
-        self.assertRedirects(resp, reverse('vagas_abertas') + f'?equipe={self.louvor.pk}')
+        # Volta para a mesma página e filtros (e só com os parâmetros da lista).
+        resp = self.client.post(reverse('oferecer_para_vaga', args=[self.vaga_louvor.pk]),
+                                {'voltar': f'equipe={self.louvor.pk}&page=2&outro=x'})
+        self.assertRedirects(resp, reverse('vagas_abertas') + f'?equipe={self.louvor.pk}&page=2',
+                             fetch_redirect_response=False)
         self.assertTrue(Rendimento.objects.filter(escala=self.vaga_louvor, candidato=self.user).exists())
         self.assertNotContains(self.client.get('/'), 'Sua equipe precisa de ajuda')  # já se ofereceu
         self.client.post(reverse('desistir_da_vaga', args=[self.vaga_louvor.pk]))
         self.assertFalse(Rendimento.objects.exists())
+
+    def test_filtro_de_data_so_com_periodos_que_separam_a_lista(self):
+        inicio = timezone.now() + timedelta(days=40)  # nunca nesta semana nem na próxima
+        distante = Evento.objects.create(nome='Culto distante', data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
+        vaga_distante = Escala.objects.create(funcao=self.vaga_louvor.funcao, evento=distante)
+        resp = self.client.get(reverse('vagas_abertas'))
+        semanas = [valor for valor, _ in resp.context['periodos'] if valor in ('semana', 'proxima-semana')]
+        self.assertEqual(len(semanas), 1)  # o culto de daqui a 5 dias cai numa das duas
+        resp = self.client.get(reverse('vagas_abertas'), {'quando': semanas[0]})
+        self.assertEqual({v.pk for v in resp.context['page_obj']}, {self.vaga_recepcao.pk, self.vaga_louvor.pk})
+        self.assertContains(resp, 'Mostrando 2 de 3 vagas')
+        self.assertContains(resp, 'Limpar filtros')
+        # Período inexistente é ignorado.
+        resp = self.client.get(reverse('vagas_abertas'), {'quando': 'ontem'})
+        self.assertIn(vaga_distante.pk, {v.pk for v in resp.context['page_obj']})
+
+    def test_paginacao(self):
+        from escala import vagas_views
+        funcao = self.vaga_louvor.funcao
+        for dias in range(6, 6 + vagas_views.POR_PAGINA):
+            inicio = timezone.now() + timedelta(days=dias)
+            Escala.objects.create(funcao=funcao, evento=Evento.objects.create(
+                nome=f'Culto {dias}', data_inicio=inicio, data_fim=inicio + timedelta(hours=2)))
+        resp = self.client.get(reverse('vagas_abertas'))
+        self.assertEqual(len(resp.context['page_obj']), vagas_views.POR_PAGINA)
+        self.assertContains(resp, 'Página 1 de 2')
+        resp = self.client.get(reverse('vagas_abertas'), {'page': 2})
+        self.assertEqual(len(resp.context['page_obj']), 2)

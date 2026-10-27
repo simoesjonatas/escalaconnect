@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load paginacao %}
 
 {% block page_title %}
 Vagas em aberto
@@ -14,34 +15,77 @@ Vagas em aberto
 {% block content %}
 <style>
     .vagas-intro { color: var(--connect-muted); margin-bottom: 12px; }
-    .vagas-filtro { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .vagas-filtros {
+        background: var(--connect-surface, #14181f); border: 1px solid var(--connect-border); border-radius: 12px;
+        padding: 14px 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 12px;
+    }
+    .vagas-filtros-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .vagas-filtros-topo strong { color: var(--connect-text); font-size: 16px; }
+    .vagas-filtros-topo i { color: var(--connect-text); margin-right: 6px; }
+    .vagas-filtros-topo a { color: var(--connect-green); font-weight: 600; font-size: 14px; }
+    .vagas-rotulo { color: var(--connect-muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .vagas-filtro { display: flex; flex-wrap: wrap; gap: 8px; }
     .vagas-filtro a {
         display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px;
         border: 1px solid var(--connect-border); color: var(--connect-text); font-size: 14px; font-weight: 600; text-decoration: none;
     }
     .vagas-filtro a.ativo { background: var(--connect-green); border-color: var(--connect-green); color: #0b1a05; }
     .vagas-filtro .contagem { font-size: 12px; opacity: .75; }
+    .vagas-resumo { color: var(--connect-muted); font-size: 14px; margin-bottom: 10px; }
     .vagas-vazio { color: var(--connect-muted); text-align: center; padding: 24px 0; }
+    .vagas-paginacao { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; font-size: 14px; color: var(--connect-muted); }
+    .vagas-paginacao a, .vagas-paginacao span.desabilitado {
+        padding: 6px 12px; border-radius: 9px; border: 1px solid var(--connect-border); color: var(--connect-text); text-decoration: none; white-space: nowrap;
+    }
+    .vagas-paginacao span.desabilitado { opacity: .4; }
 </style>
 
 <div class="container">
-    {% if vagas %}
+    {% if total %}
     <p class="vagas-intro">
         Estas funções ainda estão sem ninguém escalado. Se você puder servir, ofereça-se e a liderança confirma.
     </p>
     {% endif %}
 
-    {% if equipes|length > 1 %}
-    <nav class="vagas-filtro" aria-label="Filtrar por equipe">
-        <a href="{% url 'vagas_abertas' %}" class="{% if not equipe_id %}ativo{% endif %}">Todas</a>
-        {% for id, nome, total in equipes %}
-        <a href="?equipe={{ id }}" class="{% if equipe_id == id %}ativo{% endif %}">{{ nome }} <span class="contagem">{{ total }}</span></a>
-        {% endfor %}
-    </nav>
+    {% if equipes|length > 1 or periodos %}
+    <section class="vagas-filtros" aria-label="Filtrar vagas">
+        <div class="vagas-filtros-topo">
+            <strong><i class="fa fa-filter"></i>Filtrar vagas</strong>
+            {% if filtrando %}<a href="{% url 'vagas_abertas' %}">Limpar filtros</a>{% endif %}
+        </div>
+        {% if equipes|length > 1 %}
+        <div>
+            <div class="vagas-rotulo">Equipe</div>
+            <nav class="vagas-filtro" aria-label="Filtrar por equipe">
+                <a href="?{% url_replace equipe='' page=1 %}" class="{% if not equipe_id %}ativo{% endif %}">Todas</a>
+                {% for id, nome, total_da_equipe in equipes %}
+                <a href="?{% url_replace equipe=id page=1 %}" class="{% if equipe_id == id %}ativo{% endif %}">{{ nome }} <span class="contagem">{{ total_da_equipe }}</span></a>
+                {% endfor %}
+            </nav>
+        </div>
+        {% endif %}
+        {% if periodos %}
+        <div>
+            <div class="vagas-rotulo">Quando</div>
+            <nav class="vagas-filtro" aria-label="Filtrar por data">
+                <a href="?{% url_replace quando='' page=1 %}" class="{% if not quando %}ativo{% endif %}">Qualquer data</a>
+                {% for valor, rotulo in periodos %}
+                <a href="?{% url_replace quando=valor page=1 %}" class="{% if quando == valor %}ativo{% endif %}">{{ rotulo }}</a>
+                {% endfor %}
+            </nav>
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if total %}
+    <p class="vagas-resumo">
+        {% if filtrando %}Mostrando {{ mostrando }} de {{ total }} vagas{% else %}{{ total }} vaga{{ total|pluralize:"s" }}{% endif %}
+    </p>
     {% endif %}
 
     <div class="minhas-escalas-lista">
-        {% for vaga in vagas %}
+        {% for vaga in page_obj %}
         <div class="minha-escala-card">
             <div class="me-data">
                 <span class="me-dia">{{ vaga.evento.data_inicio|date:"d" }}</span>
@@ -63,22 +107,38 @@ Vagas em aberto
                 {% if vaga.me_ofereci %}
                 <form method="post" action="{% url 'desistir_da_vaga' vaga.pk %}">
                     {% csrf_token %}
-                    {% if equipe_id %}<input type="hidden" name="equipe" value="{{ equipe_id }}">{% endif %}
+                    <input type="hidden" name="voltar" value="{{ request.GET.urlencode }}">
                     <button type="submit" class="btn btn-secondary btn-sm">Desistir da oferta</button>
                 </form>
                 {% else %}
                 <form method="post" action="{% url 'oferecer_para_vaga' vaga.pk %}"
                       onsubmit="return confirm('A liderança da equipe {{ vaga.funcao.equipe.nome|escapejs }} vai receber sua oferta para esta vaga. Continuar?');">
                     {% csrf_token %}
-                    {% if equipe_id %}<input type="hidden" name="equipe" value="{{ equipe_id }}">{% endif %}
+                    <input type="hidden" name="voltar" value="{{ request.GET.urlencode }}">
                     <button type="submit" class="btn btn-success btn-sm"><i class="fa fa-hand-paper mr-1"></i> Quero servir</button>
                 </form>
                 {% endif %}
             </div>
         </div>
         {% empty %}
-        <p class="vagas-vazio">Nenhuma vaga em aberto na sua equipe agora. 🙌</p>
+        <p class="vagas-vazio">Nenhuma vaga em aberto na sua equipe agora.</p>
         {% endfor %}
     </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="vagas-paginacao" aria-label="Páginas">
+        {% if page_obj.has_previous %}
+        <a href="?{% url_replace page=page_obj.previous_page_number %}">‹ Anterior</a>
+        {% else %}
+        <span class="desabilitado">‹ Anterior</span>
+        {% endif %}
+        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+        <a href="?{% url_replace page=page_obj.next_page_number %}">Próxima ›</a>
+        {% else %}
+        <span class="desabilitado">Próxima ›</span>
+        {% endif %}
+    </nav>
+    {% endif %}
 </div>
 {% endblock %}

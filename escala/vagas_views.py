@@ -1,10 +1,19 @@
 """Vagas em aberto para o voluntário no site (mesma regra da tela do app)."""
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.http import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 
 from . import services
 from .models import Escala
+
+POR_PAGINA = 15
+# Parâmetros da lista que os botões de oferecer/desistir preservam ao voltar.
+PARAMETROS_DA_LISTA = ('equipe', 'quando', 'page')
 
 
 def equipes_das_vagas(vagas):
@@ -16,28 +25,68 @@ def equipes_das_vagas(vagas):
     return sorted((tuple(e) for e in equipes.values()), key=lambda e: e[1].lower())
 
 
+def periodos():
+    """Esta semana (segunda a domingo), a próxima, este mês e o próximo: (valor, rótulo, início, fim exclusivo)."""
+    hoje = timezone.localdate()
+    segunda = hoje - timedelta(days=hoje.weekday())
+    inicio_mes = hoje.replace(day=1)
+    proximo_mes = (inicio_mes + timedelta(days=32)).replace(day=1)
+    depois = (proximo_mes + timedelta(days=32)).replace(day=1)
+    return [
+        ('semana', 'Esta semana', segunda, segunda + timedelta(days=7)),
+        ('proxima-semana', 'Próxima semana', segunda + timedelta(days=7), segunda + timedelta(days=14)),
+        ('mes', 'Este mês', inicio_mes, proximo_mes),
+        ('proximo-mes', 'Próximo mês', proximo_mes, depois),
+    ]
+
+
+def _no_periodo(vaga, inicio, fim):
+    return inicio <= timezone.localdate(vaga.evento.data_inicio) < fim
+
+
 @login_required
 def vagas_abertas(request):
-    vagas = services.vagas_visiveis_para(request.user)
-    equipes = equipes_das_vagas(vagas)
+    todas = services.vagas_visiveis_para(request.user)
+    equipes = equipes_das_vagas(todas)
     equipe_id = request.GET.get('equipe')
-    if equipe_id and equipe_id.isdigit() and any(e[0] == int(equipe_id) for e in equipes):
-        vagas = [v for v in vagas if v.funcao.equipe_id == int(equipe_id)]
+    if len(equipes) > 1 and equipe_id and equipe_id.isdigit() and any(e[0] == int(equipe_id) for e in equipes):
         equipe_id = int(equipe_id)
+        vagas = [v for v in todas if v.funcao.equipe_id == equipe_id]
     else:
-        equipe_id = None
+        equipe_id, vagas = None, todas
+
+    # Como no app: só entra o período que separa parte da lista (nem nenhuma vaga, nem todas).
+    opcoes_de_periodo = []
+    for valor, rotulo, inicio, fim in periodos():
+        quantas = sum(_no_periodo(v, inicio, fim) for v in vagas)
+        if 0 < quantas < len(vagas):
+            opcoes_de_periodo.append((valor, rotulo, inicio, fim))
+    quando = next((p for p in opcoes_de_periodo if p[0] == request.GET.get('quando')), None)
+    if quando:
+        vagas = [v for v in vagas if _no_periodo(v, quando[2], quando[3])]
+
     return render(request, 'escala/vagas_abertas.html', {
-        'vagas': vagas,
+        'page_obj': Paginator(vagas, POR_PAGINA).get_page(request.GET.get('page')),
+        'total': len(todas),
+        'mostrando': len(vagas),
+        'filtrando': bool(equipe_id or quando),
         'equipes': equipes,
         'equipe_id': equipe_id,
+        'periodos': [(valor, rotulo) for valor, rotulo, _, _ in opcoes_de_periodo],
+        'quando': quando[0] if quando else None,
     })
 
 
 def _voltar(request):
-    destino = request.POST.get('equipe')
+    """Volta para a lista na mesma página e com os mesmos filtros."""
     url = redirect('vagas_abertas')
-    if destino and destino.isdigit():
-        url['Location'] += f'?equipe={destino}'
+    anteriores = QueryDict(request.POST.get('voltar', ''))
+    params = QueryDict(mutable=True)
+    for chave in PARAMETROS_DA_LISTA:
+        if anteriores.get(chave):
+            params[chave] = anteriores[chave]
+    if params:
+        url['Location'] += f'?{params.urlencode()}'
     return url
 
 
