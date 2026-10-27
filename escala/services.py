@@ -193,39 +193,17 @@ def vagas_abertas_para(usuario):
     )
 
 
-def sem_ninguem_disponivel(vagas):
-    """Só as vagas em que nenhum membro da equipe marcou disponibilidade para o culto.
-
-    As demais o líder já consegue preencher; mostrar só estas ao voluntário destaca
-    onde realmente falta gente. Calcula uma vez por equipe e evento.
-    """
-    from .utils import usuarios_disponiveis_para_evento
-
-    tem_disponivel = {}
-    saida = []
-    for vaga in vagas:
-        chave = (vaga.funcao.equipe_id, vaga.evento_id)
-        if chave not in tem_disponivel:
-            tem_disponivel[chave] = bool(
-                usuarios_disponiveis_para_evento(vaga.funcao.equipe, vaga.evento, excluir_escala_id=vaga.pk))
-        if not tem_disponivel[chave]:
-            saida.append(vaga)
-    return saida
-
-
 def vagas_visiveis_para(usuario):
-    """Vagas que o voluntário vê (app e site): onde ninguém da equipe está disponível,
-    mais as que ele já se ofereceu. Cada vaga traz `me_ofereci`.
+    """Vagas que o voluntário vê (app e site), mesmo que alguém da equipe já esteja disponível:
+    só some quando alguém é escalado. Cada vaga traz `me_ofereci`.
     """
-    vagas = list(
+    return list(
         vagas_abertas_para(usuario)
         .select_related('evento', 'funcao__equipe')
         .annotate(me_ofereci=Exists(
             Rendimento.objects.filter(escala=OuterRef('pk'), candidato=usuario, aprovada=False)))
         .order_by('evento__data_inicio', 'funcao__equipe__nome', 'funcao__nome')
     )
-    sem_disponivel = {v.pk for v in sem_ninguem_disponivel([v for v in vagas if not v.me_ofereci])}
-    return [v for v in vagas if v.me_ofereci or v.pk in sem_disponivel]
 
 
 def ofertas_pendentes():
