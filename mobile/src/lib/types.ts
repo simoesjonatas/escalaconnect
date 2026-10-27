@@ -113,7 +113,8 @@ export type PendenciasDoLider = {
   candidaturas: Candidatura[];
 };
 
-export type Vaga = EscalaDaEquipe & { disponiveis: number };
+/** `ofertas`: quantos se ofereceram e esperam o líder (ausente em servidor antigo). */
+export type Vaga = EscalaDaEquipe & { disponiveis: number; ofertas?: number };
 
 export type Candidato = Pessoa & { disponivel: boolean; se_ofereceu: boolean; servicos_no_mes: number };
 

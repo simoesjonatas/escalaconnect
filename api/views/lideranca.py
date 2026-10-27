@@ -123,12 +123,14 @@ def _vagas(equipes):
         .filter(usuario__isnull=True, funcao__equipe__in=equipes,
                 evento__data_inicio__gt=agora, evento__data_inicio__lte=agora + timedelta(days=DIAS_DE_VAGAS))
         .select_related('evento', 'funcao__equipe')
+        # Quantas pessoas se ofereceram para a vaga e ainda esperam a decisão do líder.
+        .annotate(ofertas=Count('rendimento', filter=Q(rendimento__aprovada=False)))
         .order_by('evento__data_inicio', 'funcao__equipe__nome', 'funcao__nome')
     )
 
 
 class VagaListView(LiderView):
-    """Vagas em aberto nos próximos 60 dias, com quantos membros estão disponíveis em cada uma."""
+    """Vagas em aberto nos próximos 60 dias, com quantos se ofereceram e quantos estão disponíveis."""
 
     def get(self, request):
         vagas = list(_vagas(self.equipes()))

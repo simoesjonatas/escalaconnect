@@ -79,8 +79,17 @@ export default function EscalarNaVaga() {
               <Cartao>
                 {candidato.se_ofereceu && <Etiqueta texto="Se ofereceu" cor={cores.confirmada} />}
                 <Subtitulo>{candidato.nome}</Subtitulo>
-                <Texto style={{ color: candidato.disponivel ? cores.confirmada : cores.textoSuave, fontWeight: '600' }}>
-                  {candidato.disponivel ? 'Disponível' : 'Sem disponibilidade marcada'}
+                {/* Quem se ofereceu para a vaga já disse que pode, mesmo sem ter marcado disponibilidade. */}
+                <Texto
+                  style={{
+                    color: candidato.disponivel || candidato.se_ofereceu ? cores.confirmada : cores.textoSuave,
+                    fontWeight: '600',
+                  }}>
+                  {candidato.disponivel
+                    ? 'Disponível'
+                    : candidato.se_ofereceu
+                      ? 'Quer servir nesta vaga'
+                      : 'Sem disponibilidade marcada'}
                 </Texto>
                 <Suave>
                   {candidato.servicos_no_mes === 0

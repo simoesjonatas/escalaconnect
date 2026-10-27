@@ -357,6 +357,15 @@ class OfertaParaVagaTests(LiderancaTestCase):
         self.assertEqual((aviso.titulo, aviso.lido_em), ('3 pessoas querem servir', None))
         self.assertTrue(aviso.corpo.startswith('Culto de Quarta · '))
 
+    def test_lista_de_vagas_do_lider_conta_quem_se_ofereceu(self):
+        def ofertas_na_lista():
+            (vaga,) = [v for v in self.como(self.lider).get('/api/v1/lider/vagas/').data if v['id'] == self.vaga.pk]
+            return vaga['ofertas'], vaga['disponiveis']
+        self.assertEqual(ofertas_na_lista(), (0, 0))
+        self.oferecer()
+        self.ofertas_de('joao')
+        self.assertEqual(ofertas_na_lista(), (2, 0))  # ninguém marcou disponibilidade, mas 2 querem servir
+
     def test_aviso_de_oferta_abre_o_culto_com_quem_se_ofereceu(self):
         self.oferecer()
         self.ofertas_de('joao')

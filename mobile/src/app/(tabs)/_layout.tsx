@@ -8,6 +8,7 @@ import { useAuth } from '../../lib/auth';
 import { useHome } from '../../lib/hooks';
 import { sincronizarIcone } from '../../lib/push';
 import { useTema } from '../../lib/tema';
+import { contador } from '../../lib/ui';
 
 const icone =
   (nome: ComponentProps<typeof Ionicons>['name']) =>
@@ -38,7 +39,7 @@ function Sino({ naoLidos }: { naoLidos: number }) {
             alignItems: 'center',
             justifyContent: 'center',
           }}>
-          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{naoLidos > 99 ? '99+' : naoLidos}</Text>
+          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>{contador(naoLidos)}</Text>
         </View>
       )}
     </Pressable>
@@ -82,7 +83,7 @@ export default function TabsLayout() {
         options={{
           title: 'Escalas',
           tabBarIcon: icone('clipboard-outline'),
-          tabBarBadge: pendentes > 0 ? pendentes : undefined,
+          tabBarBadge: pendentes > 0 ? contador(pendentes) : undefined,
           tabBarBadgeStyle: selo,
         }}
       />
@@ -94,7 +95,7 @@ export default function TabsLayout() {
           title: 'Liderança',
           href: lider ? undefined : null,
           tabBarIcon: icone('people-outline'),
-          tabBarBadge: pendenciasLider > 0 ? pendenciasLider : undefined,
+          tabBarBadge: pendenciasLider > 0 ? contador(pendenciasLider) : undefined,
           tabBarBadgeStyle: selo,
         }}
       />

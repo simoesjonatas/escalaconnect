@@ -23,13 +23,21 @@ type Pendencia = {
   equipe: { id: number; nome: string };
   escala?: EscalaDaEquipe;
   detalhe?: string;
+  /** Atalho para decidir com mais contexto: a vaga (ofertas) ou o culto (impedimento e troca). */
+  link?: { texto: string; abrir: () => void };
   aprovar: string;
   recusar: string;
 };
 
+const abrirCulto = (id: number) => router.push({ pathname: '/lider/culto/[id]', params: { id } });
+
 /** Junta impedimentos, trocas e ofertas (por data do culto) e, por último, as candidaturas. */
 function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
   const saida = (nome: string) => `${nome} sai da escala e a vaga fica aberta.`;
+  const verCulto = (escala: EscalaDaEquipe) => ({ texto: 'Ver o culto', abrir: () => abrirCulto(escala.evento.id) });
+  // Quantas ofertas cada vaga tem, para o atalho dizer quantas pessoas querem a mesma vaga.
+  const ofertasPorVaga = new Map<number, number>();
+  for (const o of dados.ofertas) ofertasPorVaga.set(o.escala.id, (ofertasPorVaga.get(o.escala.id) ?? 0) + 1);
   const continua = (nome: string) => `${nome} continua escalado e será avisado.`;
   const comData = [
     ...dados.impedimentos.map((i) => ({
@@ -40,6 +48,7 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
       equipe: { id: i.escala.equipe_id, nome: i.escala.equipe },
       escala: i.escala,
       detalhe: `Motivo: ${i.motivo}`,
+      link: verCulto(i.escala),
       aprovar: saida(i.pessoa.nome),
       recusar: continua(i.pessoa.nome),
     })),
@@ -50,6 +59,7 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
       pessoa: t.pessoa,
       equipe: { id: t.escala.equipe_id, nome: t.escala.equipe },
       escala: t.escala,
+      link: verCulto(t.escala),
       aprovar: saida(t.pessoa.nome),
       recusar: continua(t.pessoa.nome),
     })),
@@ -60,6 +70,13 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
       pessoa: o.pessoa,
       equipe: { id: o.escala.equipe_id, nome: o.escala.equipe },
       escala: o.escala,
+      link: {
+        texto:
+          (ofertasPorVaga.get(o.escala.id) ?? 1) > 1
+            ? `Ver os ${ofertasPorVaga.get(o.escala.id)} que querem esta vaga`
+            : 'Ver a vaga e quem está disponível',
+        abrir: () => abrirVaga(o.escala.id),
+      },
       aprovar: `${o.pessoa.nome} fica com a vaga e recebe o aviso de escala.`,
       recusar: `${o.pessoa.nome} recebe um agradecimento e a vaga continua aberta.`,
     })),
@@ -155,13 +172,27 @@ function filtrarVagas(vagas: Vaga[], equipe: string, quando: string, situacao: s
   const doPeriodo = aplicar(daEquipe, porPeriodo.ativo);
   const porSituacao = escolher<Vaga>(
     [
-      { valor: 'ninguem', rotulo: 'Ninguém disponível', aplica: (v) => v.disponiveis === 0 },
+      { valor: 'ofertas', rotulo: 'Querem servir', aplica: (v) => (v.ofertas ?? 0) > 0 },
       { valor: 'disponiveis', rotulo: 'Com disponíveis', aplica: (v) => v.disponiveis > 0 },
+      // Sem ninguém = nem oferta, nem disponibilidade: o líder precisa ir atrás de alguém.
+      { valor: 'ninguem', rotulo: 'Sem ninguém', aplica: (v) => !v.ofertas && v.disponiveis === 0 },
     ],
     doPeriodo,
     situacao,
   );
   return { porEquipe, porPeriodo, porSituacao, lista: aplicar(doPeriodo, porSituacao.ativo) };
+}
+
+/** "2 querem servir · 1 disponível"; quem se ofereceu vem antes da disponibilidade marcada. */
+function resumoDaVaga(vaga: Vaga) {
+  const ofertas = vaga.ofertas ?? 0;
+  const disponiveis = vaga.disponiveis
+    ? `${vaga.disponiveis} ${vaga.disponiveis === 1 ? 'disponível' : 'disponíveis'}`
+    : '';
+  if (ofertas) {
+    return [ofertas === 1 ? '1 quer servir' : `${ofertas} querem servir`, disponiveis].filter(Boolean).join(' · ');
+  }
+  return disponiveis || 'Ninguém marcou disponibilidade';
 }
 
 type Escolhas<T> = { uteis: Filtro<T>[]; ativo?: Filtro<T> };
@@ -345,7 +376,7 @@ export default function Lideranca() {
             linhas={[
               { titulo: 'Equipe', todos: 'Todas', escolha: daVaga.porEquipe, aoEscolher: setEquipe },
               { titulo: 'Quando', todos: 'Qualquer data', escolha: daVaga.porPeriodo, aoEscolher: setQuando },
-              { titulo: 'Disponibilidade', todos: 'Todas', escolha: daVaga.porSituacao, aoEscolher: setSituacaoDaVaga },
+              { titulo: 'Situação', todos: 'Todas', escolha: daVaga.porSituacao, aoEscolher: setSituacaoDaVaga },
             ]}
             total={vagas.data?.length ?? 0}
             mostrando={daVaga.lista.length}
@@ -356,12 +387,8 @@ export default function Lideranca() {
               key={vaga.id}
               titulo={`${vaga.funcao} · ${vaga.evento.nome}`}
               detalhe={`${diaCurto(vaga.evento.data_inicio)} · ${vaga.equipe}`}
-              status={
-                vaga.disponiveis === 0
-                  ? 'Ninguém marcou disponibilidade'
-                  : `${vaga.disponiveis} ${vaga.disponiveis === 1 ? 'disponível' : 'disponíveis'}`
-              }
-              corStatus={vaga.disponiveis ? cores.confirmada : cores.pendente}
+              status={resumoDaVaga(vaga)}
+              corStatus={vaga.ofertas || vaga.disponiveis ? cores.confirmada : cores.pendente}
               aoTocar={() => abrirVaga(vaga.id)}
             />
           ))}
@@ -398,6 +425,16 @@ function CartaoDePendencia({
         <Text numberOfLines={2} style={{ color: cores.texto, fontSize: 14 }}>
           {item.detalhe}
         </Text>
+      )}
+      {item.link && (
+        <Pressable
+          onPress={item.link.abrir}
+          hitSlop={6}
+          accessibilityRole="link"
+          style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 4 }, pressed && { opacity: 0.6 }]}>
+          <Text style={{ color: cores.primaria, fontSize: 14, fontWeight: '600' }}>{item.link.texto}</Text>
+          <Ionicons name="chevron-forward" size={14} color={cores.primaria} />
+        </Pressable>
       )}
       <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
         <View style={{ flex: 1 }}>

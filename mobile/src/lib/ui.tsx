@@ -199,6 +199,9 @@ export function Opcoes<T extends string>({
 }
 
 /** Abas internas de largura igual (ex.: Pendências · Cultos · Vagas), com contador opcional. */
+/** Número de um selo/contador: acima de 99 vira "99+", para caber no círculo. */
+export const contador = (n: number) => (n > 99 ? '99+' : String(n));
+
 export function Segmentos<T extends string>({
   opcoes,
   valor,
@@ -225,7 +228,7 @@ export function Segmentos<T extends string>({
             </Text>
             {!!opcao.total && (
               <View style={[estilos.contador, { backgroundColor: cores.perigo }]}>
-                <Text style={estilos.contadorTexto}>{opcao.total}</Text>
+                <Text style={estilos.contadorTexto}>{contador(opcao.total)}</Text>
               </View>
             )}
           </Pressable>

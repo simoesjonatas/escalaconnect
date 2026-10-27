@@ -66,9 +66,10 @@ class CandidaturaSerializer(serializers.ModelSerializer):
 
 class VagaSerializer(EscalaDaEquipeSerializer):
     disponiveis = serializers.IntegerField(read_only=True)
+    ofertas = serializers.IntegerField(read_only=True)
 
     class Meta(EscalaDaEquipeSerializer.Meta):
-        fields = EscalaDaEquipeSerializer.Meta.fields + ['disponiveis']
+        fields = EscalaDaEquipeSerializer.Meta.fields + ['disponiveis', 'ofertas']
 
 
 class VagaAbertaSerializer(EscalaDaEquipeSerializer):
