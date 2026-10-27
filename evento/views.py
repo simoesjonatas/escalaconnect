@@ -205,18 +205,30 @@ def gerar_eventos_em_massa(request):
                         observacao=form.cleaned_data['observacao'],
                     ))
 
+            funcoes = list(form.cleaned_data['funcoes'])
             with transaction.atomic():
-                Evento.objects.bulk_create(eventos)
+                for evento in eventos:
+                    evento.save()
+                # Uma vaga por função em cada evento; sem voluntário, então ninguém é avisado agora.
+                Escala.objects.bulk_create([
+                    Escala(evento=evento, funcao=funcao) for evento in eventos for funcao in funcoes
+                ])
 
+            vagas = f" com {len(funcoes)} vaga(s) cada" if funcoes and eventos else ""
             messages.success(
                 request,
-                f"{len(eventos)} evento(s) criado(s). {ignorados} data(s) passada(s) ou já existente(s) ignorada(s).",
+                f"{len(eventos)} evento(s) criado(s){vagas}. "
+                f"{ignorados} data(s) passada(s) ou já existente(s) ignorada(s).",
             )
             return redirect('evento_list')
     else:
         form = GerarEventosEmMassaForm(user=request.user)
 
-    return render(request, 'evento/gerar_eventos_em_massa.html', {'form': form})
+    return render(request, 'evento/gerar_eventos_em_massa.html', {
+        'form': form,
+        'funcoes': form.fields['funcoes'].queryset,
+        'funcoes_marcadas': [str(v) for v in (form['funcoes'].value() or [])],
+    })
 
 @login_required
 def evento_update(request, pk):

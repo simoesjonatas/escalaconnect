@@ -4,6 +4,7 @@ from django.utils.formats import date_format
 from .models import Evento
 from planejamento.models import Planejamento
 from equipe.models import Equipe, Lideranca
+from escala.models import Funcao
 import datetime
 
 DIAS_DA_SEMANA = [
@@ -95,6 +96,13 @@ class GerarEventosEmMassaForm(forms.Form):
         required=False,
         widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
     )
+    # Cada função marcada vira uma vaga (escala sem voluntário) em cada evento gerado.
+    funcoes = forms.ModelMultipleChoiceField(
+        label="Funções de cada evento",
+        queryset=Funcao.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -118,6 +126,9 @@ class GerarEventosEmMassaForm(forms.Form):
         else:
             equipes = Equipe.objects.none()
         self.fields['equipe'].queryset = equipes.distinct().order_by('nome')
+        self.fields['funcoes'].queryset = (
+            Funcao.objects.filter(equipe__in=self.fields['equipe'].queryset).order_by('nome')
+        )
 
     def clean_mes(self):
         mes = self.cleaned_data['mes']
@@ -131,6 +142,9 @@ class GerarEventosEmMassaForm(forms.Form):
         fim = cleaned_data.get('horario_fim')
         if inicio and fim and fim <= inicio:
             raise forms.ValidationError("O horário de término deve ser posterior ao início.")
+        equipe = cleaned_data.get('equipe')
+        if equipe and any(f.equipe_id != equipe.pk for f in cleaned_data.get('funcoes', [])):
+            self.add_error('funcoes', f"Escolha só funções da equipe {equipe.nome}.")
         return cleaned_data
 
 

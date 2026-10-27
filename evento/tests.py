@@ -188,3 +188,50 @@ class GerarEventosEmMassaTests(TestCase):
 
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(Evento.objects.filter(nome='Evento indevido').exists())
+
+
+class GerarEventosEmMassaComFuncoesTests(TestCase):
+    """As funções marcadas viram uma vaga (escala sem voluntário) em cada evento gerado."""
+
+    def setUp(self):
+        from escala.models import Funcao
+        self.equipe = Equipe.objects.create(nome="Recepção")
+        self.porta = Funcao.objects.create(nome="Porta", equipe=self.equipe)
+        self.cafe = Funcao.objects.create(nome="Café", equipe=self.equipe)
+        self.vocal = Funcao.objects.create(nome="Vocal", equipe=Equipe.objects.create(nome="Louvor"))
+        lider = User.objects.create_user(
+            username="lider_funcoes", password="x", cpf="10000003004",
+            is_first_login=False, termo_aceito_em=now(),
+        )
+        Lideranca.objects.create(usuario=lider, equipe=self.equipe)
+        self.client.force_login(lider)
+        hoje = now().date()
+        self.mes = ((hoje.replace(day=28) + timedelta(days=4)).replace(day=1)).strftime('%Y-%m')
+
+    def gerar(self, funcoes):
+        return self.client.post(reverse('gerar_eventos_em_massa'), {
+            'nome': 'Culto de quarta', 'equipe': self.equipe.pk, 'mes': self.mes,
+            'dias_da_semana': ['2'], 'horario_inicio': '19:30', 'horario_fim': '21:00',
+            'funcoes': [f.pk for f in funcoes],
+        })
+
+    def test_cada_evento_sai_com_uma_vaga_por_funcao(self):
+        from escala.models import Escala
+        resp = self.gerar([self.porta, self.cafe])
+        self.assertRedirects(resp, reverse('evento_list'))
+        eventos = Evento.objects.filter(nome='Culto de quarta')
+        self.assertGreater(eventos.count(), 0)
+        for evento in eventos:
+            self.assertEqual(
+                sorted(Escala.objects.filter(evento=evento, usuario__isnull=True).values_list('funcao__nome', flat=True)),
+                ['Café', 'Porta'])
+
+    def test_a_tela_so_oferece_funcoes_das_equipes_do_lider(self):
+        resp = self.client.get(reverse('gerar_eventos_em_massa'))
+        self.assertEqual({f.nome for f in resp.context['funcoes']}, {'Porta', 'Café'})
+
+    def test_recusa_funcao_de_outra_equipe(self):
+        resp = self.gerar([self.porta, self.vocal])
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('funcoes', resp.context['form'].errors)
+        self.assertFalse(Evento.objects.filter(nome='Culto de quarta').exists())

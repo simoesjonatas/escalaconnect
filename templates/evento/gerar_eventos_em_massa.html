@@ -14,28 +14,40 @@
 <style>
     .bulk-event-card { width: 100%; margin: 0; padding: 6px 0; background: transparent; border: 0; border-radius: 0; }
     .bulk-event-card h3 { margin-top: 0; }
-    .bulk-event-card .intro { color: var(--connect-muted); margin-bottom: 22px; }
+    .bulk-event-card .intro { color: var(--connect-muted); margin-bottom: 18px; }
+    .bulk-passo {
+        background: var(--connect-surface, #14181f); border: 1px solid var(--connect-border); border-radius: 12px;
+        padding: 16px; margin-bottom: 14px;
+    }
+    .bulk-passo-titulo { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 16px; font-weight: 800; color: var(--connect-text); }
+    .bulk-passo-numero {
+        display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%;
+        background: var(--connect-green); color: #0b1a05; font-size: 13px; font-weight: 900; flex: 0 0 auto;
+    }
+    .bulk-passo-dica { color: var(--connect-muted); font-size: 13px; margin: -6px 0 12px; }
     .bulk-event-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .bulk-event-field { margin-bottom: 16px; }
+    .bulk-event-field { margin-bottom: 14px; }
+    .bulk-event-field:last-child { margin-bottom: 0; }
     .bulk-event-field label { display: block; font-weight: 800; margin-bottom: 6px; }
-    .weekday-checkboxes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .weekday-checkboxes, .funcoes-lista { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
     .weekday-checkboxes li { margin: 0; }
-    .weekday-checkboxes label {
+    .weekday-checkboxes label, .funcoes-lista label {
         display: flex;
         align-items: center;
         gap: 12px;
-        min-height: 58px;
+        min-height: 54px;
         margin: 0;
         padding: 12px 14px;
         border: 2px solid var(--connect-border);
         border-radius: 9px;
         background: var(--connect-surface-2);
         color: var(--connect-text);
+        font-weight: 600;
         cursor: pointer;
         transition: border-color .18s ease, background .18s ease, box-shadow .18s ease, transform .18s ease;
     }
-    .weekday-checkboxes label:hover { border-color: var(--connect-green); transform: translateY(-1px); }
-    .weekday-checkboxes input {
+    .weekday-checkboxes label:hover, .funcoes-lista label:hover { border-color: var(--connect-green); transform: translateY(-1px); }
+    .weekday-checkboxes input, .funcoes-lista input {
         flex: 0 0 auto;
         width: 20px;
         height: 20px;
@@ -43,32 +55,35 @@
         accent-color: var(--connect-green);
         cursor: pointer;
     }
-    .weekday-checkboxes label:has(input:checked) {
+    .weekday-checkboxes label:has(input:checked), .funcoes-lista label:has(input:checked) {
         border-color: var(--connect-green);
         background: rgba(34, 197, 94, .16);
         box-shadow: inset 4px 0 0 var(--connect-green), 0 0 0 2px rgba(34, 197, 94, .12);
-        color: var(--connect-text);
     }
-    .weekday-checkboxes label:has(input:checked)::after {
-        content: "Selecionado";
-        margin-left: auto;
-        color: var(--connect-green);
-        font-size: 11px;
-        font-weight: 900;
-        letter-spacing: .03em;
-        text-transform: uppercase;
+    .weekday-checkboxes label:has(input:checked)::after, .funcoes-lista label:has(input:checked)::after {
+        content: "✓"; margin-left: auto; color: var(--connect-green); font-size: 18px; font-weight: 900;
     }
-    .weekday-checkboxes label:has(input:focus-visible) { outline: 3px solid rgba(34, 197, 94, .3); outline-offset: 2px; }
+    .weekday-checkboxes label:has(input:focus-visible), .funcoes-lista label:has(input:focus-visible) { outline: 3px solid rgba(34, 197, 94, .3); outline-offset: 2px; }
+    .funcoes-lista label[hidden] { display: none; }
+    .funcoes-topo { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .funcoes-topo span { color: var(--connect-muted); font-size: 13px; }
+    .funcoes-topo button { background: none; border: 0; padding: 0; color: var(--connect-green); font-weight: 700; font-size: 14px; cursor: pointer; }
+    .funcoes-aviso { color: var(--connect-muted); font-size: 14px; margin: 0; }
+    .bulk-resumo {
+        border: 1px solid var(--connect-green); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px;
+        background: rgba(34, 197, 94, .08); color: var(--connect-text);
+    }
+    .bulk-resumo strong { display: block; font-size: 16px; margin-bottom: 4px; }
+    .bulk-resumo .datas { color: var(--connect-muted); font-size: 13px; }
     .bulk-event-errors { padding: 12px; margin-bottom: 16px; border-radius: 7px; background: rgba(255, 77, 79, .1); }
-    .bulk-event-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .bulk-event-actions { display: flex; gap: 10px; margin-top: 6px; }
     @media (max-width: 900px) {
-        .weekday-checkboxes { grid-template-columns: 1fr; }
-        .weekday-checkboxes label { min-height: 54px; }
+        .weekday-checkboxes, .funcoes-lista { grid-template-columns: 1fr; }
     }
     @media (max-width: 620px) {
         .bulk-event-card { padding: 0; }
+        .bulk-passo { padding: 14px 12px; }
         .bulk-event-grid { grid-template-columns: 1fr; gap: 0; }
-        .weekday-checkboxes label:has(input:checked)::after { content: "✓"; font-size: 18px; }
         .bulk-event-actions { flex-direction: column; }
         .bulk-event-actions .btn { width: 100%; }
     }
@@ -77,21 +92,62 @@
 <div class="container">
     <div class="bulk-event-card">
         <h3>Gerar eventos em massa</h3>
-        <p class="intro">Escolha os dias da semana e gere todas as ocorrências no mês atual ou no próximo. Datas passadas e eventos repetidos serão ignorados.</p>
+        <p class="intro">Crie de uma vez todos os eventos do mês, já com as vagas de cada função. Datas passadas e eventos repetidos são ignorados.</p>
 
         {% if form.errors %}<div class="bulk-event-errors">{{ form.non_field_errors }}{% for field in form %}{{ field.errors }}{% endfor %}</div>{% endif %}
 
-        <form method="POST">
+        <form method="POST" id="form-massa">
             {% csrf_token %}
-            <div class="bulk-event-field"><label for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>{{ form.nome }}</div>
-            <div class="bulk-event-grid">
-                <div class="bulk-event-field"><label for="{{ form.equipe.id_for_label }}">{{ form.equipe.label }}</label>{{ form.equipe }}</div>
+
+            <section class="bulk-passo">
+                <h4 class="bulk-passo-titulo"><span class="bulk-passo-numero">1</span> Evento</h4>
+                <div class="bulk-event-grid">
+                    <div class="bulk-event-field"><label for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>{{ form.nome }}</div>
+                    <div class="bulk-event-field"><label for="{{ form.equipe.id_for_label }}">{{ form.equipe.label }}</label>{{ form.equipe }}</div>
+                </div>
+            </section>
+
+            <section class="bulk-passo">
+                <h4 class="bulk-passo-titulo"><span class="bulk-passo-numero">2</span> Funções de cada evento</h4>
+                <p class="bulk-passo-dica">Cada função marcada vira uma vaga em todos os eventos gerados. Pode deixar sem nenhuma e adicionar depois.</p>
+                <p class="funcoes-aviso" id="funcoes-sem-equipe">Escolha a equipe para ver as funções.</p>
+                <p class="funcoes-aviso" id="funcoes-vazio" hidden>Esta equipe ainda não tem funções cadastradas.</p>
+                <div id="funcoes-bloco" hidden>
+                    <div class="funcoes-topo">
+                        <span id="funcoes-contagem"></span>
+                        <button type="button" id="funcoes-todas">Marcar todas</button>
+                    </div>
+                    <div class="funcoes-lista">
+                        {% for funcao in funcoes %}
+                        <label data-equipe="{{ funcao.equipe_id }}" hidden>
+                            <input type="checkbox" name="funcoes" value="{{ funcao.pk }}" {% if funcao.pk|stringformat:"s" in funcoes_marcadas %}checked{% endif %}>
+                            {{ funcao.nome }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </section>
+
+            <section class="bulk-passo">
+                <h4 class="bulk-passo-titulo"><span class="bulk-passo-numero">3</span> Quando</h4>
                 <div class="bulk-event-field"><label for="{{ form.mes.id_for_label }}">{{ form.mes.label }}</label>{{ form.mes }}</div>
-                <div class="bulk-event-field"><label for="{{ form.horario_inicio.id_for_label }}">{{ form.horario_inicio.label }}</label>{{ form.horario_inicio }}</div>
-                <div class="bulk-event-field"><label for="{{ form.horario_fim.id_for_label }}">{{ form.horario_fim.label }}</label>{{ form.horario_fim }}</div>
+                <div class="bulk-event-field"><label>{{ form.dias_da_semana.label }}</label>{{ form.dias_da_semana }}</div>
+                <div class="bulk-event-grid">
+                    <div class="bulk-event-field"><label for="{{ form.horario_inicio.id_for_label }}">{{ form.horario_inicio.label }}</label>{{ form.horario_inicio }}</div>
+                    <div class="bulk-event-field"><label for="{{ form.horario_fim.id_for_label }}">{{ form.horario_fim.label }}</label>{{ form.horario_fim }}</div>
+                </div>
+            </section>
+
+            <section class="bulk-passo">
+                <h4 class="bulk-passo-titulo"><span class="bulk-passo-numero">4</span> Observação <small style="font-weight: 600; color: var(--connect-muted);">(opcional)</small></h4>
+                {{ form.observacao }}
+            </section>
+
+            <div class="bulk-resumo" id="resumo" hidden aria-live="polite">
+                <strong id="resumo-titulo"></strong>
+                <div class="datas" id="resumo-datas"></div>
             </div>
-            <div class="bulk-event-field"><label>{{ form.dias_da_semana.label }}</label>{{ form.dias_da_semana }}</div>
-            <div class="bulk-event-field"><label for="{{ form.observacao.id_for_label }}">{{ form.observacao.label }}</label>{{ form.observacao }}</div>
+
             <div class="bulk-event-actions">
                 <button type="submit" class="btn btn-success">Gerar eventos</button>
                 <a href="{% url 'evento_list' %}" class="btn btn-secondary">Cancelar</a>
@@ -99,4 +155,89 @@
         </form>
     </div>
 </div>
+
+<script>
+(function () {
+    var form = document.getElementById('form-massa');
+    var equipe = document.getElementById('{{ form.equipe.id_for_label }}');
+    var mes = document.getElementById('{{ form.mes.id_for_label }}');
+    var inicio = document.getElementById('{{ form.horario_inicio.id_for_label }}');
+    var labels = Array.prototype.slice.call(form.querySelectorAll('.funcoes-lista label'));
+    var botaoTodas = document.getElementById('funcoes-todas');
+
+    function visiveis() { return labels.filter(function (l) { return !l.hidden; }); }
+    function marcadas() { return visiveis().filter(function (l) { return l.querySelector('input').checked; }).length; }
+
+    // Mostra só as funções da equipe escolhida; as de outra equipe são desmarcadas para não irem no envio.
+    function mostrarFuncoes() {
+        var id = equipe.value;
+        labels.forEach(function (l) {
+            var daEquipe = l.dataset.equipe === id;
+            l.hidden = !daEquipe;
+            if (!daEquipe) l.querySelector('input').checked = false;
+        });
+        var quantas = visiveis().length;
+        document.getElementById('funcoes-sem-equipe').hidden = !!id;
+        document.getElementById('funcoes-vazio').hidden = !id || quantas > 0;
+        document.getElementById('funcoes-bloco').hidden = !id || quantas === 0;
+        atualizar();
+    }
+
+    var MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    var DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+    // Mesmas regras do servidor: dias escolhidos do(s) mês(es), sem as datas que já passaram.
+    function datasPrevistas() {
+        var valores = mes.value === 'ambos'
+            ? Array.prototype.map.call(mes.options, function (o) { return o.value; }).filter(function (v) { return v !== 'ambos'; })
+            : [mes.value];
+        var dias = Array.prototype.map.call(form.querySelectorAll('input[name="dias_da_semana"]:checked'), function (i) { return Number(i.value); });
+        if (!dias.length || !inicio.value) return null;
+        var partesHora = inicio.value.split(':').map(Number);
+        var agora = new Date();
+        var datas = [];
+        valores.forEach(function (valor) {
+            var partes = valor.split('-').map(Number);
+            var ultimo = new Date(partes[0], partes[1], 0).getDate();
+            for (var d = 1; d <= ultimo; d++) {
+                var data = new Date(partes[0], partes[1] - 1, d, partesHora[0], partesHora[1]);
+                var diaPython = (data.getDay() + 6) % 7; // segunda = 0, como no formulário
+                if (dias.indexOf(diaPython) >= 0 && data > agora) datas.push(data);
+            }
+        });
+        return datas;
+    }
+
+    function atualizar() {
+        var total = visiveis().length;
+        var n = marcadas();
+        document.getElementById('funcoes-contagem').textContent = n + ' de ' + total + ' marcada' + (n === 1 ? '' : 's');
+        botaoTodas.textContent = total && n === total ? 'Desmarcar todas' : 'Marcar todas';
+
+        var datas = datasPrevistas();
+        var resumo = document.getElementById('resumo');
+        if (!datas) { resumo.hidden = true; return; }
+        resumo.hidden = false;
+        var titulo = datas.length === 0
+            ? 'Nenhuma data futura com essas escolhas.'
+            : 'Serão criados ' + datas.length + ' evento' + (datas.length === 1 ? '' : 's')
+              + (n ? ', cada um com ' + n + ' vaga' + (n === 1 ? '' : 's') + ' (' + datas.length * n + ' no total)' : ', sem vagas')
+              + '.';
+        document.getElementById('resumo-titulo').textContent = titulo;
+        document.getElementById('resumo-datas').textContent = datas.map(function (d) {
+            return DIAS[d.getDay()] + ' ' + d.getDate() + '/' + MESES[d.getMonth()];
+        }).join(' · ');
+    }
+
+    botaoTodas.addEventListener('click', function () {
+        var marcar = marcadas() !== visiveis().length;
+        visiveis().forEach(function (l) { l.querySelector('input').checked = marcar; });
+        atualizar();
+    });
+    equipe.addEventListener('change', mostrarFuncoes);
+    form.addEventListener('change', atualizar);
+    form.addEventListener('input', atualizar);
+    mostrarFuncoes();
+})();
+</script>
 {% endblock %}

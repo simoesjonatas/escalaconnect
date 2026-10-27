@@ -249,7 +249,11 @@
     .home-app { border-color: rgba(57, 255, 20, .5); position: relative; padding-right: 40px; }
     .home-app[hidden] { display: none; }
     .home-app small { color: var(--connect-muted, #9aa4ad); }
-    .home-app-acoes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    /* Botões lado a lado e do mesmo tamanho; não encolhem por causa do texto ao lado. */
+    .home-app-acoes { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+    .home-app-acoes .btn { min-width: 140px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    /* O ícone verde grande da faixa (.home-suggestion i) não vale para os ícones dos botões. */
+    .home-app-acoes .btn i { color: inherit; font-size: inherit; margin: 0 !important; }
     .home-app-fechar {
         background: none; border: 0; color: var(--connect-muted, #9aa4ad);
         font-size: 1.4rem; line-height: 1; padding: 0 4px; cursor: pointer;
@@ -326,6 +330,8 @@
     @media (max-width: 720px) {
         .home-suggestion { align-items: stretch; flex-direction: column; }
         .home-suggestion .btn { text-align: center; width: 100%; }
+        .home-app-acoes { flex-wrap: wrap; }
+        .home-app-acoes .btn { flex: 1 1 140px; width: auto; }
     }
 </style>
 {% endblock %}
