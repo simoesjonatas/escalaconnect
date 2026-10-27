@@ -4,9 +4,10 @@ import { ComponentProps, useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { diaCurto } from '../../lib/datas';
+import { aplicar, CaixaDeFiltros, Chips, escolher, Filtro, filtrosDePeriodo, TODOS } from '../../lib/filtros';
 import { AcaoDoLider, useAcaoDoLider, useCultos, usePendenciasDoLider, useVagas } from '../../lib/hooks';
 import { Cores, useTema } from '../../lib/tema';
-import { Culto, EscalaDaEquipe, PendenciasDoLider, Pessoa } from '../../lib/types';
+import { ContagemDoCulto, Culto, EscalaDaEquipe, PendenciasDoLider, Pessoa, Vaga } from '../../lib/types';
 import { Botao, Cartao, Erro, Estado, Etiqueta, Linha, Segmentos, Suave, Subtitulo, Tela } from '../../lib/ui';
 
 type Aba = 'pendencias' | 'cultos' | 'vagas';
@@ -71,6 +72,102 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
   return [...comData, ...candidaturas];
 }
 
+/** Uma opção por equipe que aparece na lista, em ordem alfabética. */
+function filtrosDeEquipe<T>(equipes: [number, string][], daEquipe: (item: T, id: number) => boolean): Filtro<T>[] {
+  return [...new Map(equipes)]
+    .sort(([, a], [, b]) => a.localeCompare(b))
+    .map(([id, nome]) => ({ valor: String(id), rotulo: nome, aplica: (item: T) => daEquipe(item, id) }));
+}
+
+/** Filtros dos cultos em sequência (equipe → período → situação): cada linha só oferece o que existe na anterior. */
+function filtrarCultos(recebidos: Culto[], equipe: string, quando: string, situacao: string) {
+  // Servidor anterior a esta versão não manda `por_equipe`: o filtro de equipe só não aparece.
+  const cultos = recebidos.map((c) => ({ ...c, por_equipe: c.por_equipe ?? [] }));
+  const porEquipe = escolher(
+    filtrosDeEquipe<Culto>(
+      cultos.flatMap((c) => c.por_equipe.map((e): [number, string] => [e.equipe_id, e.equipe])),
+      (c, id) => c.por_equipe.some((e) => e.equipe_id === id),
+    ),
+    cultos,
+    equipe,
+    true,
+  );
+  // Com uma equipe escolhida, as contagens passam a ser só dela.
+  const contagem = (c: Culto): ContagemDoCulto =>
+    c.por_equipe.find((e) => String(e.equipe_id) === porEquipe.ativo?.valor) ?? c;
+  const daEquipe = aplicar(cultos, porEquipe.ativo);
+  const porPeriodo = escolher(filtrosDePeriodo<Culto>((c) => c.data_inicio), daEquipe, quando);
+  const doPeriodo = aplicar(daEquipe, porPeriodo.ativo);
+  const porSituacao = escolher<Culto>(
+    [
+      { valor: 'confirmar', rotulo: 'Falta confirmar', aplica: (c) => contagem(c).pendentes > 0 },
+      { valor: 'vagas', rotulo: 'Com vagas', aplica: (c) => contagem(c).vagas > 0 },
+      { valor: 'completos', rotulo: 'Tudo certo', aplica: (c) => !contagem(c).pendentes && !contagem(c).vagas },
+    ],
+    doPeriodo,
+    situacao,
+  );
+  return { porEquipe, porPeriodo, porSituacao, contagem, lista: aplicar(doPeriodo, porSituacao.ativo) };
+}
+
+function filtrarVagas(vagas: Vaga[], equipe: string, quando: string, situacao: string) {
+  const porEquipe = escolher(
+    filtrosDeEquipe<Vaga>(
+      vagas.map((v) => [v.equipe_id, v.equipe]),
+      (v, id) => v.equipe_id === id,
+    ),
+    vagas,
+    equipe,
+    true,
+  );
+  const daEquipe = aplicar(vagas, porEquipe.ativo);
+  const porPeriodo = escolher(filtrosDePeriodo<Vaga>((v) => v.evento.data_inicio), daEquipe, quando);
+  const doPeriodo = aplicar(daEquipe, porPeriodo.ativo);
+  const porSituacao = escolher<Vaga>(
+    [
+      { valor: 'ninguem', rotulo: 'Ninguém disponível', aplica: (v) => v.disponiveis === 0 },
+      { valor: 'disponiveis', rotulo: 'Com disponíveis', aplica: (v) => v.disponiveis > 0 },
+    ],
+    doPeriodo,
+    situacao,
+  );
+  return { porEquipe, porPeriodo, porSituacao, lista: aplicar(doPeriodo, porSituacao.ativo) };
+}
+
+type Escolhas<T> = { uteis: Filtro<T>[]; ativo?: Filtro<T> };
+
+/** Cartão de filtros de Cultos ou Vagas e a contagem logo abaixo ("Mostrando 3 de 12 cultos"). */
+function FiltrosDoLider<T>({
+  titulo,
+  nome,
+  linhas,
+  total,
+  mostrando,
+  aoLimpar,
+}: {
+  titulo: string;
+  nome: string;
+  linhas: { titulo: string; todos: string; escolha: Escolhas<T>; aoEscolher: (valor: string) => void }[];
+  total: number;
+  mostrando: number;
+  aoLimpar: () => void;
+}) {
+  if (total === 0) return null;
+  const filtrando = linhas.some((l) => l.escolha.ativo);
+  return (
+    <>
+      {linhas.some((l) => l.escolha.uteis.length > 0) && (
+        <CaixaDeFiltros titulo={titulo} filtrando={filtrando} aoLimpar={aoLimpar}>
+          {linhas.map((linha) => (
+            <Chips key={linha.titulo} {...linha} />
+          ))}
+        </CaixaDeFiltros>
+      )}
+      <Suave>{filtrando ? `Mostrando ${mostrando} de ${total} ${nome}` : `${total} ${nome}`}</Suave>
+    </>
+  );
+}
+
 /** Painel do líder em três abas: pendências para decidir, próximos cultos e vagas em aberto. */
 export default function Lideranca() {
   const pendencias = usePendenciasDoLider();
@@ -79,6 +176,11 @@ export default function Lideranca() {
   const acao = useAcaoDoLider();
   const { cores } = useTema();
   const [escolhida, setEscolhida] = useState<Aba>();
+  // Equipe e período valem para Cultos e Vagas; a situação é de cada aba.
+  const [equipe, setEquipe] = useState(TODOS);
+  const [quando, setQuando] = useState(TODOS);
+  const [situacaoDoCulto, setSituacaoDoCulto] = useState(TODOS);
+  const [situacaoDaVaga, setSituacaoDaVaga] = useState(TODOS);
   // Push e caixa de avisos abrem a aba já em Pendências (ver lib/push.ts).
   const { aba: abaDoLink, t } = useLocalSearchParams<{ aba?: Aba; t?: string }>();
   useEffect(() => {
@@ -89,6 +191,14 @@ export default function Lideranca() {
   // Abre em Pendências quando há algo para decidir; senão, em Cultos.
   const aba: Aba = escolhida ?? (pendencias.data && lista.length === 0 ? 'cultos' : 'pendencias');
   const consulta = { pendencias, cultos, vagas }[aba];
+  const doCulto = filtrarCultos(cultos.data ?? [], equipe, quando, situacaoDoCulto);
+  const daVaga = filtrarVagas(vagas.data ?? [], equipe, quando, situacaoDaVaga);
+  function limparFiltros() {
+    setEquipe(TODOS);
+    setQuando(TODOS);
+    setSituacaoDoCulto(TODOS);
+    setSituacaoDaVaga(TODOS);
+  }
 
   function decidir(item: Pendencia, qual: AcaoDoLider['acao']) {
     const aprovar = qual === 'aprovar';
@@ -164,14 +274,40 @@ export default function Lideranca() {
             consulta={cultos}
             vazio={cultos.data?.length === 0 && 'Nenhum culto com escala da sua equipe nos próximos 60 dias.'}
           />
-          {cultos.data?.map((culto) => <LinhaDeCulto key={culto.id} culto={culto} />)}
+          <FiltrosDoLider
+            titulo="Filtrar cultos"
+            nome="cultos"
+            linhas={[
+              { titulo: 'Equipe', todos: 'Todas', escolha: doCulto.porEquipe, aoEscolher: setEquipe },
+              { titulo: 'Quando', todos: 'Qualquer data', escolha: doCulto.porPeriodo, aoEscolher: setQuando },
+              { titulo: 'Situação', todos: 'Todos', escolha: doCulto.porSituacao, aoEscolher: setSituacaoDoCulto },
+            ]}
+            total={cultos.data?.length ?? 0}
+            mostrando={doCulto.lista.length}
+            aoLimpar={limparFiltros}
+          />
+          {doCulto.lista.map((culto) => (
+            <LinhaDeCulto key={culto.id} culto={culto} contagem={doCulto.contagem(culto)} />
+          ))}
         </>
       )}
 
       {aba === 'vagas' && (
         <>
           <Estado consulta={vagas} vazio={vagas.data?.length === 0 && 'Nenhuma vaga em aberto nos próximos 60 dias.'} />
-          {vagas.data?.map((vaga) => (
+          <FiltrosDoLider
+            titulo="Filtrar vagas"
+            nome="vagas"
+            linhas={[
+              { titulo: 'Equipe', todos: 'Todas', escolha: daVaga.porEquipe, aoEscolher: setEquipe },
+              { titulo: 'Quando', todos: 'Qualquer data', escolha: daVaga.porPeriodo, aoEscolher: setQuando },
+              { titulo: 'Disponibilidade', todos: 'Todas', escolha: daVaga.porSituacao, aoEscolher: setSituacaoDaVaga },
+            ]}
+            total={vagas.data?.length ?? 0}
+            mostrando={daVaga.lista.length}
+            aoLimpar={limparFiltros}
+          />
+          {daVaga.lista.map((vaga) => (
             <Linha
               key={vaga.id}
               titulo={`${vaga.funcao} · ${vaga.evento.nome}`}
@@ -242,12 +378,13 @@ function CartaoDePendencia({
   );
 }
 
-function LinhaDeCulto({ culto }: { culto: Culto }) {
+function LinhaDeCulto({ culto, contagem }: { culto: Culto; contagem: ContagemDoCulto }) {
   const { cores } = useTema();
-  const completo = !culto.pendentes && !culto.vagas;
+  const completo = !contagem.pendentes && !contagem.vagas;
+  const escalados = contagem.total - contagem.vagas;
   const resumo = [
-    `${culto.confirmadas}/${culto.total - culto.vagas} confirmadas`,
-    culto.vagas ? `${culto.vagas} vaga${culto.vagas === 1 ? '' : 's'}` : null,
+    escalados ? `${contagem.confirmadas}/${escalados} confirmadas` : null,
+    contagem.vagas ? `${contagem.vagas} vaga${contagem.vagas === 1 ? '' : 's'}` : null,
   ]
     .filter(Boolean)
     .join(' · ');

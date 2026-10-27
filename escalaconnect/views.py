@@ -20,6 +20,19 @@ from django.utils import timezone
 from django.conf import settings
 from django.urls import reverse
 
+def loja_do_app(request):
+    """Qual loja mostrar na faixa "Baixe o app": None se a pessoa já usa o app (tem sessão válida nele)."""
+    from knox.models import AuthToken
+    if AuthToken.objects.filter(user=request.user, expiry__gt=timezone.now()).exists():
+        return None
+    agente = request.META.get('HTTP_USER_AGENT', '')
+    if 'Android' in agente:
+        return 'android'
+    if any(aparelho in agente for aparelho in ('iPhone', 'iPad', 'iPod')):
+        return 'ios'
+    return 'todas'  # computador: as duas
+
+
 # View para renderizar a página base
 @login_required(login_url='/login/')
 def base_view(request):
@@ -45,8 +58,11 @@ def base_view(request):
         # Pendências do voluntário (as mesmas que a API do app devolve em /home/).
         **pendencias_home(request.user),
         'equipes_com_pendentes': equipes_com_pendentes,
-        # Vagas da equipe em que ninguém marcou disponibilidade (cartão "Sua equipe precisa de ajuda").
+        # Vagas da equipe ainda sem ninguém escalado (cartão "Sua equipe precisa de ajuda").
         'vagas_abertas': sum(not v.me_ofereci for v in escala_services.vagas_visiveis_para(request.user)),
+        'loja_do_app': loja_do_app(request),
+        'app_android_url': settings.APP_ANDROID_URL,
+        'app_ios_url': settings.APP_IOS_URL,
     })
 
 # View para renderizar o calendário

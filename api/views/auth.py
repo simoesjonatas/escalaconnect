@@ -7,8 +7,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from ..exceptions import ErroDeNegocio
-from ..serializers.usuario import LoginSerializer, UsuarioSerializer
-from ..throttles import LoginIPThrottle, LoginUsuarioThrottle
+from usuario.services import mascarar_email, pedir_redefinicao_senha
+
+from ..serializers.usuario import LoginSerializer, RecuperarSenhaSerializer, UsuarioSerializer
+from ..throttles import LoginIPThrottle, LoginUsuarioThrottle, RecuperarSenhaThrottle
 
 
 class LoginView(APIView):
@@ -33,6 +35,19 @@ class LoginView(APIView):
             'expiry': instancia.expiry,
             'usuario': UsuarioSerializer(user).data,
         })
+
+
+class RecuperarSenhaView(APIView):
+    """POST {cpf, data_nascimento} -> {email}: manda o link para criar senha nova (mesmo fluxo do site)."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+    throttle_classes = [RecuperarSenhaThrottle]
+
+    def post(self, request):
+        serializer = RecuperarSenhaSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        usuario = pedir_redefinicao_senha(serializer.validated_data['cpf'], serializer.validated_data['data_nascimento'])
+        return Response({'email': mascarar_email(usuario.email)})
 
 
 class LogoutView(APIView):

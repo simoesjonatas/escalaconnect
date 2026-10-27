@@ -189,3 +189,28 @@ class RotasTests(ApiTestCase):
         resp = self.client.get('/login/')
         self.assertEqual(resp.status_code, 200)
         self.assertIn('text/html', resp['Content-Type'])
+
+
+class RecuperarSenhaTests(ApiTestCase):
+    def setUp(self):
+        super().setUp()
+        self.user = criar_usuario(username='jonatas', aniversario='1996-01-07')
+
+    def pedir(self, cpf='529.982.247-25', data='1996-01-07'):
+        return self.client.post('/api/v1/auth/recuperar-senha/', {'cpf': cpf, 'data_nascimento': data}, format='json')
+
+    def test_manda_link_por_email_e_mostra_email_mascarado(self):
+        from django.core import mail
+        resp = self.pedir()
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data, {'email': 'jo*****@example.com'})
+        self.assertEqual(mail.outbox[0].to, ['jonatas@example.com'])
+        self.assertIn('/recuperar-senha/confirmar/', mail.outbox[0].body)
+
+    def test_dados_errados(self):
+        resp = self.pedir(data='1996-01-08')
+        self.assertEqual((resp.status_code, resp.data['code']), (400, 'dados_nao_encontrados'))
+
+    def test_conta_sem_email(self):
+        User.objects.filter(pk=self.user.pk).update(email='')
+        self.assertEqual(self.pedir().data['code'], 'sem_email')

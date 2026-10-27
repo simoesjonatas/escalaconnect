@@ -36,6 +36,10 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv(
 SITE_URL = config('SITE_URL', default='https://connect.pibvp.org.br').rstrip('/')
 DEFAULT_DOMAIN = config('DEFAULT_DOMAIN', default=SITE_URL).rstrip('/')
 
+# Lojas do app (faixa "Baixe o app" no Início do site). No iPhone o app não é listado: só abre pelo link.
+APP_ANDROID_URL = 'https://play.google.com/store/apps/details?id=br.org.pibvp.connect'
+APP_IOS_URL = 'https://apps.apple.com/br/app/escala-connect/id6818859031'
+
 ADMIN_PROTECTED_PATHS = [
     '/admin/',              # Exemplo de URL padrão do Django Admin
     # '/api/equip/*',           # Bloqueia todas as sub-rotas de usuario/
@@ -267,6 +271,7 @@ REST_FRAMEWORK = {
         # Por IP é folgado: vários voluntários compartilham o Wi-Fi da igreja.
         'login_ip': '30/min',
         'login_usuario': '5/min',
+        'recuperar_senha': '10/hour',
     },
     # Quantos proxies ficam na frente do gunicorn (Cloudflare, nginx...), para o
     # throttle por IP ler o cliente certo no X-Forwarded-For. Vazio = não confiar.

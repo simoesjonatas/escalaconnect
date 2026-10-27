@@ -4,10 +4,11 @@ import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { mesPorExtenso, periodo } from '../../lib/datas';
+import { CaixaDeFiltros, LinhaDeFiltro } from '../../lib/filtros';
 import { useEventosElegiveis, useMudarDisponibilidades } from '../../lib/hooks';
 import { useTema } from '../../lib/tema';
 import { EventoComEquipe } from '../../lib/types';
-import { Botao, Cartao, Erro, Estado, Opcoes, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
+import { Botao, Cartao, Erro, Estado, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
 
 type Tipo = 'domingo-manha' | 'domingo-noite' | 'quarta' | 'outros';
 
@@ -44,25 +45,9 @@ function opcoesDe(
 /** "Equipe Recepção", sem repetir a palavra quando o nome já começa com "Equipe". */
 const nomeDaEquipe = (nome: string) => (/^equipe\b/i.test(nome) ? nome : `Equipe ${nome}`);
 
-/** Uma linha de filtro com título, para deixar claro o que as opções filtram. */
-function Filtro({
-  titulo,
-  opcoes,
-  valor,
-  aoEscolher,
-}: {
-  titulo: string;
-  opcoes: { valor: string; rotulo: string }[];
-  valor: string;
-  aoEscolher: (valor: string) => void;
-}) {
-  if (opcoes.length <= 2) return null; // uma opção só não filtra nada
-  return (
-    <View style={{ gap: 6 }}>
-      <Suave style={{ fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>{titulo}</Suave>
-      <Opcoes opcoes={opcoes} valor={valor} aoEscolher={aoEscolher} />
-    </View>
-  );
+/** Uma opção só não filtra nada. */
+function Filtro(props: Parameters<typeof LinhaDeFiltro>[0]) {
+  return props.opcoes.length <= 2 ? null : <LinhaDeFiltro {...props} />;
 }
 
 export default function PorEvento() {
@@ -120,22 +105,11 @@ export default function PorEvento() {
       {lista.length > 0 && (
         <>
           {temFiltros && (
-            <Cartao style={{ gap: 12 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Ionicons name="funnel-outline" size={18} color={cores.texto} />
-                  <Subtitulo>Filtrar eventos</Subtitulo>
-                </View>
-                {filtrando && (
-                  <Pressable onPress={limparFiltros} hitSlop={8} accessibilityRole="button">
-                    <Suave style={{ color: cores.primaria, fontWeight: '600' }}>Limpar filtros</Suave>
-                  </Pressable>
-                )}
-              </View>
+            <CaixaDeFiltros titulo="Filtrar eventos" filtrando={filtrando} aoLimpar={limparFiltros}>
               <Filtro titulo="Mês" opcoes={filtros.meses} valor={mes} aoEscolher={setMes} />
               <Filtro titulo="Culto" opcoes={filtros.tipos} valor={tipo} aoEscolher={setTipo} />
               <Filtro titulo="Equipe" opcoes={filtros.equipes} valor={equipe} aoEscolher={setEquipe} />
-            </Cartao>
+            </CaixaDeFiltros>
           )}
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

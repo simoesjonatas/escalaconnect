@@ -1,12 +1,12 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Linking } from 'react-native';
+import { Alert, Linking, View } from 'react-native';
 
 import { periodo } from '../../lib/datas';
 import { situacaoDaEscala } from '../../lib/escala-ui';
 import { useTema } from '../../lib/tema';
-import { useAcaoDeEscala, useAgenda, useEscala } from '../../lib/hooks';
-import { Botao, Campo, Cartao, Erro, Estado, Etiqueta, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
+import { useAcaoDeEscala, useAgenda, useColegas, useEscala } from '../../lib/hooks';
+import { Botao, Campo, Cartao, Erro, Estado, Etiqueta, Linha, Suave, Subtitulo, Tela, Texto } from '../../lib/ui';
 
 export default function DetalheDaEscala() {
   const id = Number(useLocalSearchParams<{ id: string }>().id);
@@ -17,6 +17,7 @@ export default function DetalheDaEscala() {
   const escala = consulta.data;
   const { cores } = useTema();
   const agenda = useAgenda();
+  const colegas = useColegas(id);
 
   const iniciou = escala ? new Date(escala.evento.data_inicio) <= new Date() : false;
   const encerrou = escala ? new Date(escala.evento.data_fim) < new Date() : false;
@@ -105,6 +106,21 @@ export default function DetalheDaEscala() {
 
           {!encerrou && agenda.data && (
             <Botao titulo="Adicionar à agenda" variante="secundario" aoTocar={adicionarAgenda} />
+          )}
+
+          {!!colegas.data?.length && (
+            <View style={{ gap: 8, marginTop: 8 }}>
+              <Subtitulo>Quem serve com você</Subtitulo>
+              {colegas.data.map((colega, i) => (
+                <Linha
+                  key={i}
+                  titulo={colega.nome ?? 'Vaga em aberto'}
+                  detalhe={colega.funcao}
+                  status={colega.nome ? (colega.confirmada ? 'Confirmou' : 'Ainda não confirmou') : undefined}
+                  corStatus={colega.confirmada ? cores.confirmada : cores.textoSuave}
+                />
+              ))}
+            </View>
           )}
         </>
       )}

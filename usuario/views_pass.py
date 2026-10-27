@@ -6,7 +6,8 @@ from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Usuario, PasswordResetRequest
 from .forms import RecuperarSenhaForm
-from .mail import enviar_email_redefinicao_senha
+from .services import pedir_redefinicao_senha
+from escalaconnect.regras import RegraDeNegocio
 from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
@@ -81,36 +82,10 @@ def recuperar_senha(request):
             aniversario = form.cleaned_data['data_nascimento']
             
             try:
-                # Remover caracteres não numéricos do CPF
-                cpf_numerico = re.sub(r'[^0-9]', '', cpf)
-                # aniversario é DateField: comparar direto. (Não usar TruncDate aqui —
-                # com USE_TZ ele aplica conversão de fuso indevida num campo de data,
-                # deslocando o dia e fazendo "Dados não encontrados".)
-                usuario = Usuario.objects.get(
-                    cpf=cpf_numerico,
-                    aniversario=aniversario,
-                )
-                
-                 # Desativa hashes anteriores
-                PasswordResetRequest.objects.filter(usuario=usuario, is_used=False).update(is_used=True)
-
-                # Cria nova tentativa
-                reset_request = PasswordResetRequest.objects.create(usuario=usuario)
-
-                # reset_url = request.build_absolute_uri(
-                #     reverse('password_reset_confirm', args=[reset_request.hash])
-                # )
-                # reset_url_teste = settings.DEFAULT_DOMAIN + reverse('password_reset_confirm', args=[reset_request.hash])
-
-                # print(reset_url)
-                # print(reset_url_teste)
-                # # Enviar e-mail
-                enviar_email_redefinicao_senha(usuario.email,reset_request)
-
+                pedir_redefinicao_senha(cpf, aniversario)
                 return redirect('recuperar_senha_sucesso')
-
-            except Usuario.DoesNotExist:
-                form.add_error(None, 'Dados não encontrados. Verifique seu CPF e data de nascimento.')
+            except RegraDeNegocio as erro:
+                form.add_error(None, str(erro))
 
     else:
         form = RecuperarSenhaForm()

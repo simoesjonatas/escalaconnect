@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 
@@ -51,6 +52,7 @@ export default function Login() {
         />
         <Erro erro={erro} />
         <Botao titulo="Entrar" aoTocar={enviar} carregando={enviando} desabilitado={!username.trim() || !password} />
+        <Botao titulo="Esqueci minha senha" variante="secundario" aoTocar={() => router.push('/esqueci-senha')} />
       </Tela>
     </KeyboardAvoidingView>
   );

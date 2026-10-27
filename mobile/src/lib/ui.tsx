@@ -81,6 +81,8 @@ export const Titulo = texto({ fontSize: 24, fontWeight: '700' });
 export const Subtitulo = texto({ fontSize: 17, fontWeight: '600' });
 export const Texto = texto({ fontSize: 15, lineHeight: 21 });
 export const Suave = texto({ fontSize: 14, lineHeight: 20 }, true);
+/** Título pequeno em maiúsculas, acima de um grupo (filtros, listas, menu do Perfil). */
+export const Rotulo = texto({ fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }, true);
 
 /** Logo da marca (o mesmo arquivo do ícone do app). */
 export function Logo({ tamanho = 96 }: { tamanho?: number }) {

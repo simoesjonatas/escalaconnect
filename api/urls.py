@@ -5,7 +5,7 @@ from disponivel.services import disponibilidades
 from ocupado.services import indisponibilidades
 
 from .views import avisos, conta, devices, equipes, escalas, eventos, lideranca, periodos
-from .views.auth import LoginView, LogoutAllView, LogoutView
+from .views.auth import LoginView, LogoutAllView, LogoutView, RecuperarSenhaView
 from .views.conta import MeView, MetaView
 
 
@@ -29,12 +29,14 @@ urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='api_login'),
     path('auth/logout/', LogoutView.as_view(), name='api_logout'),
     path('auth/logout-all/', LogoutAllView.as_view(), name='api_logout_all'),
+    path('auth/recuperar-senha/', RecuperarSenhaView.as_view(), name='api_recuperar_senha'),
 
     path('me/', MeView.as_view(), name='api_me'),
     path('me/definir-senha/', conta.DefinirSenhaView.as_view(), name='api_definir_senha'),
     path('me/trocar-senha/', conta.TrocarSenhaView.as_view(), name='api_trocar_senha'),
     path('me/aceitar-termo/', conta.AceitarTermoView.as_view(), name='api_aceitar_termo'),
     path('me/agenda/', conta.AgendaView.as_view(), name='api_agenda'),
+    path('me/historico/', escalas.HistoricoView.as_view(), name='api_historico'),
     path('termo/', conta.TermoView.as_view(), name='api_termo'),
     path('meta/', MetaView.as_view(), name='api_meta'),
 
@@ -44,6 +46,7 @@ urlpatterns = [
     path('escalas/<int:pk>/confirmar/', escalas.ConfirmarEscalaView.as_view(), name='api_escala_confirmar'),
     path('escalas/<int:pk>/impedimento/', escalas.ImpedimentoView.as_view(), name='api_escala_impedimento'),
     path('escalas/<int:pk>/troca/', escalas.TrocaView.as_view(), name='api_escala_troca'),
+    path('escalas/<int:pk>/equipe/', escalas.ColegasView.as_view(), name='api_escala_equipe'),
     path('avisos/', avisos.AvisoListView.as_view(), name='api_avisos'),
     path('avisos/ler/', avisos.LerAvisosView.as_view(), name='api_avisos_ler'),
     path('vagas/', escalas.VagaAbertaListView.as_view(), name='api_vagas'),

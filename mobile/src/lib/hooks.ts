@@ -4,6 +4,7 @@ import { api } from './api';
 import {
   Agenda,
   CaixaDeAvisos,
+  Colega,
   Culto,
   DetalheDaVaga,
   DetalheDoCulto,
@@ -13,6 +14,7 @@ import {
   Escala,
   EventoCalendario,
   EventoComEquipe,
+  Historico,
   Home,
   PendenciasDoLider,
   Vaga,
@@ -104,6 +106,12 @@ export function useCandidatura() {
 
 export const useAgenda = () =>
   useQuery({ queryKey: ['agenda'], queryFn: () => api<Agenda>('GET', '/me/agenda/'), staleTime: Infinity });
+
+export const useColegas = (id: number) =>
+  useQuery({ queryKey: ['escalas', id, 'equipe'], queryFn: () => api<Colega[]>('GET', `/escalas/${id}/equipe/`) });
+
+export const useHistorico = () =>
+  useQuery({ queryKey: ['historico'], queryFn: () => api<Historico>('GET', '/me/historico/') });
 
 // ── Painel do líder ──
 

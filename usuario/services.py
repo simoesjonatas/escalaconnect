@@ -1,6 +1,10 @@
+import re
+
 from django.core.cache import cache
 from django.db import IntegrityError
 from django.utils import timezone
+
+from escalaconnect.regras import RegraDeNegocio
 
 
 def termo_pendente(user):
@@ -33,3 +37,28 @@ def aceitar_termo(user):
     """Registra o aceite do termo de compromisso do voluntário."""
     user.termo_aceito_em = timezone.now()
     user.save(update_fields=['termo_aceito_em'])
+
+
+def pedir_redefinicao_senha(cpf, aniversario):
+    """Esqueci minha senha (site e app): acha a conta por CPF e data de nascimento e manda
+    por e-mail o link para criar uma senha nova. Devolve o usuário encontrado."""
+    from .mail import enviar_email_redefinicao_senha
+    from .models import PasswordResetRequest, Usuario
+
+    usuario = Usuario.objects.filter(cpf=re.sub(r'[^0-9]', '', cpf), aniversario=aniversario).first()
+    if usuario is None:
+        raise RegraDeNegocio('Dados não encontrados. Verifique seu CPF e data de nascimento.',
+                             code='dados_nao_encontrados')
+    if not usuario.email:
+        raise RegraDeNegocio('Sua conta não tem e-mail cadastrado. Peça ao líder da sua equipe para redefinir sua senha.',
+                             code='sem_email')
+    # Só o link mais recente vale.
+    PasswordResetRequest.objects.filter(usuario=usuario, is_used=False).update(is_used=True)
+    enviar_email_redefinicao_senha(usuario.email, PasswordResetRequest.objects.create(usuario=usuario))
+    return usuario
+
+
+def mascarar_email(email):
+    """jonatas@gmail.com -> jo*****@gmail.com, para confirmar o destino sem expor o endereço."""
+    nome, _, dominio = email.partition('@')
+    return f"{nome[:2]}{'*' * max(len(nome) - 2, 3)}@{dominio}"

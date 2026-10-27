@@ -24,6 +24,9 @@ export function periodo(inicio: string, fim: string): string {
 /** "2026-10-04", no fuso do aparelho (chave dos dias no calendário). */
 export const chaveDoDia = (data: Date | string) => fmt(data, 'yyyy-MM-dd');
 
+/** "março de 2025" */
+export const mesEAno = (data: Date | string) => fmt(data, "MMMM 'de' yyyy");
+
 /** "Outubro" (com o ano quando não for o ano corrente: "Janeiro 2027"). */
 export function mesPorExtenso(data: Date | string): string {
   const d = new Date(data);

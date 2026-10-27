@@ -17,3 +17,8 @@ class LoginUsuarioThrottle(SimpleRateThrottle):
             return None
         ident = hashlib.sha256(username.encode()).hexdigest()
         return self.cache_format % {'scope': self.scope, 'ident': ident}
+
+
+class RecuperarSenhaThrottle(AnonRateThrottle):
+    """Cada pedido manda um e-mail: limite por IP para não virar disparador de mensagens."""
+    scope = 'recuperar_senha'

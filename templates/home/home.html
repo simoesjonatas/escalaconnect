@@ -10,6 +10,47 @@
         <p>Bem-vindo ao Escala Connect — acompanhe suas escalas, confirme presença e mantenha sua disponibilidade em dia.</p>
     </section>
 
+    {% if loja_do_app %}
+    <div class="home-suggestion home-app" id="faixa-app">
+        <div>
+            <i class="fa fa-mobile-alt"></i>
+            <span>
+                <strong>Baixe o app Escala Connect</strong>
+                Confirme suas escalas com um toque e receba os lembretes no celular. Entre com o mesmo usuário e senha do site.
+                {% if loja_do_app != 'android' %}<br><small>No iPhone o app não aparece na busca da App Store: instale pelo botão.</small>{% endif %}
+            </span>
+        </div>
+        <div class="home-app-acoes">
+            {% if loja_do_app != 'ios' %}
+            <a class="btn btn-success btn-sm" href="{{ app_android_url }}" target="_blank" rel="noopener">
+                <i class="fa fa-download mr-1"></i> Google Play
+            </a>
+            {% endif %}
+            {% if loja_do_app != 'android' %}
+            <a class="btn btn-success btn-sm" href="{{ app_ios_url }}" target="_blank" rel="noopener">
+                <i class="fa fa-download mr-1"></i> App Store
+            </a>
+            {% endif %}
+            <button type="button" class="home-app-fechar" aria-label="Fechar aviso do app" title="Fechar">&times;</button>
+        </div>
+    </div>
+    <script>
+        (function () {
+            // Fechar esconde a faixa por 30 dias neste navegador.
+            var faixa = document.getElementById('faixa-app');
+            var chave = 'faixa-app-fechada-em';
+            var trintaDias = 30 * 24 * 60 * 60 * 1000;
+            try {
+                if (Date.now() - Number(localStorage.getItem(chave) || 0) < trintaDias) faixa.hidden = true;
+            } catch (e) {}
+            faixa.querySelector('.home-app-fechar').addEventListener('click', function () {
+                faixa.hidden = true;
+                try { localStorage.setItem(chave, String(Date.now())); } catch (e) {}
+            });
+        })();
+    </script>
+    {% endif %}
+
     {% if falta_email or falta_telefone %}
     <div class="alert alert-danger home-alert">
         <i class="fa fa-address-book"></i>
@@ -205,6 +246,16 @@
         margin: 0;
         white-space: nowrap;
     }
+    .home-app { border-color: rgba(57, 255, 20, .5); position: relative; padding-right: 40px; }
+    .home-app[hidden] { display: none; }
+    .home-app small { color: var(--connect-muted, #9aa4ad); }
+    .home-app-acoes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .home-app-fechar {
+        background: none; border: 0; color: var(--connect-muted, #9aa4ad);
+        font-size: 1.4rem; line-height: 1; padding: 0 4px; cursor: pointer;
+        position: absolute; top: 8px; right: 8px;
+    }
+    .home-app-fechar:hover { color: var(--connect-text, #e6f0ea); }
     .home-suggestion-empty {
         color: var(--connect-muted, #9aa4ad);
         font-size: .85rem;

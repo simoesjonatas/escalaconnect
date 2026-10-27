@@ -79,6 +79,18 @@ export type Equipes = { aprovadas: Equipe[]; pendentes: Equipe[]; disponiveis: E
 /** Links do .ics das escalas (sem login; trocar a senha invalida). */
 export type Agenda = { https: string; webcal: string };
 
+/** Outra função da mesma equipe no mesmo culto; `nome` nulo = vaga sem ninguém. */
+export type Colega = { funcao: string; nome: string | null; confirmada: boolean };
+
+export type Historico = {
+  mes: number;
+  ano: number;
+  total: number;
+  desde: string | null;
+  por_funcao: { funcao: string; equipe: string; total: number }[];
+  ultimas: Escala[];
+};
+
 // ── Painel do líder (/lider/) ──
 
 export type Pessoa = { id: number; nome: string };
@@ -110,7 +122,11 @@ export type DetalheDaVaga = { vaga: Vaga; candidatos: Candidato[] };
 /** Vaga da equipe do voluntário (tela "Vagas em aberto"). */
 export type VagaAberta = EscalaDaEquipe & { me_ofereci: boolean };
 
-export type Culto = EventoComEquipe & { total: number; confirmadas: number; pendentes: number; vagas: number };
+export type ContagemDoCulto = { total: number; confirmadas: number; pendentes: number; vagas: number };
+
+/** Culto com as contagens das equipes lideradas (somadas e, em `por_equipe`, separadas). */
+export type Culto = EventoComEquipe &
+  ContagemDoCulto & { por_equipe: (ContagemDoCulto & { equipe_id: number; equipe: string })[] };
 
 export type EscalaDoCulto = {
   id: number;

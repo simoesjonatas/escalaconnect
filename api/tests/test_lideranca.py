@@ -399,6 +399,8 @@ class CultosDoLiderTests(LiderancaTestCase):
         (culto,) = self.como(self.lider).get('/api/v1/lider/cultos/').data
         self.assertEqual((culto['id'], culto['total'], culto['confirmadas'], culto['pendentes'], culto['vagas']),
                          (self.evento.pk, 3, 1, 1, 1))
+        self.assertEqual(culto['por_equipe'], [{'equipe_id': self.equipe.pk, 'equipe': self.equipe.nome,
+                                                'total': 3, 'vagas': 1, 'confirmadas': 1, 'pendentes': 1}])
 
         resp = self.client.get(f'/api/v1/lider/cultos/{self.evento.pk}/')
         self.assertEqual(
@@ -411,6 +413,13 @@ class CultosDoLiderTests(LiderancaTestCase):
         # Só Maria (não confirmou, equipe do líder): nem João (confirmado) nem Pedro (outra equipe).
         self.assertEqual([m['to'] for m in self.mensagens()], [self.device.expo_token])
         self.assertEqual(self.mensagens()[0]['title'], 'Confirma sua escala?')
+
+    def test_lider_de_duas_equipes_ve_contagem_por_equipe(self):
+        Lideranca.objects.create(usuario=self.lider, equipe=Equipe.objects.get(nome='Louvor'))
+        (culto,) = self.como(self.lider).get('/api/v1/lider/cultos/').data
+        self.assertEqual((culto['total'], culto['pendentes']), (4, 2))
+        self.assertEqual([(e['equipe'], e['total'], e['pendentes']) for e in culto['por_equipe']],
+                         [('Louvor', 1, 1), (self.equipe.nome, 3, 1)])
 
     def test_lider_de_outra_equipe_nao_ve(self):
         lider_de_fora = criar_usuario(username='ze', cpf='98765432100')

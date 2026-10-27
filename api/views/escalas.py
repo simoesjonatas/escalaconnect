@@ -1,5 +1,8 @@
-from django.db.models import Exists, OuterRef
+from datetime import datetime
+
+from django.db.models import Count, Exists, Min, OuterRef
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -92,8 +95,58 @@ class TrocaView(EscalaDoUsuarioView):
         return self.executar(services.cancelar_troca)
 
 
+class ColegasView(EscalaDoUsuarioView):
+    """Quem serve com o voluntário no mesmo culto e na mesma equipe; função sem ninguém vem com nome nulo."""
+
+    def get(self, request, pk):
+        escala = self.get_escala(pk)
+        outras = (
+            Escala.objects
+            .filter(evento_id=escala.evento_id, funcao__equipe_id=escala.funcao.equipe_id)
+            .exclude(pk=escala.pk)
+            .select_related('funcao', 'usuario')
+        )
+        outras = sorted(outras, key=lambda e: (e.usuario_id is None, e.funcao.nome))  # pessoas antes das vagas
+        return Response([
+            {
+                'funcao': e.funcao.nome,
+                'nome': (e.usuario.get_full_name() or e.usuario.username) if e.usuario else None,
+                'confirmada': e.confirmada,
+            }
+            for e in outras
+        ])
+
+
+class HistoricoView(APIView):
+    """Quantas vezes o voluntário já serviu (cultos que já começaram), por função, e as últimas escalas."""
+
+    def get(self, request):
+        agora = timezone.now()
+        hoje = timezone.localdate(agora)
+        inicio_mes = timezone.make_aware(datetime(hoje.year, hoje.month, 1))
+        inicio_ano = timezone.make_aware(datetime(hoje.year, 1, 1))
+        servidas = Escala.objects.filter(usuario=request.user, evento__data_inicio__lte=agora)
+        por_funcao = (
+            servidas.values('funcao__nome', 'funcao__equipe__nome')
+            .annotate(total=Count('id'))
+            .order_by('-total', 'funcao__nome')
+        )
+        return Response({
+            'mes': servidas.filter(evento__data_inicio__gte=inicio_mes).count(),
+            'ano': servidas.filter(evento__data_inicio__gte=inicio_ano).count(),
+            'total': servidas.count(),
+            'desde': servidas.aggregate(desde=Min('evento__data_inicio'))['desde'],
+            'por_funcao': [
+                {'funcao': f['funcao__nome'], 'equipe': f['funcao__equipe__nome'], 'total': f['total']}
+                for f in por_funcao
+            ],
+            'ultimas': EscalaSerializer(
+                escalas_do_usuario(request.user, servidas).order_by('-evento__data_inicio')[:20], many=True).data,
+        })
+
+
 class VagaAbertaListView(APIView):
-    """Vagas em aberto das equipes do voluntário em que ninguém marcou disponibilidade, para ele se oferecer."""
+    """Vagas em aberto das equipes do voluntário (até alguém ser escalado), para ele se oferecer."""
 
     def get(self, request):
         return Response(VagaAbertaSerializer(services.vagas_visiveis_para(request.user), many=True).data)

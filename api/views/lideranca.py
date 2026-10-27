@@ -199,25 +199,39 @@ def _escalas_dos_cultos(equipes):
 
 
 class CultoListView(LiderView):
-    """Próximos eventos com escalas das equipes lideradas, com a contagem de cada situação."""
+    """Próximos eventos com escalas das equipes lideradas, com a contagem de cada situação.
+
+    `por_equipe` traz as mesmas contagens separadas por equipe, para o filtro do app.
+    """
 
     def get(self, request):
-        contagem = {
-            linha['evento_id']: linha
-            for linha in _escalas_dos_cultos(self.equipes()).values('evento_id').annotate(
+        por_evento = {}
+        linhas = (
+            _escalas_dos_cultos(self.equipes())
+            .values('evento_id', 'funcao__equipe_id', 'funcao__equipe__nome')
+            .annotate(
                 total=Count('id'),
                 vagas=Count('id', filter=Q(usuario__isnull=True)),
                 confirmadas=Count('id', filter=Q(usuario__isnull=False, confirmada=True)),
             )
-        }
-        eventos = Evento.objects.filter(pk__in=contagem).select_related('equipe').order_by('data_inicio')
+            .order_by('funcao__equipe__nome')
+        )
+        for linha in linhas:
+            por_evento.setdefault(linha['evento_id'], []).append({
+                'equipe_id': linha['funcao__equipe_id'],
+                'equipe': linha['funcao__equipe__nome'],
+                'total': linha['total'],
+                'vagas': linha['vagas'],
+                'confirmadas': linha['confirmadas'],
+                'pendentes': linha['total'] - linha['vagas'] - linha['confirmadas'],
+            })
+        eventos = Evento.objects.filter(pk__in=por_evento).select_related('equipe').order_by('data_inicio')
         return Response([
             {
                 **EventoSerializer(evento).data,
-                'total': contagem[evento.pk]['total'],
-                'vagas': contagem[evento.pk]['vagas'],
-                'confirmadas': contagem[evento.pk]['confirmadas'],
-                'pendentes': contagem[evento.pk]['total'] - contagem[evento.pk]['vagas'] - contagem[evento.pk]['confirmadas'],
+                **{campo: sum(e[campo] for e in por_evento[evento.pk])
+                   for campo in ('total', 'vagas', 'confirmadas', 'pendentes')},
+                'por_equipe': por_evento[evento.pk],
             }
             for evento in eventos
         ])

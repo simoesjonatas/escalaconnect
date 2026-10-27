@@ -177,3 +177,41 @@ class HomeTests(EscalasApiTestCase):
         resp = self.client.get('/api/v1/home/')
         self.assertEqual(resp.data['escalas_pendentes'], 0)
         self.assertIsNone(resp.data['proxima_escala'])
+
+
+class ColegasTests(EscalasApiTestCase):
+    def test_mostra_quem_serve_na_mesma_equipe_e_as_vagas(self):
+        evento = self.escala.evento
+        Escala.objects.create(usuario=self.outro, funcao=Funcao.objects.create(nome='Café', equipe=self.equipe),
+                              evento=evento, confirmada=True)
+        Escala.objects.create(funcao=Funcao.objects.create(nome='Estacionamento', equipe=self.equipe), evento=evento)
+        # Outra equipe no mesmo culto não aparece.
+        louvor = Funcao.objects.create(nome='Vocal', equipe=Equipe.objects.create(nome='Louvor'))
+        Escala.objects.create(usuario=criar_usuario(username='ana', cpf='39053344705'), funcao=louvor, evento=evento)
+
+        resp = self.client.get(self.url(self.escala, 'equipe/'))
+        self.assertEqual(resp.data, [
+            {'funcao': 'Café', 'nome': 'joao', 'confirmada': True},
+            {'funcao': 'Estacionamento', 'nome': None, 'confirmada': False},
+        ])
+
+    def test_escala_de_outro_e_404(self):
+        self.assertEqual(self.client.get(self.url(self.escala_do_outro, 'equipe/')).status_code, 404)
+
+
+class HistoricoTests(EscalasApiTestCase):
+    def test_conta_so_cultos_que_ja_comecaram(self):
+        passada = self.criar_escala(self.user, dias=-1)
+        self.criar_escala(self.user, dias=-400, nome='Culto antigo')
+        resp = self.client.get('/api/v1/me/historico/')
+        self.assertEqual(resp.data['total'], 2)  # a escala futura do setUp não conta
+        # Só a de ontem pode ser deste ano (a de 400 dias atrás nunca é); em 1º de janeiro nem ela.
+        este_ano = timezone.localtime(passada.evento.data_inicio).year == timezone.localdate().year
+        self.assertEqual(resp.data['ano'], int(este_ano))
+        self.assertEqual(resp.data['por_funcao'], [{'funcao': 'Porta', 'equipe': 'Recepção', 'total': 2}])
+        self.assertEqual([e['id'] for e in resp.data['ultimas']], [passada.pk, resp.data['ultimas'][1]['id']])
+        self.assertEqual(resp.data['ultimas'][0]['evento']['nome'], 'Culto')
+
+    def test_sem_historico(self):
+        resp = self.client.get('/api/v1/me/historico/')
+        self.assertEqual((resp.data['total'], resp.data['mes'], resp.data['desde'], resp.data['ultimas']), (0, 0, None, []))

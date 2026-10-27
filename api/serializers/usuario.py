@@ -9,6 +9,11 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(trim_whitespace=False)
 
 
+class RecuperarSenhaSerializer(serializers.Serializer):
+    cpf = serializers.CharField(max_length=14)
+    data_nascimento = serializers.DateField()
+
+
 class UsuarioSerializer(serializers.ModelSerializer):
     """Dados do próprio usuário. Campos explícitos: o CPF nunca sai pela API."""
     nome_completo = serializers.CharField(source='get_full_name', read_only=True)
