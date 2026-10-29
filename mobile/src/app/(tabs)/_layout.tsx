@@ -55,6 +55,8 @@ export default function TabsLayout() {
   const lider = useAuth().usuario?.lider ?? false;
   const pendenciasLider = home?.pendencias_lider ?? 0;
   const selo = { backgroundColor: cores.perigo, color: '#fff' };
+  // O selo fica preso à largura do ícone da aba: "99+" precisa de largura própria para não virar "9…".
+  const seloDe = (n: number) => (n > 99 ? { ...selo, width: 34, end: -14, fontSize: 10 } : selo);
   const naoLidos = home?.avisos_nao_lidos;
   // O número no ícone do app acompanha os avisos não lidos.
   useEffect(() => {
@@ -84,7 +86,7 @@ export default function TabsLayout() {
           title: 'Escalas',
           tabBarIcon: icone('clipboard-outline'),
           tabBarBadge: pendentes > 0 ? contador(pendentes) : undefined,
-          tabBarBadgeStyle: selo,
+          tabBarBadgeStyle: seloDe(pendentes),
         }}
       />
       <Tabs.Screen name="calendario" options={{ title: 'Calendário', tabBarIcon: icone('calendar-outline') }} />
@@ -96,7 +98,7 @@ export default function TabsLayout() {
           href: lider ? undefined : null,
           tabBarIcon: icone('people-outline'),
           tabBarBadge: pendenciasLider > 0 ? contador(pendenciasLider) : undefined,
-          tabBarBadgeStyle: selo,
+          tabBarBadgeStyle: seloDe(pendenciasLider),
         }}
       />
       <Tabs.Screen name="perfil" options={{ title: 'Perfil', tabBarIcon: icone('person-outline') }} />

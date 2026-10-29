@@ -118,7 +118,9 @@ export const useHistorico = () =>
 export const usePendenciasDoLider = () =>
   useQuery({ queryKey: ['lider', 'pendencias'], queryFn: () => api<PendenciasDoLider>('GET', '/lider/pendencias/') });
 
-export const useVagas = () => useQuery({ queryKey: ['lider', 'vagas'], queryFn: () => api<Vaga[]>('GET', '/lider/vagas/') });
+/** `ativo` false: não busca (ex.: o Calendário de quem não é líder). */
+export const useVagas = (ativo = true) =>
+  useQuery({ queryKey: ['lider', 'vagas'], queryFn: () => api<Vaga[]>('GET', '/lider/vagas/'), enabled: ativo });
 
 export const useVaga = (id: number) =>
   useQuery({ queryKey: ['lider', 'vagas', id], queryFn: () => api<DetalheDaVaga>('GET', `/lider/vagas/${id}/`) });
@@ -157,8 +159,8 @@ export function useEscalarNaVaga(vagaId: number) {
   });
 }
 
-export const useCultos = () =>
-  useQuery({ queryKey: ['lider', 'cultos'], queryFn: () => api<Culto[]>('GET', '/lider/cultos/') });
+export const useCultos = (ativo = true) =>
+  useQuery({ queryKey: ['lider', 'cultos'], queryFn: () => api<Culto[]>('GET', '/lider/cultos/'), enabled: ativo });
 
 export const useCulto = (id: number) =>
   useQuery({ queryKey: ['lider', 'cultos', id], queryFn: () => api<DetalheDoCulto>('GET', `/lider/cultos/${id}/`) });
@@ -206,6 +208,8 @@ export function useOferta() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['vagas'] });
       void queryClient.invalidateQueries({ queryKey: ['home'] });
+      // Quem também lidera a equipe vê a oferta no painel e na prévia do Calendário.
+      void queryClient.invalidateQueries({ queryKey: ['lider'] });
     },
   });
 }

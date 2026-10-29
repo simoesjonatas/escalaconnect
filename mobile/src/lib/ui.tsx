@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ComponentProps, ReactNode, useState } from 'react';
+import { ComponentProps, ReactNode, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -24,6 +24,9 @@ import { espaco, useTema } from './tema';
  * ligá-lo nas atualizações automáticas (ao voltar para o app) deixava o spinner preso
  * no topo do iPhone.
  */
+/** Quanto rolar (em pontos) até aparecer o botão de voltar ao topo. */
+const ROLAGEM_PARA_BOTAO_TOPO = 800;
+
 export function Tela({
   children,
   aoAtualizar,
@@ -36,6 +39,8 @@ export function Tela({
 }) {
   const { cores } = useTema();
   const [puxando, setPuxando] = useState(false);
+  const rolagem = useRef<ScrollView>(null);
+  const [longe, setLonge] = useState(false);
 
   async function atualizar() {
     setPuxando(true);
@@ -50,8 +55,11 @@ export function Tela({
       style={{ flex: 1, backgroundColor: cores.fundo }}
       edges={comTopo ? ['top', 'left', 'right'] : ['left', 'right']}>
       <ScrollView
+        ref={rolagem}
         contentContainerStyle={estilos.conteudo}
         keyboardShouldPersistTaps="handled"
+        scrollEventThrottle={200}
+        onScroll={(e) => setLonge(e.nativeEvent.contentOffset.y > ROLAGEM_PARA_BOTAO_TOPO)}
         refreshControl={
           aoAtualizar ? (
             <RefreshControl refreshing={puxando} onRefresh={atualizar} tintColor={cores.primaria} />
@@ -59,6 +67,20 @@ export function Tela({
         }>
         {children}
       </ScrollView>
+      {/* Listas longas (Liderança, escalas): um toque volta para o começo. */}
+      {longe && (
+        <Pressable
+          onPress={() => rolagem.current?.scrollTo({ y: 0, animated: true })}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar ao topo"
+          style={({ pressed }) => [
+            estilos.botaoTopo,
+            { backgroundColor: cores.primaria },
+            pressed && { opacity: 0.8 },
+          ]}>
+          <Ionicons name="arrow-up" size={22} color={cores.sobrePrimaria} />
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 }
@@ -223,7 +245,12 @@ export function Segmentos<T extends string>({
             accessibilityRole="tab"
             accessibilityState={{ selected: ativa }}
             style={[estilos.segmento, ativa && { backgroundColor: cores.cartao }]}>
-            <Text numberOfLines={1} style={{ color: ativa ? cores.texto : cores.textoSuave, fontSize: 14, fontWeight: '600' }}>
+            {/* Com "99+" ao lado o rótulo pode não caber: diminui um pouco em vez de encostar na borda. */}
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.8}
+              style={{ flexShrink: 1, color: ativa ? cores.texto : cores.textoSuave, fontSize: 14, fontWeight: '600' }}>
               {opcao.rotulo}
             </Text>
             {!!opcao.total && (
@@ -430,8 +457,8 @@ const estilos = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingHorizontal: 4,
+    gap: 4,
+    paddingHorizontal: 6,
   },
   contador: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, alignItems: 'center', justifyContent: 'center' },
   contadorTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
@@ -443,6 +470,21 @@ const estilos = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: espaco.m,
     paddingVertical: 10,
+  },
+  botaoTopo: {
+    position: 'absolute',
+    right: espaco.g,
+    bottom: espaco.g,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
   itemDeGrupo: {
     flexDirection: 'row',

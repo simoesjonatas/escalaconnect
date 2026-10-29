@@ -105,6 +105,47 @@ export function Chips<T>({
   );
 }
 
+/** Uma opção por equipe que aparece na lista, em ordem alfabética. */
+export function filtrosDeEquipe<T>(equipes: [number, string][], daEquipe: (item: T, id: number) => boolean): Filtro<T>[] {
+  return [...new Map(equipes)]
+    .sort(([, a], [, b]) => a.localeCompare(b))
+    .map(([id, nome]) => ({ valor: String(id), rotulo: nome, aplica: (item: T) => daEquipe(item, id) }));
+}
+
+type Escolhas<T> = { uteis: Filtro<T>[]; ativo?: Filtro<T> };
+
+/** Cartão de filtros com várias linhas e a contagem logo abaixo ("Mostrando 3 de 12 cultos"). */
+export function CartaoDeFiltros<T>({
+  titulo,
+  nome,
+  linhas,
+  total,
+  mostrando,
+  aoLimpar,
+}: {
+  titulo: string;
+  nome: string;
+  linhas: { titulo: string; todos: string; escolha: Escolhas<T>; aoEscolher: (valor: string) => void }[];
+  total: number;
+  mostrando: number;
+  aoLimpar: () => void;
+}) {
+  if (total === 0) return null;
+  const filtrando = linhas.some((l) => l.escolha.ativo);
+  return (
+    <>
+      {linhas.some((l) => l.escolha.uteis.length > 0) && (
+        <CaixaDeFiltros titulo={titulo} filtrando={filtrando} aoLimpar={aoLimpar}>
+          {linhas.map((linha) => (
+            <Chips key={linha.titulo} {...linha} />
+          ))}
+        </CaixaDeFiltros>
+      )}
+      <Suave>{filtrando ? `Mostrando ${mostrando} de ${total} ${nome}` : `${total} ${nome}`}</Suave>
+    </>
+  );
+}
+
 const semana = (data: Date) => ({ start: startOfWeek(data, { weekStartsOn: 1 }), end: endOfWeek(data, { weekStartsOn: 1 }) });
 const mes = (data: Date) => ({ start: startOfMonth(data), end: endOfMonth(data) });
 

@@ -4,7 +4,7 @@ import { ComponentProps, useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { diaCurto } from '../../lib/datas';
-import { aplicar, CaixaDeFiltros, Chips, escolher, Filtro, filtrosDePeriodo, TODOS } from '../../lib/filtros';
+import { aplicar, CartaoDeFiltros, escolher, Filtro, filtrosDeEquipe, filtrosDePeriodo, TODOS } from '../../lib/filtros';
 import { AcaoDoLider, useAcaoDoLider, useCultos, usePendenciasDoLider, useVagas } from '../../lib/hooks';
 import { Cores, useTema } from '../../lib/tema';
 import { ContagemDoCulto, Culto, EscalaDaEquipe, PendenciasDoLider, Pessoa, Vaga } from '../../lib/types';
@@ -92,13 +92,6 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
     recusar: `O pedido de ${c.pessoa.nome} para a equipe ${c.equipe} será descartado.`,
   }));
   return [...comData, ...candidaturas];
-}
-
-/** Uma opção por equipe que aparece na lista, em ordem alfabética. */
-function filtrosDeEquipe<T>(equipes: [number, string][], daEquipe: (item: T, id: number) => boolean): Filtro<T>[] {
-  return [...new Map(equipes)]
-    .sort(([, a], [, b]) => a.localeCompare(b))
-    .map(([id, nome]) => ({ valor: String(id), rotulo: nome, aplica: (item: T) => daEquipe(item, id) }));
 }
 
 const TIPOS_DE_PENDENCIA: Filtro<Pendencia>[] = (
@@ -195,40 +188,6 @@ function resumoDaVaga(vaga: Vaga) {
   return disponiveis || 'Ninguém marcou disponibilidade';
 }
 
-type Escolhas<T> = { uteis: Filtro<T>[]; ativo?: Filtro<T> };
-
-/** Cartão de filtros de Cultos ou Vagas e a contagem logo abaixo ("Mostrando 3 de 12 cultos"). */
-function FiltrosDoLider<T>({
-  titulo,
-  nome,
-  linhas,
-  total,
-  mostrando,
-  aoLimpar,
-}: {
-  titulo: string;
-  nome: string;
-  linhas: { titulo: string; todos: string; escolha: Escolhas<T>; aoEscolher: (valor: string) => void }[];
-  total: number;
-  mostrando: number;
-  aoLimpar: () => void;
-}) {
-  if (total === 0) return null;
-  const filtrando = linhas.some((l) => l.escolha.ativo);
-  return (
-    <>
-      {linhas.some((l) => l.escolha.uteis.length > 0) && (
-        <CaixaDeFiltros titulo={titulo} filtrando={filtrando} aoLimpar={aoLimpar}>
-          {linhas.map((linha) => (
-            <Chips key={linha.titulo} {...linha} />
-          ))}
-        </CaixaDeFiltros>
-      )}
-      <Suave>{filtrando ? `Mostrando ${mostrando} de ${total} ${nome}` : `${total} ${nome}`}</Suave>
-    </>
-  );
-}
-
 /** Painel do líder em três abas: pendências para decidir, próximos cultos e vagas em aberto. */
 export default function Lideranca() {
   const pendencias = usePendenciasDoLider();
@@ -311,7 +270,7 @@ export default function Lideranca() {
               <Suave>Nenhum impedimento, troca, oferta ou candidatura esperando você.</Suave>
             </Cartao>
           )}
-          <FiltrosDoLider
+          <CartaoDeFiltros
             titulo="Filtrar pendências"
             nome="pendências"
             linhas={[
@@ -349,7 +308,7 @@ export default function Lideranca() {
             consulta={cultos}
             vazio={cultos.data?.length === 0 && 'Nenhum culto com escala da sua equipe nos próximos 60 dias.'}
           />
-          <FiltrosDoLider
+          <CartaoDeFiltros
             titulo="Filtrar cultos"
             nome="cultos"
             linhas={[
@@ -370,7 +329,7 @@ export default function Lideranca() {
       {aba === 'vagas' && (
         <>
           <Estado consulta={vagas} vazio={vagas.data?.length === 0 && 'Nenhuma vaga em aberto nos próximos 60 dias.'} />
-          <FiltrosDoLider
+          <CartaoDeFiltros
             titulo="Filtrar vagas"
             nome="vagas"
             linhas={[
