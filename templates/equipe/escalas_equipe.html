@@ -383,6 +383,25 @@ Escalas da Equipe {{ equipe.nome }}
     .equipe-escalas-page .gc-chip.gc-vaga.disp-1 { border-left-color: var(--connect-warning); }
     .equipe-escalas-page .gc-chip.gc-vaga.disp-ok { border-left-color: var(--connect-green); }
     .equipe-escalas-page .gc-vazio { color: var(--connect-muted); }
+    /* Vaga em que alguém se ofereceu: destaque para o líder decidir. */
+    .equipe-escalas-page .gc-oferta {
+        display: flex;
+        width: max-content;
+        max-width: 100%;
+        align-items: center;
+        gap: 5px;
+        margin-top: 5px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--connect-green);
+        color: #0b0b0b;
+        font-size: .74rem;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+    .equipe-escalas-page .gc-oferta i { font-size: .9em; }
+    .equipe-escalas-page .gc-chip.gc-vaga.com-oferta { border-style: solid; }
+    .equipe-escalas-page .me-tags .badge-oferta { background: var(--connect-green); color: #0b0b0b; }
 
     @media (max-width: 720px) {
         .equipe-escalas-page .visao-switch { display: flex; }
@@ -478,10 +497,13 @@ Escalas da Equipe {{ equipe.nome }}
                         </a>
                         {% else %}
                         {% with c=escala.vaga_disponiveis %}
-                        <a class="gc-chip gc-vaga {% if c == 0 %}disp-0{% elif c == 1 %}disp-1{% else %}disp-ok{% endif %}"
+                        <a class="gc-chip gc-vaga {% if c == 0 %}disp-0{% elif c == 1 %}disp-1{% else %}disp-ok{% endif %}{% if escala.vaga_ofertas %} com-oferta{% endif %}"
                            href="{% url 'escala_detail_equipe' equipe.pk escala.pk %}">
                             <strong>Vaga em aberto</strong>
                             <small>{{ c }} disponíve{{ c|pluralize:"l,is" }}</small>
+                            {% if escala.vaga_ofertas %}
+                            <span class="gc-oferta"><i class="fa fa-hand-paper"></i> {{ escala.vaga_ofertas }} quer{{ escala.vaga_ofertas|pluralize:",em" }} servir</span>
+                            {% endif %}
                         </a>
                         {% endwith %}
                         {% endif %}
@@ -501,6 +523,7 @@ Escalas da Equipe {{ equipe.nome }}
         <span><i class="cal-dot" style="background:var(--connect-info)"></i> A confirmar</span>
         <span><i class="cal-dot" style="background:var(--connect-warning)"></i> Vaga com só 1 disponível</span>
         <span><i class="cal-dot" style="background:var(--connect-danger)"></i> Vaga sem ninguém disponível</span>
+        <span><span class="gc-oferta" style="display:inline-flex;margin-top:0"><i class="fa fa-hand-paper"></i> quer servir</span> Alguém se ofereceu: abra a vaga para escalar</span>
     </div>
     {% else %}
     <div class="pessoa-vazio">
@@ -531,6 +554,9 @@ Escalas da Equipe {{ equipe.nome }}
                 <small>{{ escala.evento.data_inicio|date:"l, d/m/Y" }}</small>
                 <div class="me-tags">
                     <span class="badge badge-info">{{ escala.funcao.nome }}</span>
+                    {% if escala.ofertas and not escala.usuario %}
+                    <span class="badge badge-oferta"><i class="fa fa-hand-paper"></i> {{ escala.ofertas }} quer{{ escala.ofertas|pluralize:",em" }} servir</span>
+                    {% endif %}
                     {% if escala.has_impedimento %}
                     <span class="badge badge-danger">Impedimento em análise</span>
                     {% endif %}
@@ -565,7 +591,7 @@ Escalas da Equipe {{ equipe.nome }}
                 <div class="resumo-avatar resumo-avatar-sm"><i class="fa fa-user-plus"></i></div>
                 <div class="pessoa-info">
                     <strong class="resumo-vaga">Vaga em aberto</strong>
-                    <small>Escolha alguém disponível</small>
+                    <small>{% if escala.ofertas %}Veja quem quer servir{% else %}Escolha alguém disponível{% endif %}</small>
                 </div>
                 {% endif %}
             </div>

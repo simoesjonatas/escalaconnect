@@ -13,6 +13,7 @@ urlpatterns = [
     path('vagas/', vagas_views.vagas_abertas, name='vagas_abertas'),
     path('vagas/<int:pk>/oferecer/', vagas_views.oferecer_para_vaga, name='oferecer_para_vaga'),
     path('vagas/<int:pk>/desistir/', vagas_views.desistir_da_vaga, name='desistir_da_vaga'),
+    path('ofertas/<int:pk>/recusar/', vagas_views.recusar_oferta, name='recusar_oferta'),
     path('funcoes-eventos/', aplicar_funcoes_eventos, name='aplicar_funcoes_eventos'),
 
     

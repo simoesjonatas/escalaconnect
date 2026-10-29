@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from .models import Equipe, Lideranca
-from escala.models import Escala, Desistencia, Funcao
+from escala.models import Escala, Desistencia, Funcao, Rendimento
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from django.utils import timezone
@@ -59,6 +59,7 @@ def listar_escalas(request, equipe_pk):
     escalas_list = (Escala.objects
         .filter(funcao__equipe=equipe, evento__data_inicio__date__gte=today)
         .select_related('funcao', 'funcao__equipe', 'evento', 'usuario')
+        .annotate(ofertas=Count('rendimento', filter=Q(rendimento__aprovada=False)))
         .order_by(order_by)
     )
     if query:
@@ -122,6 +123,15 @@ def _contexto_grade(request, equipe):
         .order_by('evento__data_inicio', 'evento_id', 'funcao__nome', 'pk')
     )
 
+    # Quem se ofereceu para cada vaga em aberto (uma query para o mês todo).
+    ofertas_por_vaga = dict(
+        Rendimento.objects
+        .filter(escala__in=escalas, escala__usuario__isnull=True, aprovada=False)
+        .values('escala_id')
+        .annotate(total=Count('id'))
+        .values_list('escala_id', 'total')
+    )
+
     linhas = []
     linha_por_evento = {}
     total = preenchidas = 0
@@ -145,6 +155,7 @@ def _contexto_grade(request, equipe):
             if linha['disponiveis'] is None:
                 linha['disponiveis'] = len(usuarios_disponiveis_para_evento(equipe, escala.evento))
             escala.vaga_disponiveis = linha['disponiveis']
+            escala.vaga_ofertas = ofertas_por_vaga.get(escala.pk, 0)
         linha['celulas'][coluna_por_funcao[escala.funcao_id]].append(escala)
 
     return {
@@ -216,6 +227,17 @@ def escala_detail_equipe(request, equipe_pk, pk):
         if not Escala.objects.filter(usuario=usuario, evento=evento).exclude(pk=escala.pk).exists()
     ]
 
+    # Quem se ofereceu para a vaga pelo app ou pelo site (só enquanto ela está em aberto).
+    ofertas = [] if escala.usuario_id else list(
+        Rendimento.objects
+        .filter(escala=escala, aprovada=False)
+        .select_related('candidato')
+        .order_by('data_candidatura')
+    )
+    ids_que_ofereceram = {o.candidato_id for o in ofertas}
+    for usuario in usuarios_disponiveis:
+        usuario.quer_servir = usuario.id in ids_que_ofereceram
+
     # Quantas vezes cada pessoa (disponível OU já escalada no evento) já foi
     # escalada NESTE mês NESTA equipe — dá ao líder a base para equilibrar quem
     # já serviu bastante. Usa o mês no fuso local (mesma contagem do auto-escalar);
@@ -223,6 +245,7 @@ def escala_detail_equipe(request, equipe_pk, pk):
     mes_evento = timezone.localtime(evento.data_inicio)
     ids_relevantes = {u.id for u in usuarios_disponiveis}
     ids_relevantes.update(e.usuario_id for e in usuarios_ja_escalados)
+    ids_relevantes.update(ids_que_ofereceram)
     servicos_no_mes = dict(
         Escala.objects
         .filter(
@@ -239,11 +262,23 @@ def escala_detail_equipe(request, equipe_pk, pk):
         usuario.servicos_no_mes = servicos_no_mes.get(usuario.id, 0)
     for esc in usuarios_ja_escalados:
         esc.usuario.servicos_no_mes = servicos_no_mes.get(esc.usuario_id, 0)
+    # Quem se ofereceu mas não marcou disponibilidade ou já serve em outra função do evento:
+    # o líder precisa saber antes de escalar.
+    ids_disponiveis = {u.id for u in usuarios_disponiveis}
+    ids_escalados = set(
+        Escala.objects.filter(evento=evento, usuario_id__in=ids_que_ofereceram)
+        .exclude(pk=escala.pk).values_list('usuario_id', flat=True)
+    )
+    for oferta in ofertas:
+        oferta.candidato.servicos_no_mes = servicos_no_mes.get(oferta.candidato_id, 0)
+        oferta.disponivel = oferta.candidato_id in ids_disponiveis
+        oferta.ja_escalado = oferta.candidato_id in ids_escalados
 
     return render(request, 'equipe/equipe_escala_detail.html', {
         'escala': escala,
         'equipe': equipe,
         'usuarios_disponiveis': usuarios_disponiveis,
+        'ofertas': ofertas,
         'usuarios_escalados': usuarios_ja_escalados,
         'usuarios_equipe': usuarios_equipe,  # <<< AQUI
         'is_leader': is_leader,

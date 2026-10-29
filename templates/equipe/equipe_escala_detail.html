@@ -47,7 +47,9 @@
             <div class="resumo-avatar"><i class="fa fa-user-plus"></i></div>
             <div>
                 <div class="pessoa-nome resumo-vaga">Vaga em aberto</div>
-                <div class="pessoa-status">Escale alguém disponível abaixo</div>
+                <div class="pessoa-status">
+                    {% if ofertas %}{{ ofertas|length }} pessoa{{ ofertas|length|pluralize }} quer{{ ofertas|length|pluralize:",em" }} servir — escolha abaixo{% else %}Escale alguém disponível abaixo{% endif %}
+                </div>
             </div>
             {% endif %}
         </div>
@@ -91,8 +93,16 @@
             <!-- Abas: disponíveis x escalados -->
             <div class="section-card">
             <ul class="escala-tabs" id="escalaTabs" role="tablist">
+                {% if ofertas %}
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link active" id="disponiveis-tab" data-bs-toggle="tab" href="#disponiveis" role="tab" aria-controls="disponiveis" aria-selected="true">
+                    <a class="nav-link active" id="ofertas-tab" data-bs-toggle="tab" href="#ofertas" role="tab" aria-controls="ofertas" aria-selected="true">
+                        <i class="fa fa-hand-paper"></i> Querem servir
+                        <span class="tab-count">{{ ofertas|length }}</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link{% if not ofertas %} active{% endif %}" id="disponiveis-tab" data-bs-toggle="tab" href="#disponiveis" role="tab" aria-controls="disponiveis" aria-selected="{% if ofertas %}false{% else %}true{% endif %}">
                         <i class="fa fa-user-check"></i> Disponíveis
                         <span class="tab-count">{{ usuarios_disponiveis|length }}</span>
                     </a>
@@ -106,7 +116,52 @@
             </ul>
 
             <div class="tab-content escala-tab-content" id="escalaTabsContent">
-                <div class="tab-pane fade show active" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
+                {% if ofertas %}
+                <div class="tab-pane fade show active" id="ofertas" role="tabpanel" aria-labelledby="ofertas-tab">
+                    <div class="pessoa-lista">
+                        {% for oferta in ofertas %}
+                        {% with usuario=oferta.candidato %}
+                        <div class="pessoa-row">
+                            <div class="resumo-avatar">{{ usuario.get_full_name|default:usuario.username|first|upper }}</div>
+                            <div class="pessoa-info">
+                                <strong>
+                                    {{ usuario.get_full_name|default:usuario.username }}
+                                    <span class="servico-badge{% if usuario.servicos_no_mes >= limite_escalas_mes %} servico-badge--cheio{% endif %}"
+                                          title="Escalado {{ usuario.servicos_no_mes }} vez(es) neste mês na equipe {{ equipe.nome }}{% if usuario.servicos_no_mes >= limite_escalas_mes %} — já atingiu o limite de {{ limite_escalas_mes }}/mês{% endif %}">
+                                        <i class="fa fa-calendar-check"></i>{{ usuario.servicos_no_mes }} no mês
+                                    </span>
+                                </strong>
+                                <small>
+                                    Se ofereceu em {{ oferta.data_candidatura|date:"d/m" }} às {{ oferta.data_candidatura|date:"H:i" }}
+                                    {% if oferta.ja_escalado %}· <span class="oferta-alerta">já está escalado em outra função deste evento</span>
+                                    {% elif not oferta.disponivel %}· <span class="oferta-alerta">não marcou disponibilidade</span>{% endif %}
+                                </small>
+                            </div>
+                            {% if request.user.is_staff or request.user.is_superuser or is_leader %}
+                            <div class="pessoa-acoes">
+                                <form method="post" action="{% url 'recusar_oferta' oferta.pk %}" class="d-inline"
+                                      onsubmit="return confirm('Recusar a oferta de {{ usuario.get_full_name|default:usuario.username|escapejs }}? A pessoa não recebe aviso.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-secondary btn-sm"><i class="fa fa-times"></i> Recusar</button>
+                                </form>
+                                {% if oferta.ja_escalado %}
+                                <a class="btn btn-success btn-sm" href="javascript:void(0);" onclick="confirmarEscala(event, '{% url 'escalar_usuario_equipe' escala.pk usuario.pk %}', '{{ usuario.get_full_name|default:usuario.username|escapejs }}')">
+                                    <i class="fa fa-user-plus"></i> Escalar
+                                </a>
+                                {% else %}
+                                <a class="btn btn-success btn-sm" href="{% url 'escalar_usuario_equipe' escala.pk usuario.pk %}">
+                                    <i class="fa fa-user-plus"></i> Escalar
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endwith %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                <div class="tab-pane fade{% if not ofertas %} show active{% endif %}" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
                     <div class="pessoa-lista">
                         {% for usuario in usuarios_disponiveis %}
                         <div class="pessoa-row">
@@ -119,7 +174,7 @@
                                         <i class="fa fa-calendar-check"></i>{{ usuario.servicos_no_mes }} no mês
                                     </span>
                                 </strong>
-                                <small>Disponível neste horário</small>
+                                <small>Disponível neste horário{% if usuario.quer_servir %} · <span class="oferta-ok"><i class="fa fa-hand-paper"></i> quer servir nesta vaga</span>{% endif %}</small>
                             </div>
                             {% if request.user.is_staff or request.user.is_superuser or is_leader %}
                             <div class="pessoa-acoes">
@@ -237,6 +292,10 @@
     {% endif %}
 
 </div>
+<style>
+    .pessoa-info .oferta-alerta { color: var(--connect-warning); font-weight: 600; }
+    .pessoa-info .oferta-ok { color: var(--connect-green); font-weight: 600; }
+</style>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const tabLinks = document.querySelectorAll('#escalaTabs .nav-link');

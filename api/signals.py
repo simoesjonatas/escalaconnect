@@ -5,6 +5,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from equipe.models import Lideranca, MembrosEquipe
+from escala import services as escala_services
 from escala.models import Desistencia, Escala, Rendimento, SolicitacaoTroca
 from escalaconnect import mensagens_push
 from escalaconnect.push import notificar_push
@@ -32,6 +33,13 @@ def avisar_quem_foi_escalado(sender, instance, **kwargs):
         instance.usuario_id, *mensagens_push.escalado(instance),
         tipo='escalado', purpose=Notification.PURPOSE_ASSIGNED, escala_id=instance.pk,
     )
+
+
+@receiver(post_save, sender=Escala)
+def encerrar_ofertas_da_vaga(sender, instance, **kwargs):
+    # Quem preencheu a vaga (app, site ou auto-escalar) encerra as ofertas que ainda estavam abertas.
+    if instance.usuario_id and instance.usuario_id != getattr(instance, '_usuario_anterior_id', None):
+        escala_services.encerrar_ofertas(instance, instance.usuario_id)
 
 
 # ── Pendências para o líder ──

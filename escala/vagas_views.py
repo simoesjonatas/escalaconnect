@@ -8,8 +8,10 @@ from django.http import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from equipe.decorators import pode_gerenciar_equipe
+
 from . import services
-from .models import Escala
+from .models import Escala, Rendimento
 
 POR_PAGINA = 15
 # Parâmetros da lista que os botões de oferecer/desistir preservam ao voltar.
@@ -112,3 +114,19 @@ def desistir_da_vaga(request, pk):
         except services.RegraDeNegocio as erro:
             messages.error(request, str(erro))
     return _voltar(request)
+
+
+@login_required
+def recusar_oferta(request, pk):
+    """Líder descarta a oferta de alguém para a vaga (sem aviso, como no app)."""
+    oferta = get_object_or_404(Rendimento.objects.select_related('escala__funcao__equipe', 'candidato'),
+                               pk=pk, aprovada=False)
+    escala = oferta.escala
+    if request.method == 'POST':
+        if pode_gerenciar_equipe(request.user, escala.equipe):
+            services.recusar_oferta(oferta)
+            nome = oferta.candidato.get_full_name() or oferta.candidato.username
+            messages.success(request, f'Oferta de {nome} recusada.')
+        else:
+            messages.error(request, 'Você não tem permissão para realizar esta ação.')
+    return redirect('escala_detail_equipe', equipe_pk=escala.equipe.pk, pk=escala.pk)

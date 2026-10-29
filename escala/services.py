@@ -159,7 +159,7 @@ def recusar_troca(troca):
 def escalar_em_vaga(escala, usuario):
     """Coloca um membro aprovado da equipe numa vaga em aberto de evento futuro.
 
-    O aviso "Você foi escalado" sai pelo signal de Escala (api/signals.py).
+    O aviso "Você foi escalado" e o encerramento das ofertas saem pelos signals de Escala (api/signals.py).
     """
     if escala.evento.data_inicio <= timezone.now():
         raise RegraDeNegocio("O evento já começou.", code='evento_iniciado')
@@ -171,7 +171,6 @@ def escalar_em_vaga(escala, usuario):
         raise RegraDeNegocio("Essa pessoa já está escalada neste evento.", code='ja_escalado')
     escala.usuario = usuario
     escala.save()
-    _encerrar_ofertas(escala, usuario)
     return escala
 
 
@@ -242,8 +241,11 @@ def recusar_oferta(oferta):
     oferta.delete()
 
 
-def _encerrar_ofertas(escala, escolhido):
-    """Vaga preenchida: marca a oferta de quem ficou com ela e descarta as dos demais."""
-    Rendimento.objects.filter(escala=escala, candidato=escolhido, aprovada=False).update(
+def encerrar_ofertas(escala, escolhido_id):
+    """Vaga preenchida: marca a oferta de quem ficou com ela e descarta as dos demais.
+
+    Chamada pelo signal de Escala, então vale para app, site, auto-escalar e admin.
+    """
+    Rendimento.objects.filter(escala=escala, candidato_id=escolhido_id, aprovada=False).update(
         aprovada=True, data_aprovacao=timezone.now())
-    Rendimento.objects.filter(escala=escala, aprovada=False).exclude(candidato=escolhido).delete()
+    Rendimento.objects.filter(escala=escala, aprovada=False).exclude(candidato_id=escolhido_id).delete()

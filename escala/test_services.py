@@ -238,3 +238,72 @@ class VagasAbertasNoSiteTests(TestCase):
         self.assertContains(resp, 'Página 1 de 2')
         resp = self.client.get(reverse('vagas_abertas'), {'page': 2})
         self.assertEqual(len(resp.context['page_obj']), 2)
+
+
+class OfertasNoSiteDoLiderTests(TestCase):
+    """O líder vê no site quem se ofereceu (grade, lista e detalhe da vaga) e decide por lá."""
+
+    def setUp(self):
+        from escala.models import Rendimento
+        self.equipe = Equipe.objects.create(nome='Transmissão')
+        self.funcao = Funcao.objects.create(nome='Câmera 1', equipe=self.equipe)
+        self.lider = criar_voluntario('lider', '39053344705')
+        Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+        self.ana = criar_voluntario('ana', '52998224725')
+        self.bia = criar_voluntario('bia', '11144477735')
+        for usuario in (self.ana, self.bia):
+            MembrosEquipe.objects.create(usuario=usuario, equipe=self.equipe, aprovado=True)
+        inicio = timezone.now() + timedelta(days=3)
+        self.culto = Evento.objects.create(nome='Culto', data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
+        self.vaga = Escala.objects.create(funcao=self.funcao, evento=self.culto)
+        self.oferta_ana = Rendimento.objects.create(escala=self.vaga, candidato=self.ana)
+        self.oferta_bia = Rendimento.objects.create(escala=self.vaga, candidato=self.bia)
+        self.client.force_login(self.lider)
+
+    def detalhe(self):
+        return self.client.get(reverse('escala_detail_equipe', args=[self.equipe.pk, self.vaga.pk]))
+
+    def test_detalhe_mostra_quem_quer_servir(self):
+        resp = self.detalhe()
+        self.assertEqual([o.candidato for o in resp.context['ofertas']], [self.ana, self.bia])
+        self.assertContains(resp, 'Querem servir')
+        self.assertContains(resp, '2 pessoas querem servir')
+        self.assertContains(resp, 'não marcou disponibilidade')
+        self.assertContains(resp, reverse('recusar_oferta', args=[self.oferta_ana.pk]))
+
+    def test_grade_e_lista_mostram_as_ofertas(self):
+        url = reverse('listar_escalas', args=[self.equipe.pk])
+        mes = timezone.localtime(self.culto.data_inicio).strftime('%Y-%m')
+        self.assertContains(self.client.get(url, {'view': 'grade', 'mes': mes}), '2 querem servir')
+        self.assertContains(self.client.get(url, {'view': 'lista'}), '2 querem servir')
+
+    def test_escalar_pelo_site_encerra_as_outras_ofertas(self):
+        from escala.models import Rendimento
+        self.client.get(reverse('escalar_usuario_equipe', args=[self.vaga.pk, self.ana.pk]))
+        self.vaga.refresh_from_db()
+        self.assertEqual(self.vaga.usuario, self.ana)
+        self.assertEqual(list(Rendimento.objects.values_list('candidato_id', 'aprovada')), [(self.ana.pk, True)])
+        self.assertNotContains(self.detalhe(), 'Querem servir')
+
+    def test_escalar_quem_nao_se_ofereceu_tambem_encerra(self):
+        from escala.models import Rendimento
+        outro = criar_voluntario('caio', '87517374082')
+        MembrosEquipe.objects.create(usuario=outro, equipe=self.equipe, aprovado=True)
+        self.client.get(reverse('escalar_usuario_equipe', args=[self.vaga.pk, outro.pk]))
+        self.assertFalse(Rendimento.objects.exists())
+
+    def test_recusar_oferta(self):
+        from escala.models import Rendimento
+        resp = self.client.post(reverse('recusar_oferta', args=[self.oferta_ana.pk]))
+        self.assertRedirects(resp, reverse('escala_detail_equipe', args=[self.equipe.pk, self.vaga.pk]),
+                             fetch_redirect_response=False)
+        self.assertEqual(list(Rendimento.objects.values_list('candidato_id', flat=True)), [self.bia.pk])
+        self.assertIn('Oferta de ana recusada.', [str(m) for m in get_messages(resp.wsgi_request)])
+
+    def test_recusar_exige_lideranca_e_post(self):
+        from escala.models import Rendimento
+        url = reverse('recusar_oferta', args=[self.oferta_ana.pk])
+        self.client.get(url)
+        self.client.force_login(self.bia)
+        self.client.post(url)
+        self.assertEqual(Rendimento.objects.count(), 2)
