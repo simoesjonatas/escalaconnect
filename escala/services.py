@@ -235,23 +235,15 @@ def aprovar_oferta(oferta):
     return escalar_em_vaga(oferta.escala, oferta.candidato)
 
 
+# Oferta recusada ou vaga que ficou com outra pessoa: sem push nem aviso (era notificação
+# demais); a oferta só some da aba Disponibilidade de quem se ofereceu.
+
 def recusar_oferta(oferta):
-    escala = oferta.escala
     oferta.delete()
-    _avisar_oferta_nao_aceita(oferta.candidato_id, escala)
-
-
-def _avisar_oferta_nao_aceita(usuario_id, escala):
-    notificar_push(
-        usuario_id, *mensagens_push.oferta_nao_aceita(escala),
-        tipo='oferta_recusada', purpose=Notification.PURPOSE_OFFER_DECLINED, escala_id=escala.pk,
-    )
 
 
 def _encerrar_ofertas(escala, escolhido):
-    """Vaga preenchida: marca a oferta de quem ficou com ela e avisa os demais que se ofereceram."""
+    """Vaga preenchida: marca a oferta de quem ficou com ela e descarta as dos demais."""
     Rendimento.objects.filter(escala=escala, candidato=escolhido, aprovada=False).update(
         aprovada=True, data_aprovacao=timezone.now())
-    for oferta in Rendimento.objects.filter(escala=escala, aprovada=False).exclude(candidato=escolhido):
-        oferta.delete()
-        _avisar_oferta_nao_aceita(oferta.candidato_id, escala)
+    Rendimento.objects.filter(escala=escala, aprovada=False).exclude(candidato=escolhido).delete()

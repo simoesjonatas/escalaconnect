@@ -80,10 +80,6 @@ def pedido_recusado(escala):
     return 'Você continua escalado', f'A liderança não aprovou o pedido para {_dia(escala.evento.data_inicio)}'
 
 
-def oferta_nao_aceita(escala):
-    return 'Obrigado por se oferecer', f'A vaga de {_dia(escala.evento.data_inicio)} não ficou com você desta vez'
-
-
 def entrada_na_equipe(equipe):
     return 'Boas-vindas à equipe! 🙌', f'Agora você faz parte da {nome_da_equipe(equipe.nome)}'
 

@@ -411,7 +411,7 @@ class OfertaParaVagaTests(LiderancaTestCase):
         self.vaga.refresh_from_db()
         self.assertEqual(self.vaga.usuario, self.user)
         self.assertEqual([t for t, _ in self.enviadas_para(self.device.expo_token)], ['Você foi escalado 🙌'])
-        self.assertEqual([t for t, _ in self.enviadas_para(OUTRO_TOKEN)], ['Obrigado por se oferecer'])
+        self.assertEqual(self.enviadas_para(OUTRO_TOKEN), [])  # quem não ficou com a vaga não recebe push
         self.assertEqual(list(Rendimento.objects.values_list('candidato', 'aprovada')), [(self.user.pk, True)])
         self.assertEqual(self.client.get('/api/v1/lider/pendencias/').data['ofertas'], [])
 
@@ -423,9 +423,7 @@ class OfertaParaVagaTests(LiderancaTestCase):
         self.assertFalse(Rendimento.objects.exists())
         self.vaga.refresh_from_db()
         self.assertIsNone(self.vaga.usuario)
-        ((titulo, corpo),) = self.enviadas_para(self.device.expo_token)
-        self.assertEqual(titulo, 'Obrigado por se oferecer')
-        self.assertIn('não ficou com você', corpo)
+        self.assertEqual(self.enviadas_para(self.device.expo_token), [])  # recusa sem push
 
     def test_nao_se_oferece_para_vaga_de_outra_equipe_nem_ocupada(self):
         self.autenticar(self.user)

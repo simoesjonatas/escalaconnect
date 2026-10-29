@@ -78,7 +78,7 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
         abrir: () => abrirVaga(o.escala.id),
       },
       aprovar: `${o.pessoa.nome} fica com a vaga e recebe o aviso de escala.`,
-      recusar: `${o.pessoa.nome} recebe um agradecimento e a vaga continua aberta.`,
+      recusar: `A oferta de ${o.pessoa.nome} é descartada e a vaga continua aberta.`,
     })),
   ].sort((a, b) => a.escala.evento.data_inicio.localeCompare(b.escala.evento.data_inicio));
   const candidaturas: Pendencia[] = dados.candidaturas.map((c) => ({
