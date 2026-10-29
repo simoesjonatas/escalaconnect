@@ -185,21 +185,23 @@ export function Campo({ rotulo, senha, ...props }: { rotulo: string; senha?: boo
   );
 }
 
-/** Linha rolável de opções em pílula; a selecionada fica destacada. */
+/** Linha rolável de opções em pílula; a selecionada fica destacada (ou várias, com `ativas`). */
 export function Opcoes<T extends string>({
   opcoes,
   valor,
+  ativas,
   aoEscolher,
 }: {
   opcoes: { valor: T; rotulo: string }[];
-  valor: T;
+  valor?: T;
+  ativas?: T[];
   aoEscolher: (valor: T) => void;
 }) {
   const { cores } = useTema();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
       {opcoes.map((opcao) => {
-        const ativa = opcao.valor === valor;
+        const ativa = ativas ? ativas.includes(opcao.valor) : opcao.valor === valor;
         return (
           <Pressable
             key={opcao.valor}

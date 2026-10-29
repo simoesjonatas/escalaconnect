@@ -67,17 +67,20 @@ export function LinhaDeFiltro({
   titulo,
   opcoes,
   valor,
+  ativas,
   aoEscolher,
 }: {
   titulo: string;
   opcoes: { valor: string; rotulo: string }[];
-  valor: string;
+  valor?: string;
+  /** Para filtros de escolha múltipla (ex.: sábado e domingo). */
+  ativas?: string[];
   aoEscolher: (valor: string) => void;
 }) {
   return (
     <View style={{ gap: 6 }}>
       <Rotulo>{titulo}</Rotulo>
-      <Opcoes opcoes={opcoes} valor={valor} aoEscolher={aoEscolher} />
+      <Opcoes opcoes={opcoes} valor={valor} ativas={ativas} aoEscolher={aoEscolher} />
     </View>
   );
 }

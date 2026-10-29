@@ -27,6 +27,11 @@ function tipoDoEvento(evento: EventoComEquipe): Tipo {
   return 'outros';
 }
 
+const DIAS_DA_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+/** Dia da semana do início do evento (0 = domingo), no fuso do aparelho. */
+const diaDoEvento = (evento: EventoComEquipe) => String(new Date(evento.data_inicio).getDay());
+
 const chaveDoMes = (evento: EventoComEquipe) => evento.data_inicio.slice(0, 7);
 const chaveDaEquipe = (evento: EventoComEquipe) => (evento.equipe_id ? String(evento.equipe_id) : 'gerais');
 
@@ -56,6 +61,8 @@ export default function PorEvento() {
   const { cores } = useTema();
   const [marcados, setMarcados] = useState<number[]>([]);
   const [mes, setMes] = useState('todos');
+  // Vários dias de uma vez (ex.: todo sábado e domingo); vazio = todos os dias.
+  const [dias, setDias] = useState<string[]>([]);
   const [tipo, setTipo] = useState('todos');
   const [equipe, setEquipe] = useState('todos');
 
@@ -64,8 +71,13 @@ export default function PorEvento() {
     const ordemDosTipos = Object.keys(ROTULO_DO_TIPO);
     const tipos = opcoesDe(lista, tipoDoEvento, (e) => ROTULO_DO_TIPO[tipoDoEvento(e)], 'Todos os cultos');
     tipos.sort((a, b) => (a.valor === 'todos' ? -1 : b.valor === 'todos' ? 1 : ordemDosTipos.indexOf(a.valor) - ordemDosTipos.indexOf(b.valor)));
+    const presentes = [...new Set(lista.map(diaDoEvento))].sort();
     return {
       meses: opcoesDe(lista, chaveDoMes, (e) => mesPorExtenso(e.data_inicio), 'Todos os meses'),
+      dias: [
+        { valor: 'todos', rotulo: 'Todos os dias' },
+        ...presentes.map((d) => ({ valor: d, rotulo: DIAS_DA_SEMANA[Number(d)] })),
+      ],
       tipos,
       equipes: opcoesDe(lista, chaveDaEquipe, (e) => (e.equipe ? nomeDaEquipe(e.equipe) : 'Cultos gerais'), 'Todas'),
     };
@@ -74,17 +86,26 @@ export default function PorEvento() {
   const visiveis = lista.filter(
     (e) =>
       (mes === 'todos' || chaveDoMes(e) === mes) &&
+      (dias.length === 0 || dias.includes(diaDoEvento(e))) &&
       (tipo === 'todos' || tipoDoEvento(e) === tipo) &&
       (equipe === 'todos' || chaveDaEquipe(e) === equipe),
   );
-  const filtrando = mes !== 'todos' || tipo !== 'todos' || equipe !== 'todos';
-  const temFiltros = [filtros.meses, filtros.tipos, filtros.equipes].some((o) => o.length > 2);
+  const filtrando = mes !== 'todos' || dias.length > 0 || tipo !== 'todos' || equipe !== 'todos';
+  const temFiltros = [filtros.meses, filtros.dias, filtros.tipos, filtros.equipes].some((o) => o.length > 2);
   function limparFiltros() {
     setMes('todos');
+    setDias([]);
     setTipo('todos');
     setEquipe('todos');
   }
   const todosVisiveisMarcados = visiveis.length > 0 && visiveis.every((e) => marcados.includes(e.id));
+
+  // Tocar num dia liga/desliga só ele; "Todos os dias" (ou marcar todos) volta a mostrar tudo.
+  function alternarDia(dia: string) {
+    if (dia === 'todos') return setDias([]);
+    const novos = dias.includes(dia) ? dias.filter((d) => d !== dia) : [...dias, dia];
+    setDias(novos.length === filtros.dias.length - 1 ? [] : novos);
+  }
 
   const alternar = (id: number) =>
     setMarcados((atual) => (atual.includes(id) ? atual.filter((i) => i !== id) : [...atual, id]));
@@ -107,6 +128,12 @@ export default function PorEvento() {
           {temFiltros && (
             <CaixaDeFiltros titulo="Filtrar eventos" filtrando={filtrando} aoLimpar={limparFiltros}>
               <Filtro titulo="Mês" opcoes={filtros.meses} valor={mes} aoEscolher={setMes} />
+              <Filtro
+                titulo="Dias da semana · pode escolher vários"
+                opcoes={filtros.dias}
+                ativas={dias.length ? dias : ['todos']}
+                aoEscolher={alternarDia}
+              />
               <Filtro titulo="Culto" opcoes={filtros.tipos} valor={tipo} aoEscolher={setTipo} />
               <Filtro titulo="Equipe" opcoes={filtros.equipes} valor={equipe} aoEscolher={setEquipe} />
             </CaixaDeFiltros>
