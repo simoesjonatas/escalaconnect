@@ -32,9 +32,10 @@ export type AcaoDeEscala =
   | { tipo: 'confirmar' }
   | { tipo: 'impedimento'; motivo: string }
   | { tipo: 'pedir-troca' }
+  | { tipo: 'cancelar-impedimento' }
   | { tipo: 'cancelar-troca' };
 
-/** Confirmar, sinalizar impedimento, pedir ou cancelar troca: todas devolvem a escala atualizada. */
+/** Confirmar, sinalizar ou cancelar impedimento, pedir ou cancelar troca: todas devolvem a escala atualizada. */
 export function useAcaoDeEscala(id: number) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -44,6 +45,8 @@ export function useAcaoDeEscala(id: number) {
           return api<Escala>('POST', `/escalas/${id}/confirmar/`);
         case 'impedimento':
           return api<Escala>('POST', `/escalas/${id}/impedimento/`, { motivo: acao.motivo });
+        case 'cancelar-impedimento':
+          return api<Escala>('DELETE', `/escalas/${id}/impedimento/`);
         case 'pedir-troca':
           return api<Escala>('POST', `/escalas/${id}/troca/`);
         case 'cancelar-troca':
@@ -165,10 +168,13 @@ export const useCultos = (ativo = true) =>
 export const useCulto = (id: number) =>
   useQuery({ queryKey: ['lider', 'cultos', id], queryFn: () => api<DetalheDoCulto>('GET', `/lider/cultos/${id}/`) });
 
-/** Pede a confirmação (e-mail e app) de quem ainda não confirmou no culto; devolve quantos eram. */
+export type CanalDoPedido = 'app' | 'todos';
+
+/** Pede a confirmação (só app, ou e-mail e app) de quem ainda não confirmou no culto; devolve quantos eram. */
 export function usePedirConfirmacao(eventoId: number) {
   return useMutation({
-    mutationFn: () => api<{ pendentes: number }>('POST', `/lider/cultos/${eventoId}/pedir-confirmacao/`),
+    mutationFn: (canal: CanalDoPedido) =>
+      api<{ pendentes: number }>('POST', `/lider/cultos/${eventoId}/pedir-confirmacao/`, { canal }),
   });
 }
 
@@ -186,7 +192,7 @@ export const useDisponibilidadeDaEquipe = ({ equipe, ano, mes }: FiltroDeDisponi
     },
   });
 
-export type PedidoDeDisponibilidade = { equipe_id: number; ano: number; mes: number; canal: 'app' | 'todos' };
+export type PedidoDeDisponibilidade = { equipe_id: number; ano: number; mes: number; canal: CanalDoPedido };
 
 export const usePedirDisponibilidade = () =>
   useMutation({

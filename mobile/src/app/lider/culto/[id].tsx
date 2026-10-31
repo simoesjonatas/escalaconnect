@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Alert, Pressable, View } from 'react-native';
 
 import { periodo } from '../../../lib/datas';
-import { useCulto, usePedirConfirmacao } from '../../../lib/hooks';
+import { CanalDoPedido, useCulto, usePedirConfirmacao } from '../../../lib/hooks';
 import { Cores, useTema } from '../../../lib/tema';
 import { EscalaDoCulto } from '../../../lib/types';
 import { Botao, Cartao, Erro, Estado, Etiqueta, Suave, Subtitulo, Tela, Texto } from '../../../lib/ui';
@@ -36,16 +36,17 @@ export default function CultoDoLider() {
   const vagas = escalas.filter((e) => !e.pessoa).length;
   const equipes = [...new Set(escalas.map((e) => e.equipe))];
 
-  function pedirConfirmacao() {
+  function pedirConfirmacao(canal: CanalDoPedido) {
+    const porOnde = canal === 'app' ? 'um aviso no app' : 'um aviso no app e um e-mail';
     Alert.alert(
       'Pedir confirmação',
-      `${faltam === 1 ? '1 pessoa ainda não confirmou' : `${faltam} pessoas ainda não confirmaram`}. Elas recebem um aviso no app e por e-mail.`,
+      `${faltam === 1 ? '1 pessoa ainda não confirmou e recebe' : `${faltam} pessoas ainda não confirmaram e recebem`} ${porOnde}.`,
       [
         { text: 'Voltar', style: 'cancel' },
         {
           text: 'Enviar',
           onPress: () =>
-            pedir.mutate(undefined, {
+            pedir.mutate(canal, {
               onSuccess: ({ pendentes }) =>
                 Alert.alert('Pedido enviado', pendentes ? 'Quem falta vai receber o pedido de confirmação.' : 'Todos já confirmaram.'),
             }),
@@ -69,11 +70,19 @@ export default function CultoDoLider() {
 
           <Erro erro={pedir.error} />
           {faltam > 0 && (
-            <Botao
-              titulo={`Pedir confirmação (${faltam})`}
-              carregando={pedir.isPending}
-              aoTocar={pedirConfirmacao}
-            />
+            <View style={{ gap: 8 }}>
+              <Botao
+                titulo={`Pedir confirmação pelo app (${faltam})`}
+                carregando={pedir.isPending && pedir.variables === 'app'}
+                aoTocar={() => pedirConfirmacao('app')}
+              />
+              <Botao
+                titulo="Pedir pelo app e por e-mail"
+                variante="secundario"
+                carregando={pedir.isPending && pedir.variables === 'todos'}
+                aoTocar={() => pedirConfirmacao('todos')}
+              />
+            </View>
           )}
 
           {equipes.map((equipe) => (

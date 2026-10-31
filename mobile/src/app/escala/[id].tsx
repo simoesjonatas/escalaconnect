@@ -116,6 +116,13 @@ export default function DetalheDaEscala() {
     ]);
   }
 
+  function cancelarImpedimento() {
+    Alert.alert('Cancelar impedimento', 'Você continua escalado e a liderança não precisa mais avaliar. Continuar?', [
+      { text: 'Voltar', style: 'cancel' },
+      { text: 'Cancelar impedimento', onPress: () => acao.mutate({ tipo: 'cancelar-impedimento' }) },
+    ]);
+  }
+
   if (!escala) {
     return (
       <Tela aoAtualizar={() => consulta.refetch()}>
@@ -127,8 +134,9 @@ export default function DetalheDaEscala() {
   const { data_inicio, data_fim } = escala.evento;
   const dia = diaPorExtenso(data_inicio);
   const horario = `${hora(data_inicio)} – ${isSameDay(new Date(data_inicio), new Date(data_fim)) ? hora(data_fim) : diaEHora(data_fim)}`;
-  const podeTrocar = escala.troca_pendente || !iniciou;
-  const podeSinalizar = !escala.tem_impedimento && !iniciou;
+  // Um pedido por vez: com impedimento em análise não pede troca, e vice-versa (o líder avalia só um).
+  const podeTrocar = escala.troca_pendente || (!iniciou && !escala.tem_impedimento);
+  const podeSinalizar = !escala.tem_impedimento && !escala.troca_pendente && !iniciou;
 
   return (
     <Tela aoAtualizar={() => consulta.refetch()}>
@@ -185,8 +193,16 @@ export default function DetalheDaEscala() {
           <Botao titulo="Cancelar" variante="secundario" aoTocar={() => setInformandoMotivo(false)} />
         </Cartao>
       ) : (
-        (podeTrocar || podeSinalizar) && (
+        (podeTrocar || podeSinalizar || escala.tem_impedimento) && (
           <Grupo titulo="Não vai poder servir?">
+            {escala.tem_impedimento && (
+              <ItemDeGrupo
+                icone="close-circle-outline"
+                titulo="Cancelar impedimento"
+                carregando={acao.isPending && acao.variables?.tipo === 'cancelar-impedimento'}
+                aoTocar={cancelarImpedimento}
+              />
+            )}
             {escala.troca_pendente ? (
               <ItemDeGrupo
                 icone="close-circle-outline"

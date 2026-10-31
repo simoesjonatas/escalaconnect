@@ -31,7 +31,7 @@ from ..serializers.equipe import EquipeSerializer
 from ..serializers.evento import EventoSerializer
 from ..serializers.lideranca import (
     CandidatoSerializer, CandidaturaSerializer, EscalaDoCultoSerializer, EscalarSerializer, ImpedimentoSerializer,
-    OfertaSerializer, PedirDisponibilidadeSerializer, PessoaSerializer, TrocaSerializer, VagaSerializer,
+    OfertaSerializer, PedirConfirmacaoSerializer, PedirDisponibilidadeSerializer, PessoaSerializer, TrocaSerializer, VagaSerializer,
 )
 
 
@@ -275,14 +275,16 @@ class CultoDetailView(CultoView):
 
 
 class PedirConfirmacaoView(CultoView):
-    """Pede a confirmação (e-mail e app) só de quem ainda não confirmou, nas equipes lideradas."""
+    """Pede a confirmação só de quem ainda não confirmou, nas equipes lideradas (só app, ou e-mail e app)."""
 
     def post(self, request, pk):
+        dados = PedirConfirmacaoSerializer(data=request.data)
+        dados.is_valid(raise_exception=True)
         escalas = self.get_escalas(pk)
         pendentes = [e for e in escalas if e.usuario_id and not e.confirmada]
         if not pendentes:
             return Response({'pendentes': 0})
-        pedir_confirmacao(escalas[0].evento, equipes=self.equipes())
+        pedir_confirmacao(escalas[0].evento, equipes=self.equipes(), so_app=dados.validated_data['canal'] == 'app')
         return Response({'pendentes': len(pendentes)})
 
 

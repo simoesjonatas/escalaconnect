@@ -64,7 +64,7 @@
         </form>
         {% endif %}
 
-        {% if escala.confirmada and not escala.has_impedimento %}
+        {% if escala.confirmada and not escala.has_impedimento and not escala.has_solicitacao_troca_aberta %}
         <form method="post" action="{% url 'sinalizar_impedimento' escala.pk %}">
             {% csrf_token %}
             <button type="submit" class="btn btn-danger">
@@ -74,16 +74,24 @@
         {% endif %}
     </div>
 
-    {% if not escala.confirmada %}
-        {% if escala.has_solicitacao_troca_aberta %}
-        <div class="alert alert-warning escala-pendencias">
-            <span><i class="fa fa-hourglass-half mr-1"></i> Sua solicitação de desistência está <strong>em análise</strong> pela liderança.</span>
-            <form method="post" action="{% url 'cancelar_solicitacao_troca' escala.id %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-danger btn-sm">Cancelar solicitação</button>
-            </form>
-        </div>
-        {% else %}
+    {% if escala.has_solicitacao_troca_aberta %}
+    <div class="alert alert-warning escala-pendencias">
+        <span><i class="fa fa-hourglass-half mr-1"></i> Sua solicitação de desistência está <strong>em análise</strong> pela liderança.</span>
+        <form method="post" action="{% url 'cancelar_solicitacao_troca' escala.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">Cancelar solicitação</button>
+        </form>
+    </div>
+    {% elif escala.has_impedimento %}
+    <div class="alert alert-info d-flex flex-wrap align-items-center justify-content-between" style="gap:8px">
+        <span><i class="fa fa-hourglass-half mr-1"></i> Seu impedimento foi notificado e está <strong>em análise</strong> pela liderança.</span>
+        <form method="post" action="{% url 'cancelar_impedimento' escala.id %}"
+              onsubmit="return confirm('Cancelar o impedimento? Você continua escalado.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger btn-sm">Cancelar impedimento</button>
+        </form>
+    </div>
+    {% elif not escala.confirmada %}
         <div class="card">
             <div class="card-body">
                 <h4 class="card-title"><i class="fa fa-hand-paper mr-1"></i> Não vai poder servir?</h4>
@@ -103,11 +111,6 @@
                 </form>
             </div>
         </div>
-        {% endif %}
-    {% elif escala.has_impedimento %}
-    <div class="alert alert-info">
-        <i class="fa fa-hourglass-half mr-1"></i> Seu impedimento foi notificado e está <strong>em análise</strong> pela liderança.
-    </div>
     {% endif %}
 
 </div>

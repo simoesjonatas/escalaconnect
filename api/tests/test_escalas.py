@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.urls import reverse
 from django.utils import timezone
 
 from equipe.models import Equipe
@@ -133,6 +134,45 @@ class ImpedimentoTests(EscalasApiTestCase):
         resp = self.sinalizar(self.criar_escala(self.user, dias=-1))
         self.assertEqual(resp.status_code, 400)
         self.assertEqual(resp.data['code'], 'evento_iniciado')
+
+    def test_cancela_e_continua_escalado(self):
+        self.sinalizar(self.escala)
+        resp = self.client.delete(self.url(self.escala, 'impedimento/'))
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['tem_impedimento'])
+        self.assertFalse(Desistencia.objects.exists())
+        self.escala.refresh_from_db()
+        self.assertEqual(self.escala.usuario, self.user)
+        # Depois de cancelar, pode sinalizar de novo.
+        self.assertEqual(self.sinalizar(self.escala).status_code, 200)
+
+    def test_cancelar_sem_impedimento(self):
+        resp = self.client.delete(self.url(self.escala, 'impedimento/'))
+        self.assertEqual((resp.status_code, resp.data['code']), (400, 'sem_impedimento'))
+
+    def test_cancelar_pelo_site(self):
+        self.sinalizar(self.escala)
+        self.client.force_login(self.user)
+        url = reverse('cancelar_impedimento', args=[self.escala.pk])
+        self.client.get(url)  # só POST cancela
+        self.assertTrue(Desistencia.objects.exists())
+        resp = self.client.post(url)
+        self.assertRedirects(resp, reverse('minha_escala_detail', args=[self.escala.pk]), fetch_redirect_response=False)
+        self.assertFalse(Desistencia.objects.exists())
+
+
+class UmPedidoPorVezTests(EscalasApiTestCase):
+    def test_com_troca_pendente_nao_sinaliza_impedimento(self):
+        self.client.post(self.url(self.escala, 'troca/'))
+        resp = self.client.post(self.url(self.escala, 'impedimento/'), {'motivo': 'Viagem'}, format='json')
+        self.assertEqual((resp.status_code, resp.data['code']), (400, 'troca_pendente'))
+        self.assertFalse(Desistencia.objects.exists())
+
+    def test_com_impedimento_nao_pede_troca(self):
+        self.client.post(self.url(self.escala, 'impedimento/'), {'motivo': 'Viagem'}, format='json')
+        resp = self.client.post(self.url(self.escala, 'troca/'))
+        self.assertEqual((resp.status_code, resp.data['code']), (400, 'impedimento_pendente'))
+        self.assertFalse(SolicitacaoTroca.objects.exists())
 
 
 class TrocaTests(EscalasApiTestCase):

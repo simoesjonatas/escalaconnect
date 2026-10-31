@@ -77,12 +77,15 @@ class ConfirmarEscalaView(EscalaDoUsuarioView):
 
 
 class ImpedimentoView(EscalaDoUsuarioView):
-    """Sinaliza impedimento (desistência com motivo), que o líder aprova pelo site."""
+    """POST sinaliza impedimento (desistência com motivo), que o líder aprova; DELETE cancela o que está em análise."""
 
     def post(self, request, pk):
         serializer = ImpedimentoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return self.executar(services.sinalizar_impedimento, serializer.validated_data['motivo'])
+
+    def delete(self, request, pk):
+        return self.executar(services.cancelar_impedimento)
 
 
 class TrocaView(EscalaDoUsuarioView):

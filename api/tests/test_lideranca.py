@@ -468,6 +468,15 @@ class CultosDoLiderTests(LiderancaTestCase):
         # Só Maria (não confirmou, equipe do líder): nem João (confirmado) nem Pedro (outra equipe).
         self.assertEqual([m['to'] for m in self.mensagens()], [self.device.expo_token])
         self.assertEqual(self.mensagens()[0]['title'], 'Confirma sua escala?')
+        self.assertEqual([m.to for m in mail.outbox], [[self.user.email]])  # sem canal = e-mail e app
+
+    def test_pedir_confirmacao_so_pelo_app_nao_manda_email(self):
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.como(self.lider).post(f'/api/v1/lider/cultos/{self.evento.pk}/pedir-confirmacao/',
+                                              {'canal': 'app'}, format='json')
+        self.assertEqual(resp.data, {'pendentes': 1})
+        self.assertEqual([m['to'] for m in self.mensagens()], [self.device.expo_token])
+        self.assertEqual(mail.outbox, [])
 
     def test_lider_de_duas_equipes_ve_contagem_por_equipe(self):
         Lideranca.objects.create(usuario=self.lider, equipe=Equipe.objects.get(nome='Louvor'))

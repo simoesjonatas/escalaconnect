@@ -113,6 +113,11 @@ class EscalaDoCultoSerializer(serializers.ModelSerializer):
         return getattr(escala, 'disponiveis', None)
 
 
+class PedirConfirmacaoSerializer(serializers.Serializer):
+    # Sem canal (versões antigas do app) = e-mail e app, como era antes.
+    canal = serializers.ChoiceField(choices=['app', 'todos'], default='todos')
+
+
 class PedirDisponibilidadeSerializer(serializers.Serializer):
     equipe_id = serializers.IntegerField()
     ano = serializers.IntegerField(min_value=2000, max_value=2100)

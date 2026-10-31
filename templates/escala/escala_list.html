@@ -29,10 +29,13 @@ Escalas do Evento {{ evento.nome }}
         <form method="post"
                 action="{% url 'evento_notificar_confirmacao_2' evento.pk %}"
                 class="d-inline"
-                onsubmit="return confirm('Enviar e-mails de confirmação para todos que ainda não confirmaram?');">
+                onsubmit="return confirm('Pedir confirmação a todos que ainda não confirmaram?');">
             {% csrf_token %}
-            <button type="submit" class="btn btn-warning">
-                <i class="fa fa-paper-plane"></i> Notificar pendentes
+            <button type="submit" name="canal" value="todos" class="btn btn-warning">
+                <i class="fa fa-paper-plane"></i> Notificar pendentes (e-mail e app)
+            </button>
+            <button type="submit" name="canal" value="app" class="btn btn-primary">
+                <i class="fa fa-mobile-alt"></i> Só pelo app
             </button>
         </form>
 

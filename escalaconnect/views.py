@@ -99,9 +99,15 @@ def view_enviar_confirmacao(request, evento_id):
     if not evento.pode_ser_gerenciada_por(request.user):
         return render(request, '403_forbidden.html', status=403)
 
+    # Botão "Pedir só pelo app" manda canal=app; o outro manda e-mail e app.
+    if request.POST.get("canal") == "app":
+        pedir_confirmacao(evento, so_app=True)
+        messages.success(request, "Pedido de confirmação enviado pelo app para quem ainda não confirmou.")
+        return redirect("evento_detail", pk=evento_id)
+
     total = pedir_confirmacao(evento)
     if total:
-        messages.success(request, f"Enfileirados {total} e-mails de confirmação.")
+        messages.success(request, f"Enfileirados {total} e-mails de confirmação (e aviso no app).")
     else:
         messages.info(request, "Ninguém pendente de confirmação com e-mail cadastrado.")
     return redirect("evento_detail", pk=evento_id)

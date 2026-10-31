@@ -73,11 +73,24 @@ def validar_impedimento(escala, usuario):
             "Não é possível sinalizar desistência após o início do evento.", code='evento_iniciado')
     if Desistencia.objects.filter(escala=escala, usuario=usuario, aprovada=False).exists():
         raise RegraDeNegocio("Você já sinalizou desistência para esta escala.", code='ja_sinalizado')
+    # Um pedido por vez: o líder não precisa avaliar impedimento e troca da mesma escala.
+    if SolicitacaoTroca.objects.filter(escala_origem=escala, aprovada=False).exists():
+        raise RegraDeNegocio(
+            "Você já pediu troca desta escala. Cancele o pedido de troca para sinalizar impedimento.",
+            code='troca_pendente')
 
 
 def sinalizar_impedimento(escala, usuario, motivo):
     validar_impedimento(escala, usuario)
     return Desistencia.objects.create(escala=escala, usuario=usuario, motivo=motivo)
+
+
+def cancelar_impedimento(escala, usuario):
+    """O voluntário desiste do impedimento ainda em análise e continua escalado."""
+    _exigir_dono(escala, usuario, "Você só pode cancelar o impedimento da sua própria escala.")
+    apagados, _ = Desistencia.objects.filter(escala=escala, aprovada=False).delete()
+    if not apagados:
+        raise RegraDeNegocio("Nenhum impedimento em análise encontrado.", code='sem_impedimento')
 
 
 def aprovar_desistencia(desistencia):
@@ -110,6 +123,10 @@ def validar_solicitacao_troca(escala, usuario):
     if SolicitacaoTroca.objects.filter(solicitante=usuario, escala_origem=escala, aprovada=False).exists():
         raise RegraDeNegocio(
             'Você já possui uma solicitação pendente para esta escala.', code='solicitacao_pendente')
+    if Desistencia.objects.filter(escala=escala, aprovada=False).exists():
+        raise RegraDeNegocio(
+            "Você já sinalizou impedimento nesta escala. Cancele o impedimento para pedir troca.",
+            code='impedimento_pendente')
 
 
 def solicitar_troca(escala, usuario):

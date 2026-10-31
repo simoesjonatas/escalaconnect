@@ -29,6 +29,7 @@ urlpatterns = [
     path('escala/<int:escala_id>/cancelar/equipe', cancelar_escala_equipe, name='cancelar_escala_equipe'),
     
     path('desistencia/<int:escala_id>/', create_desistencia, name='sinalizar_impedimento'),
+    path('desistencia/<int:escala_id>/cancelar/', cancelar_impedimento, name='cancelar_impedimento'),
     path('solicitacao-troca/<int:escala_id>/desistencia', solicitar_desistencia, name='solicitar_desistencia'),
     path('solicitacao-troca/detalhes-troca/<int:troca_id>/', detalhes_solicitacao_troca, name='detalhes_solicitacao_troca'),
     path('solicitacao-troca/<int:escala_id>/cancelar-troca', cancelar_solicitacao_troca, name='cancelar_solicitacao_troca'),

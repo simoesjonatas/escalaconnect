@@ -109,3 +109,16 @@ def create_desistencia(request, escala_id):
 
 
     return render(request, 'escala/desistencia.html', {'form': form, 'escala': escala})
+
+
+@login_required
+def cancelar_impedimento(request, escala_id):
+    """O voluntário retira o impedimento que ainda está em análise."""
+    escala = get_object_or_404(Escala, id=escala_id, usuario=request.user)
+    if request.method == "POST":
+        try:
+            services.cancelar_impedimento(escala, request.user)
+            messages.success(request, "Impedimento cancelado. Você continua escalado.")
+        except services.RegraDeNegocio as erro:
+            messages.error(request, str(erro))
+    return redirect('minha_escala_detail', pk=escala_id)
