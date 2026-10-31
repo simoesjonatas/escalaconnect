@@ -7,6 +7,7 @@ equipe é 404. As regras são as mesmas do site (escala.services, equipe.service
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Count, Exists, OuterRef, Q
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -116,17 +117,52 @@ class CandidaturaView(LiderView):
         return Response(status=204)
 
 
-def _vagas(equipes):
+def _escalas_proximas(equipes):
     agora = timezone.now()
     return (
         Escala.objects
-        .filter(usuario__isnull=True, funcao__equipe__in=equipes,
+        .filter(funcao__equipe__in=equipes,
                 evento__data_inicio__gt=agora, evento__data_inicio__lte=agora + timedelta(days=DIAS_DE_VAGAS))
-        .select_related('evento', 'funcao__equipe')
+        .select_related('evento', 'funcao__equipe', 'usuario')
         # Quantas pessoas se ofereceram para a vaga e ainda esperam a decisão do líder.
         .annotate(ofertas=Count('rendimento', filter=Q(rendimento__aprovada=False)))
         .order_by('evento__data_inicio', 'funcao__equipe__nome', 'funcao__nome')
     )
+
+
+def _vagas(equipes):
+    return _escalas_proximas(equipes).filter(usuario__isnull=True)
+
+
+def _substituiveis(equipes):
+    """Vagas, escalas com impedimento/troca à espera e escalas ainda não confirmadas: o líder vê
+    quem pode ocupar ou substituir antes de decidir."""
+    return (
+        _escalas_proximas(equipes)
+        .annotate(
+            impedimento_aberto=Exists(Desistencia.objects.filter(escala=OuterRef('pk'), aprovada=False)),
+            troca_aberta=Exists(SolicitacaoTroca.objects.filter(escala_origem=OuterRef('pk'), aprovada=False)),
+        )
+        .filter(Q(usuario__isnull=True) | Q(confirmada=False) | Q(impedimento_aberto=True) | Q(troca_aberta=True))
+    )
+
+
+def _pedido_aberto(escala):
+    """Impedimento ou troca à espera do líder nesta escala (um por vez, pela regra de escala.services)."""
+    if not escala.usuario_id:
+        return None
+    return (Desistencia.objects.filter(escala=escala, aprovada=False).select_related('usuario').first()
+            or SolicitacaoTroca.objects.filter(escala_origem=escala, aprovada=False)
+            .select_related('solicitante').first())
+
+
+def _dados_do_pedido(pedido):
+    if pedido is None:
+        return None
+    if isinstance(pedido, Desistencia):
+        return {'tipo': 'impedimentos', 'id': pedido.pk, 'pessoa': PessoaSerializer(pedido.usuario).data,
+                'motivo': pedido.motivo}
+    return {'tipo': 'trocas', 'id': pedido.pk, 'pessoa': PessoaSerializer(pedido.solicitante).data, 'motivo': None}
 
 
 class VagaListView(LiderView):
@@ -140,14 +176,20 @@ class VagaListView(LiderView):
 
 
 class VagaDetailView(LiderView):
-    """Uma vaga e os membros aprovados da equipe que podem ocupá-la, disponíveis primeiro."""
+    """Uma vaga e os membros aprovados da equipe que podem ocupá-la, disponíveis primeiro.
+
+    Também abre escalas com impedimento ou troca à espera (`pedido`) e escalas que a pessoa
+    ainda não confirmou (`pessoa`), para o líder ver quem pode substituir.
+    """
 
     def get_vaga(self, pk):
-        return get_object_or_404(_vagas(self.equipes()), pk=pk)
+        return get_object_or_404(_substituiveis(self.equipes()), pk=pk)
 
     def get(self, request, pk):
         vaga = self.get_vaga(pk)
-        disponiveis = set(usuarios_disponiveis_para_evento(vaga.equipe, vaga.evento, excluir_escala_id=vaga.pk))
+        # Quem pediu para sair (impedimento/troca) não conta como disponível para substituir a si mesmo.
+        disponiveis = set(
+            usuarios_disponiveis_para_evento(vaga.equipe, vaga.evento, excluir_escala_id=vaga.pk)) - {vaga.usuario_id}
         ja_no_evento = Escala.objects.filter(evento=vaga.evento, usuario__isnull=False).values('usuario_id')
         membros = (
             get_user_model().objects
@@ -173,6 +215,8 @@ class VagaDetailView(LiderView):
             not m.se_ofereceu, not m.disponivel, m.servicos_no_mes, (m.get_full_name() or m.username).lower()))
         return Response({
             'vaga': {**VagaSerializer(vaga).data, 'disponiveis': len(disponiveis)},
+            'pedido': _dados_do_pedido(_pedido_aberto(vaga)),
+            'pessoa': PessoaSerializer(vaga.usuario).data if vaga.usuario_id else None,
             'candidatos': CandidatoSerializer(candidatos, many=True).data,
         })
 
@@ -181,12 +225,27 @@ class EscalarView(VagaDetailView):
     http_method_names = ['post', 'options']
 
     def post(self, request, pk):
-        """Escala o membro escolhido na vaga; ele recebe o push "Você foi escalado"."""
+        """Escala o membro escolhido na vaga; ele recebe o push "Você foi escalado".
+
+        Se a escala tem impedimento ou troca à espera, aprova o pedido e escala o substituto
+        juntos: se não der para escalar, o pedido continua como estava. Se a pessoa ainda não
+        confirmou, troca por quem foi escolhido e avisa quem saiu.
+        """
         vaga = self.get_vaga(pk)
         dados = EscalarSerializer(data=request.data)
         dados.is_valid(raise_exception=True)
         usuario = get_object_or_404(get_user_model(), pk=dados.validated_data['usuario_id'], is_active=True)
-        escala_services.escalar_em_vaga(vaga, usuario)
+        with transaction.atomic():
+            pedido = _pedido_aberto(vaga)
+            if isinstance(pedido, Desistencia):
+                escala_services.aprovar_desistencia(pedido)
+            elif pedido is not None:
+                escala_services.aprovar_troca(pedido, request.user)
+            vaga.refresh_from_db()
+            if vaga.usuario_id:
+                escala_services.substituir_na_escala(vaga, usuario)
+            else:
+                escala_services.escalar_em_vaga(vaga, usuario)
         return Response(status=204)
 
 

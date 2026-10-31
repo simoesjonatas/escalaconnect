@@ -191,6 +191,24 @@ def escalar_em_vaga(escala, usuario):
     return escala
 
 
+def substituir_na_escala(escala, usuario):
+    """Troca quem ainda não confirmou por outro membro; quem sai recebe um aviso.
+
+    Impedimento ou troca à espera passam pela aprovação do pedido, não por aqui.
+    """
+    if escala.confirmada:
+        raise RegraDeNegocio("Essa pessoa já confirmou a escala.", code='ja_confirmada')
+    if (Desistencia.objects.filter(escala=escala, aprovada=False).exists()
+            or SolicitacaoTroca.objects.filter(escala_origem=escala, aprovada=False).exists()):
+        raise RegraDeNegocio("Esta escala tem um pedido à espera; decida o pedido.", code='pedido_pendente')
+    anterior_id = escala.usuario_id
+    escala.usuario = None
+    escalar_em_vaga(escala, usuario)
+    if anterior_id:
+        _avisar_saida_da_escala(anterior_id, escala, mensagens_push.substituido, Notification.PURPOSE_REPLACED)
+    return escala
+
+
 # ── Oferta para vaga (voluntário se oferece, líder aprova) ──
 
 def vagas_abertas_para(usuario):

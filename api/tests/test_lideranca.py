@@ -197,7 +197,9 @@ class RecusarPeloSiteTests(LiderancaTestCase):
         self.assertTrue(Desistencia.objects.exists())
 
 
-class VagasTests(LiderancaTestCase):
+class VagasTestCase(LiderancaTestCase):
+    """Base: uma vaga no culto de Maria e outra na quarta; João disponível e Pedro sem disponibilidade."""
+
     def setUp(self):
         super().setUp()
         self.vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
@@ -214,6 +216,8 @@ class VagasTests(LiderancaTestCase):
             data_inicio=self.evento.data_inicio, data_fim=self.evento.data_fim)
         self.post.reset_mock()
 
+
+class VagasTests(VagasTestCase):
     def test_lista_e_detalhe_com_disponiveis_primeiro(self):
         resp = self.como(self.lider).get('/api/v1/lider/vagas/')
         self.assertEqual([(v['id'], v['disponiveis']) for v in resp.data], [(self.vaga.pk, 1), (self.vaga_quarta.pk, 0)])
@@ -234,7 +238,10 @@ class VagasTests(LiderancaTestCase):
         self.vaga.refresh_from_db()
         self.assertEqual(self.vaga.usuario, self.disponivel)
         self.assertEqual([t for t, _ in self.enviadas_para(OUTRO_TOKEN)], ['Você foi escalado 🙌'])
-        # A vaga saiu da lista e não aceita outra pessoa.
+        # A vaga saiu da lista; depois que João confirma, não aceita outra pessoa.
+        self.assertNotIn(self.vaga.pk, [v['id'] for v in self.client.get('/api/v1/lider/vagas/').data])
+        self.vaga.confirmada = True
+        self.vaga.save()
         self.assertEqual(self.client.post(
             f'/api/v1/lider/vagas/{self.vaga.pk}/escalar/', {'usuario_id': self.sem_disp.pk}, format='json',
         ).status_code, 404)
@@ -248,6 +255,92 @@ class VagasTests(LiderancaTestCase):
         self.assertEqual((resp.status_code, resp.data['code']), (400, 'ja_escalado'))
         self.vaga.refresh_from_db()
         self.assertIsNone(self.vaga.usuario)
+
+
+class SubstitutoAntesDeAprovarTests(VagasTestCase):
+    """Escala de Maria com impedimento: o líder vê quem pode substituir e aprova escalando alguém."""
+
+    def setUp(self):
+        super().setUp()
+        self.vaga.delete()  # no culto, só a escala de Maria
+        self.impedimento = Desistencia.objects.create(escala=self.escala, usuario=self.user, motivo='Viagem')
+        self.post.reset_mock()
+
+    def test_detalhe_mostra_o_pedido_e_quem_pode_substituir(self):
+        resp = self.como(self.lider).get(f'/api/v1/lider/vagas/{self.escala.pk}/')
+        self.assertEqual(resp.data['pedido'], {
+            'tipo': 'impedimentos', 'id': self.impedimento.pk,
+            'pessoa': {'id': self.user.pk, 'nome': 'Maria Silva'}, 'motivo': 'Viagem'})
+        self.assertEqual([c['nome'] for c in resp.data['candidatos']], ['João', 'Pedro'])
+        self.assertEqual(resp.data['vaga']['disponiveis'], 1)
+        # Não vira vaga na lista enquanto o pedido não é aprovado.
+        self.assertNotIn(self.escala.pk, [v['id'] for v in self.client.get('/api/v1/lider/vagas/').data])
+
+    def test_escalar_aprova_o_impedimento_e_coloca_o_substituto(self):
+        Device.objects.create(usuario=self.disponivel, expo_token=OUTRO_TOKEN, plataforma='ios')
+        self.autenticar(self.lider)
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(
+                f'/api/v1/lider/vagas/{self.escala.pk}/escalar/', {'usuario_id': self.disponivel.pk}, format='json')
+        self.assertEqual(resp.status_code, 204)
+        self.escala.refresh_from_db()
+        self.impedimento.refresh_from_db()
+        self.assertEqual((self.escala.usuario, self.escala.confirmada), (self.disponivel, False))
+        self.assertTrue(self.impedimento.aprovada)
+        self.assertEqual([t for t, _ in self.enviadas_para(self.device.expo_token)], ['Impedimento aceito'])
+        self.assertEqual([t for t, _ in self.enviadas_para(OUTRO_TOKEN)], ['Você foi escalado 🙌'])
+
+    def test_troca_tambem(self):
+        self.impedimento.delete()
+        troca = SolicitacaoTroca.objects.create(
+            escala_origem=self.escala, solicitante=self.user, tipo_solicitacao='desistencia',
+            data_solicitacao=timezone.now())
+        resp = self.como(self.lider).get(f'/api/v1/lider/vagas/{self.escala.pk}/')
+        self.assertEqual((resp.data['pedido']['tipo'], resp.data['pedido']['motivo']), ('trocas', None))
+        resp = self.client.post(
+            f'/api/v1/lider/vagas/{self.escala.pk}/escalar/', {'usuario_id': self.sem_disp.pk}, format='json')
+        self.assertEqual(resp.status_code, 204)
+        troca.refresh_from_db()
+        self.escala.refresh_from_db()
+        self.assertEqual((troca.aprovada, troca.lider_aprovador, self.escala.usuario), (True, self.lider, self.sem_disp))
+
+    def test_se_nao_der_para_escalar_o_pedido_continua(self):
+        de_fora = criar_usuario(username='ze', cpf='98765432100')
+        self.autenticar(self.lider)
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(
+                f'/api/v1/lider/vagas/{self.escala.pk}/escalar/', {'usuario_id': de_fora.pk}, format='json')
+        self.assertEqual((resp.status_code, resp.data['code']), (400, 'nao_membro'))
+        self.escala.refresh_from_db()
+        self.impedimento.refresh_from_db()
+        self.assertEqual((self.escala.usuario, self.impedimento.aprovada), (self.user, False))
+        self.assertEqual(self.enviadas_para(self.device.expo_token), [])
+
+    def test_escala_confirmada_sem_pedido_continua_fechada(self):
+        self.impedimento.delete()
+        self.escala.confirmada = True
+        self.escala.save()
+        self.assertEqual(self.como(self.lider).get(f'/api/v1/lider/vagas/{self.escala.pk}/').status_code, 404)
+        resp = self.client.post(
+            f'/api/v1/lider/vagas/{self.escala.pk}/escalar/', {'usuario_id': self.disponivel.pk}, format='json')
+        self.assertEqual(resp.status_code, 404)
+
+    def test_quem_nao_confirmou_pode_ser_trocado(self):
+        self.impedimento.delete()
+        Device.objects.create(usuario=self.disponivel, expo_token=OUTRO_TOKEN, plataforma='ios')
+        resp = self.como(self.lider).get(f'/api/v1/lider/vagas/{self.escala.pk}/')
+        self.assertIsNone(resp.data['pedido'])
+        self.assertEqual(resp.data['pessoa'], {'id': self.user.pk, 'nome': 'Maria Silva'})
+        self.assertEqual([c['nome'] for c in resp.data['candidatos']], ['João', 'Pedro'])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(
+                f'/api/v1/lider/vagas/{self.escala.pk}/escalar/', {'usuario_id': self.disponivel.pk}, format='json')
+        self.assertEqual(resp.status_code, 204)
+        self.escala.refresh_from_db()
+        self.assertEqual(self.escala.usuario, self.disponivel)
+        self.assertEqual([t for t, _ in self.enviadas_para(self.device.expo_token)], ['Mudança na sua escala'])
+        self.assertEqual([t for t, _ in self.enviadas_para(OUTRO_TOKEN)], ['Você foi escalado 🙌'])
 
 
 class AgendaTests(PushTestCase):

@@ -34,7 +34,10 @@ const abrirCulto = (id: number) => router.push({ pathname: '/lider/culto/[id]', 
 /** Junta impedimentos, trocas e ofertas (por data do culto) e, por último, as candidaturas. */
 function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
   const saida = (nome: string) => `${nome} sai da escala e a vaga fica aberta.`;
-  const verCulto = (escala: EscalaDaEquipe) => ({ texto: 'Ver o culto', abrir: () => abrirCulto(escala.evento.id) });
+  const verSubstitutos = (escala: EscalaDaEquipe) => ({
+    texto: 'Ver quem pode substituir',
+    abrir: () => abrirVaga(escala.id),
+  });
   // Quantas ofertas cada vaga tem, para o atalho dizer quantas pessoas querem a mesma vaga.
   const ofertasPorVaga = new Map<number, number>();
   for (const o of dados.ofertas) ofertasPorVaga.set(o.escala.id, (ofertasPorVaga.get(o.escala.id) ?? 0) + 1);
@@ -48,7 +51,7 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
       equipe: { id: i.escala.equipe_id, nome: i.escala.equipe },
       escala: i.escala,
       detalhe: `Motivo: ${i.motivo}`,
-      link: verCulto(i.escala),
+      link: verSubstitutos(i.escala),
       aprovar: saida(i.pessoa.nome),
       recusar: continua(i.pessoa.nome),
     })),
@@ -59,7 +62,7 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
       pessoa: t.pessoa,
       equipe: { id: t.escala.equipe_id, nome: t.escala.equipe },
       escala: t.escala,
-      link: verCulto(t.escala),
+      link: verSubstitutos(t.escala),
       aprovar: saida(t.pessoa.nome),
       recusar: continua(t.pessoa.nome),
     })),
@@ -434,7 +437,7 @@ function LinhaDeCulto({ culto, contagem }: { culto: Culto; contagem: ContagemDoC
       detalhe={diaCurto(culto.data_inicio)}
       status={completo ? 'Todos confirmados 🙌' : resumo}
       corStatus={completo ? cores.confirmada : cores.pendente}
-      aoTocar={() => router.push({ pathname: '/lider/culto/[id]', params: { id: culto.id } })}
+      aoTocar={() => abrirCulto(culto.id)}
     />
   );
 }

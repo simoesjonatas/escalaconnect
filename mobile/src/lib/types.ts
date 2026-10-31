@@ -118,7 +118,11 @@ export type Vaga = EscalaDaEquipe & { disponiveis: number; ofertas?: number };
 
 export type Candidato = Pessoa & { disponivel: boolean; se_ofereceu: boolean; servicos_no_mes: number };
 
-export type DetalheDaVaga = { vaga: Vaga; candidatos: Candidato[] };
+/** Impedimento ou troca à espera na escala: o líder vê quem pode substituir antes de aprovar. */
+export type PedidoNaEscala = { tipo: 'impedimentos' | 'trocas'; id: number; pessoa: Pessoa; motivo: string | null };
+
+/** `pessoa`: quem está na escala sem ter confirmado (o líder pode trocar); nula na vaga em aberto. */
+export type DetalheDaVaga = { vaga: Vaga; pedido?: PedidoNaEscala | null; pessoa?: Pessoa | null; candidatos: Candidato[] };
 
 /** Vaga da equipe do voluntário (tela "Vagas em aberto"). */
 export type VagaAberta = EscalaDaEquipe & { me_ofereci: boolean };

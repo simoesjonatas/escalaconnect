@@ -115,6 +115,7 @@ class Notification(models.Model):
     PURPOSE_LEADER_PENDING = "pendencia_lider"
     PURPOSE_OFFER_DECLINED = "oferta_recusada"
     PURPOSE_LEADER_OFFER = "oferta_lider"
+    PURPOSE_REPLACED = "substituido"
 
     PURPOSE_CHOICES = [
         (PURPOSE_CONFIRM, "Confirmação de Escala"),
@@ -131,6 +132,7 @@ class Notification(models.Model):
         (PURPOSE_LEADER_PENDING, "Pendência para o líder"),
         (PURPOSE_OFFER_DECLINED, "Oferta para vaga não aceita"),
         (PURPOSE_LEADER_OFFER, "Ofertas para vagas (líder, agrupadas por culto)"),
+        (PURPOSE_REPLACED, "Substituído pelo líder (ainda não tinha confirmado)"),
     ]
 
     escala = models.ForeignKey("escala.Escala", on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)

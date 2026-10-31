@@ -76,6 +76,11 @@ def troca_aprovada(escala):
     return 'Troca aprovada', f'Você saiu da escala de {_dia(escala.evento.data_inicio)}'
 
 
+def substituido(escala):
+    """Ainda não tinha confirmado e o líder colocou outra pessoa no lugar."""
+    return 'Mudança na sua escala', f'A liderança colocou outra pessoa em {escala.funcao.nome} · {_dia(escala.evento.data_inicio)}'
+
+
 def pedido_recusado(escala):
     return 'Você continua escalado', f'A liderança não aprovou o pedido para {_dia(escala.evento.data_inicio)}'
 

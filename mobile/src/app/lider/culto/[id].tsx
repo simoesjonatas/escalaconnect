@@ -19,6 +19,12 @@ function situacao(escala: EscalaDoCulto, cores: Cores): { texto: string; cor: st
   return { texto: 'A confirmar', cor: cores.pendente };
 }
 
+/** Impedimento ou troca à espera: o cartão abre quem pode substituir, antes de aprovar. */
+const temPedido = (e: EscalaDoCulto) => e.tem_impedimento || e.troca_pendente;
+
+/** Pedido à espera ou ainda não confirmada: o líder pode ver quem está disponível e trocar. */
+const podeSubstituir = (e: EscalaDoCulto) => temPedido(e) || !e.confirmada;
+
 /** O que pede ação vem primeiro: vagas com alguém querendo servir, depois as demais vagas. */
 const prioridade = (e: EscalaDoCulto) => (e.pessoa ? 2 : e.ofertas?.length ? 0 : 1);
 
@@ -97,7 +103,12 @@ export default function CultoDoLider() {
                       <Etiqueta {...situacao(escala, cores)} />
                       <Subtitulo>{escala.funcao}</Subtitulo>
                       {escala.pessoa ? (
-                        <Texto>{escala.pessoa.nome}</Texto>
+                        <>
+                          <Texto>{escala.pessoa.nome}</Texto>
+                          {podeSubstituir(escala) && (
+                            <Suave>{temPedido(escala) ? 'Tocar para ver quem pode substituir' : 'Tocar para ver quem mais está disponível'}</Suave>
+                          )}
+                        </>
                       ) : (
                         <>
                           {!!escala.ofertas?.length && (
@@ -112,7 +123,7 @@ export default function CultoDoLider() {
                       )}
                     </Cartao>
                   );
-                  return escala.pessoa ? (
+                  return escala.pessoa && !podeSubstituir(escala) ? (
                     <View key={escala.id}>{cartao}</View>
                   ) : (
                     <Pressable
