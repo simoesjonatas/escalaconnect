@@ -37,8 +37,11 @@ export default function EscalarNaVaga() {
   const ocupado = escalar.isPending || acao.isPending;
 
   function confirmar(candidato: Candidato) {
-    const aviso =
-      candidato.disponivel || candidato.se_ofereceu ? '' : '\n\nEssa pessoa não marcou disponibilidade para este evento.';
+    const aviso = candidato.ja_escalado_em
+      ? `\n\nEssa pessoa já está escalada neste evento: ${candidato.ja_escalado_em}. Vai servir nas duas funções.`
+      : candidato.disponivel || candidato.se_ofereceu
+        ? ''
+        : '\n\nEssa pessoa não marcou disponibilidade para este evento.';
     const pergunta = pedido
       ? `Aprovar ${nomeDoPedido} de ${pedido.pessoa.nome} e escalar ${candidato.nome} no lugar? Os dois recebem um aviso no app.`
       : aConfirmar
@@ -49,7 +52,7 @@ export default function EscalarNaVaga() {
       {
         text: aConfirmar ? 'Trocar' : 'Escalar',
         onPress: () =>
-          escalar.mutate(candidato.id, {
+          escalar.mutate({ usuarioId: candidato.id, mesmoEvento: !!candidato.ja_escalado_em }, {
             onSuccess: () => {
               Alert.alert('Pronto', `${candidato.nome} está na escala e recebeu um aviso no app.`);
               router.back();
@@ -142,7 +145,7 @@ export default function EscalarNaVaga() {
 
           {candidatos.length === 0 && (
             <Suave style={{ textAlign: 'center' }}>
-              {busca ? 'Ninguém encontrado com esse nome.' : 'Todos os membros da equipe já estão escalados neste evento.'}
+              {busca ? 'Ninguém encontrado com esse nome.' : 'A equipe não tem outros membros para escalar.'}
             </Suave>
           )}
 
@@ -156,18 +159,25 @@ export default function EscalarNaVaga() {
               <Cartao>
                 {candidato.se_ofereceu && <Etiqueta texto="Se ofereceu" cor={cores.confirmada} />}
                 <Subtitulo>{candidato.nome}</Subtitulo>
-                {/* Quem se ofereceu para a vaga já disse que pode, mesmo sem ter marcado disponibilidade. */}
-                <Texto
-                  style={{
-                    color: candidato.disponivel || candidato.se_ofereceu ? cores.confirmada : cores.textoSuave,
-                    fontWeight: '600',
-                  }}>
-                  {candidato.disponivel
-                    ? 'Disponível'
-                    : candidato.se_ofereceu
-                      ? 'Quer servir nesta vaga'
-                      : 'Sem disponibilidade marcada'}
-                </Texto>
+                {candidato.ja_escalado_em ? (
+                  // Já serve em outra função do evento: o líder pode escalar mesmo assim, confirmando.
+                  <Texto style={{ color: cores.pendente, fontWeight: '600' }}>
+                    Já escalado neste evento: {candidato.ja_escalado_em}
+                  </Texto>
+                ) : (
+                  /* Quem se ofereceu para a vaga já disse que pode, mesmo sem ter marcado disponibilidade. */
+                  <Texto
+                    style={{
+                      color: candidato.disponivel || candidato.se_ofereceu ? cores.confirmada : cores.textoSuave,
+                      fontWeight: '600',
+                    }}>
+                    {candidato.disponivel
+                      ? 'Disponível'
+                      : candidato.se_ofereceu
+                        ? 'Quer servir nesta vaga'
+                        : 'Sem disponibilidade marcada'}
+                  </Texto>
+                )}
                 <Suave>
                   {candidato.servicos_no_mes === 0
                     ? 'Ainda não serve neste mês'

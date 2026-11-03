@@ -223,9 +223,10 @@ class VagasTests(VagasTestCase):
         self.assertEqual([(v['id'], v['disponiveis']) for v in resp.data], [(self.vaga.pk, 1), (self.vaga_quarta.pk, 0)])
 
         resp = self.client.get(f'/api/v1/lider/vagas/{self.vaga.pk}/')
-        candidatos = [(c['nome'], c['disponivel']) for c in resp.data['candidatos']]
-        # Maria já está escalada neste evento e fica de fora.
-        self.assertEqual(candidatos, [('João', True), ('Pedro', False)])
+        candidatos = [(c['nome'], c['disponivel'], c['ja_escalado_em']) for c in resp.data['candidatos']]
+        # Maria já está escalada neste evento: aparece por último, com o aviso de onde serve.
+        self.assertEqual(candidatos, [('João', True, None), ('Pedro', False, None),
+                                      ('Maria Silva', False, 'Porta · Recepção')])
         self.assertEqual(resp.data['vaga']['disponiveis'], 1)
 
     def test_escalar_avisa_a_pessoa(self):
@@ -246,6 +247,18 @@ class VagasTests(VagasTestCase):
             f'/api/v1/lider/vagas/{self.vaga.pk}/escalar/', {'usuario_id': self.sem_disp.pk}, format='json',
         ).status_code, 404)
 
+    def test_fila_fora_do_ar_nao_derruba_a_acao(self):
+        """O push sai depois do commit; se o Redis estiver fora, escalar continua respondendo certo."""
+        from unittest import mock
+        Device.objects.create(usuario=self.disponivel, expo_token=OUTRO_TOKEN, plataforma='ios')
+        with mock.patch('api.tasks.enviar_push_task.delay', side_effect=ConnectionError('redis')), \
+                self.captureOnCommitCallbacks(execute=True):
+            resp = self.como(self.lider).post(
+                f'/api/v1/lider/vagas/{self.vaga.pk}/escalar/', {'usuario_id': self.disponivel.pk}, format='json')
+        self.assertEqual(resp.status_code, 204)
+        self.vaga.refresh_from_db()
+        self.assertEqual(self.vaga.usuario, self.disponivel)
+
     def test_nao_escala_quem_nao_e_membro_nem_quem_ja_serve_no_evento(self):
         self.autenticar(self.lider)
         de_fora = criar_usuario(username='ze', cpf='98765432100')
@@ -253,8 +266,30 @@ class VagasTests(VagasTestCase):
         self.assertEqual((resp.status_code, resp.data['code']), (400, 'nao_membro'))
         resp = self.client.post(f'/api/v1/lider/vagas/{self.vaga.pk}/escalar/', {'usuario_id': self.user.pk}, format='json')
         self.assertEqual((resp.status_code, resp.data['code']), (400, 'ja_escalado'))
+        self.assertIn('Porta · Recepção', resp.data['detail'])
         self.vaga.refresh_from_db()
         self.assertIsNone(self.vaga.usuario)
+
+    def test_escala_quem_ja_serve_no_evento_se_o_lider_confirmar(self):
+        resp = self.como(self.lider).post(f'/api/v1/lider/vagas/{self.vaga.pk}/escalar/',
+                                          {'usuario_id': self.user.pk, 'mesmo_evento': True}, format='json')
+        self.assertEqual(resp.status_code, 204)
+        self.vaga.refresh_from_db()
+        self.assertEqual(self.vaga.usuario, self.user)
+
+    def test_oferta_de_quem_ja_serve_no_evento_avisa_e_aprova_com_confirmacao(self):
+        oferta = Rendimento.objects.create(escala=self.vaga, candidato=self.user)
+        escalas = self.como(self.lider).get(f'/api/v1/lider/cultos/{self.evento.pk}/').data['escalas']
+        (vaga,) = [e for e in escalas if e['id'] == self.vaga.pk]
+        self.assertEqual(vaga['ofertas'], [{'id': self.user.pk, 'nome': 'Maria Silva', 'ja_escalado_em': 'Porta · Recepção'}])
+        (pendente,) = self.como(self.lider).get('/api/v1/lider/pendencias/').data['ofertas']
+        self.assertEqual(pendente['ja_escalado_em'], 'Porta · Recepção')
+        resp = self.client.post(f'/api/v1/lider/ofertas/{oferta.pk}/aprovar/')
+        self.assertEqual(resp.data['code'], 'ja_escalado')
+        resp = self.client.post(f'/api/v1/lider/ofertas/{oferta.pk}/aprovar/', {'mesmo_evento': True}, format='json')
+        self.assertEqual(resp.status_code, 204)
+        self.vaga.refresh_from_db()
+        self.assertEqual(self.vaga.usuario, self.user)
 
 
 class SubstitutoAntesDeAprovarTests(VagasTestCase):

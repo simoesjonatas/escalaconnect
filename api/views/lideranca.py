@@ -57,6 +57,11 @@ class LiderView(APIView):
 class PendenciasView(LiderView):
     def get(self, request):
         pendencias = equipe_services.pendencias_do_lider(request.user)
+        ofertas = list(pendencias['ofertas'])
+        onde = escala_services.onde_serve_no_evento((o.escala.evento_id, o.candidato_id) for o in ofertas)
+        for oferta in ofertas:
+            oferta.ja_escalado_em = onde.get((oferta.escala.evento_id, oferta.candidato_id))
+        pendencias['ofertas'] = ofertas
         return Response({
             'impedimentos': ImpedimentoSerializer(pendencias['impedimentos'], many=True).data,
             'trocas': TrocaSerializer(pendencias['trocas'], many=True).data,
@@ -100,7 +105,7 @@ class OfertaView(LiderView):
             pk=pk, escala__funcao__equipe__in=self.equipes(),
         )
         if acao == 'aprovar':
-            escala_services.aprovar_oferta(oferta)
+            escala_services.aprovar_oferta(oferta, mesmo_evento=bool(request.data.get('mesmo_evento')))
         else:
             escala_services.recusar_oferta(oferta)
         return Response(status=204)
@@ -190,12 +195,14 @@ class VagaDetailView(LiderView):
         # Quem pediu para sair (impedimento/troca) não conta como disponível para substituir a si mesmo.
         disponiveis = set(
             usuarios_disponiveis_para_evento(vaga.equipe, vaga.evento, excluir_escala_id=vaga.pk)) - {vaga.usuario_id}
-        ja_no_evento = Escala.objects.filter(evento=vaga.evento, usuario__isnull=False).values('usuario_id')
-        membros = (
+        # Quem já serve em outra função do evento aparece também, com o aviso de onde serve:
+        # o líder decide (como no site). Só fica de fora quem está nesta própria escala.
+        membros = list(
             get_user_model().objects
             .filter(membrosequipe__equipe=vaga.equipe, membrosequipe__aprovado=True, is_active=True)
-            .exclude(pk__in=ja_no_evento)
+            .exclude(pk=vaga.usuario_id or 0)
         )
+        onde = escala_services.onde_serve_no_evento((vaga.evento_id, m.pk) for m in membros)
         ano, mes = _ano_mes_local(vaga.evento.data_inicio)
         servicos = dict(
             Escala.objects
@@ -209,10 +216,13 @@ class VagaDetailView(LiderView):
             membro.disponivel = membro.pk in disponiveis
             membro.se_ofereceu = membro.pk in ofereceram
             membro.servicos_no_mes = servicos.get(membro.pk, 0)
+            membro.ja_escalado_em = onde.get((vaga.evento_id, membro.pk))
             candidatos.append(membro)
-        # Quem se ofereceu, depois disponíveis; depois quem serviu menos no mês; depois por nome.
+        # Quem se ofereceu, depois quem está livre no evento, disponíveis; depois quem serviu
+        # menos no mês; depois por nome.
         candidatos.sort(key=lambda m: (
-            not m.se_ofereceu, not m.disponivel, m.servicos_no_mes, (m.get_full_name() or m.username).lower()))
+            not m.se_ofereceu, bool(m.ja_escalado_em), not m.disponivel, m.servicos_no_mes,
+            (m.get_full_name() or m.username).lower()))
         return Response({
             'vaga': {**VagaSerializer(vaga).data, 'disponiveis': len(disponiveis)},
             'pedido': _dados_do_pedido(_pedido_aberto(vaga)),
@@ -242,10 +252,11 @@ class EscalarView(VagaDetailView):
             elif pedido is not None:
                 escala_services.aprovar_troca(pedido, request.user)
             vaga.refresh_from_db()
+            mesmo_evento = dados.validated_data['mesmo_evento']
             if vaga.usuario_id:
-                escala_services.substituir_na_escala(vaga, usuario)
+                escala_services.substituir_na_escala(vaga, usuario, mesmo_evento=mesmo_evento)
             else:
-                escala_services.escalar_em_vaga(vaga, usuario)
+                escala_services.escalar_em_vaga(vaga, usuario, mesmo_evento=mesmo_evento)
         return Response(status=204)
 
 
@@ -324,6 +335,11 @@ class CultoDetailView(CultoView):
         for oferta in (Rendimento.objects.filter(escala__in=vagas, aprovada=False)
                        .select_related('candidato').order_by('data_candidatura')):
             ofertas.setdefault(oferta.escala_id, []).append(oferta.candidato)
+        onde = escala_services.onde_serve_no_evento(
+            (escalas[0].evento_id, p.pk) for lista in ofertas.values() for p in lista) if escalas else {}
+        for lista in ofertas.values():
+            for pessoa in lista:
+                pessoa.ja_escalado_em = onde.get((escalas[0].evento_id, pessoa.pk))
         for vaga in vagas:
             vaga.ofertas = ofertas.get(vaga.pk, [])
             vaga.disponiveis = len(usuarios_disponiveis_para_evento(vaga.equipe, vaga.evento, excluir_escala_id=vaga.pk))

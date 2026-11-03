@@ -48,10 +48,12 @@ class OfertaSerializer(serializers.ModelSerializer):
     """Voluntário que se ofereceu para uma vaga em aberto."""
     pessoa = PessoaSerializer(source='candidato')
     escala = EscalaDaEquipeSerializer()
+    # Outra função em que a pessoa já serve neste evento (ex.: "Revisor · COPY"), ou nulo.
+    ja_escalado_em = serializers.CharField(read_only=True, allow_null=True, default=None)
 
     class Meta:
         model = Rendimento
-        fields = ['id', 'data_candidatura', 'pessoa', 'escala']
+        fields = ['id', 'data_candidatura', 'pessoa', 'escala', 'ja_escalado_em']
 
 
 class CandidaturaSerializer(serializers.ModelSerializer):
@@ -84,10 +86,13 @@ class CandidatoSerializer(PessoaSerializer):
     disponivel = serializers.BooleanField()
     se_ofereceu = serializers.BooleanField()
     servicos_no_mes = serializers.IntegerField()
+    ja_escalado_em = serializers.CharField(allow_null=True)
 
 
 class EscalarSerializer(serializers.Serializer):
     usuario_id = serializers.IntegerField()
+    # O líder viu que a pessoa já serve em outra função do evento e quer escalar mesmo assim.
+    mesmo_evento = serializers.BooleanField(default=False)
 
 
 class EscalaDoCultoSerializer(serializers.ModelSerializer):
@@ -107,7 +112,9 @@ class EscalaDoCultoSerializer(serializers.ModelSerializer):
                   'ofertas', 'disponiveis']
 
     def get_ofertas(self, escala):
-        return PessoaSerializer(getattr(escala, 'ofertas', []), many=True).data
+        # Cada pessoa vem com `ja_escalado_em` (outra função em que já serve neste evento) ou nulo.
+        return [{**PessoaSerializer(p).data, 'ja_escalado_em': getattr(p, 'ja_escalado_em', None)}
+                for p in getattr(escala, 'ofertas', [])]
 
     def get_disponiveis(self, escala):
         return getattr(escala, 'disponiveis', None)

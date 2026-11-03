@@ -112,7 +112,12 @@ export default function CultoDoLider() {
                       ) : (
                         <>
                           {!!escala.ofertas?.length && (
-                            <Texto>Se ofereceram: {escala.ofertas.map((p) => p.nome).join(', ')}</Texto>
+                            <Texto>
+                              Se ofereceram:{' '}
+                              {escala.ofertas
+                                .map((p) => (p.ja_escalado_em ? `${p.nome} (já em ${p.ja_escalado_em})` : p.nome))
+                                .join(', ')}
+                            </Texto>
                           )}
                           <Suave>
                             {escala.disponiveis == null

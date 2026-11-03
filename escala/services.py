@@ -173,10 +173,32 @@ def recusar_troca(troca):
 
 # ── Vagas (líder) ──
 
-def escalar_em_vaga(escala, usuario):
+def onde_serve_no_evento(pares):
+    """{(evento_id, usuario_id): "Função · Equipe"} de quem já está escalado nesses eventos.
+
+    `pares` são (evento_id, usuario_id); quem serve em mais de uma função aparece com todas.
+    """
+    pares = set(pares)
+    if not pares:
+        return {}
+    escalas = (
+        Escala.objects
+        .filter(evento_id__in={e for e, _ in pares}, usuario_id__in={u for _, u in pares})
+        .select_related('funcao__equipe').order_by('funcao__nome')
+    )
+    funcoes = {}
+    for e in escalas:
+        if (e.evento_id, e.usuario_id) in pares:
+            funcoes.setdefault((e.evento_id, e.usuario_id), []).append(f'{e.funcao.nome} · {e.funcao.equipe.nome}')
+    return {chave: ', '.join(nomes) for chave, nomes in funcoes.items()}
+
+
+def escalar_em_vaga(escala, usuario, mesmo_evento=False):
     """Coloca um membro aprovado da equipe numa vaga em aberto de evento futuro.
 
-    O aviso "Você foi escalado" e o encerramento das ofertas saem pelos signals de Escala (api/signals.py).
+    Quem já serve em outra função do mesmo evento só entra com `mesmo_evento` (o líder viu o
+    aviso e confirmou, como no site). O aviso "Você foi escalado" e o encerramento das ofertas
+    saem pelos signals de Escala (api/signals.py).
     """
     if escala.evento.data_inicio <= timezone.now():
         raise RegraDeNegocio("O evento já começou.", code='evento_iniciado')
@@ -184,14 +206,16 @@ def escalar_em_vaga(escala, usuario):
         raise RegraDeNegocio("Esta vaga já foi preenchida.", code='vaga_ocupada')
     if not MembrosEquipe.objects.filter(usuario=usuario, equipe=escala.equipe, aprovado=True).exists():
         raise RegraDeNegocio("Essa pessoa não é membro da equipe.", code='nao_membro')
-    if Escala.objects.filter(evento=escala.evento, usuario=usuario).exists():
-        raise RegraDeNegocio("Essa pessoa já está escalada neste evento.", code='ja_escalado')
+    if not mesmo_evento:
+        onde = onde_serve_no_evento([(escala.evento_id, usuario.pk)]).get((escala.evento_id, usuario.pk))
+        if onde:
+            raise RegraDeNegocio(f"Essa pessoa já está escalada neste evento ({onde}).", code='ja_escalado')
     escala.usuario = usuario
     escala.save()
     return escala
 
 
-def substituir_na_escala(escala, usuario):
+def substituir_na_escala(escala, usuario, mesmo_evento=False):
     """Troca quem ainda não confirmou por outro membro; quem sai recebe um aviso.
 
     Impedimento ou troca à espera passam pela aprovação do pedido, não por aqui.
@@ -203,7 +227,7 @@ def substituir_na_escala(escala, usuario):
         raise RegraDeNegocio("Esta escala tem um pedido à espera; decida o pedido.", code='pedido_pendente')
     anterior_id = escala.usuario_id
     escala.usuario = None
-    escalar_em_vaga(escala, usuario)
+    escalar_em_vaga(escala, usuario, mesmo_evento=mesmo_evento)
     if anterior_id:
         _avisar_saida_da_escala(anterior_id, escala, mensagens_push.substituido, Notification.PURPOSE_REPLACED)
     return escala
@@ -264,9 +288,9 @@ def cancelar_oferta(escala, usuario):
         raise RegraDeNegocio("Você não se ofereceu para esta vaga.", code='sem_oferta')
 
 
-def aprovar_oferta(oferta):
+def aprovar_oferta(oferta, mesmo_evento=False):
     """Escala quem se ofereceu (push "Você foi escalado" pelo signal)."""
-    return escalar_em_vaga(oferta.escala, oferta.candidato)
+    return escalar_em_vaga(oferta.escala, oferta.candidato, mesmo_evento=mesmo_evento)
 
 
 # Oferta recusada ou vaga que ficou com outra pessoa: sem push nem aviso (era notificação

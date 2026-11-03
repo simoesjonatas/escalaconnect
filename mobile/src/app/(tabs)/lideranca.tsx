@@ -68,8 +68,10 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
     })),
     ...dados.ofertas.map((o) => ({
       chave: `o${o.id}`,
-      pedido: { tipo: 'ofertas' as const, id: o.id },
+      // Já serve em outra função do evento: o aviso aparece no cartão e na confirmação.
+      pedido: { tipo: 'ofertas' as const, id: o.id, mesmo_evento: !!o.ja_escalado_em },
       tipo: { texto: 'Quer servir', cor: cores.confirmada },
+      detalhe: o.ja_escalado_em ? `Já escalado neste evento: ${o.ja_escalado_em}` : undefined,
       pessoa: o.pessoa,
       equipe: { id: o.escala.equipe_id, nome: o.escala.equipe },
       escala: o.escala,
@@ -80,7 +82,9 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
             : 'Ver a vaga e quem está disponível',
         abrir: () => abrirVaga(o.escala.id),
       },
-      aprovar: `${o.pessoa.nome} fica com a vaga e recebe o aviso de escala.`,
+      aprovar: o.ja_escalado_em
+        ? `${o.pessoa.nome} já está escalado neste evento (${o.ja_escalado_em}). Escalar também nesta função?`
+        : `${o.pessoa.nome} fica com a vaga e recebe o aviso de escala.`,
       recusar: `A oferta de ${o.pessoa.nome} é descartada e a vaga continua aberta.`,
     })),
   ].sort((a, b) => a.escala.evento.data_inicio.localeCompare(b.escala.evento.data_inicio));

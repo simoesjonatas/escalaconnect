@@ -1,7 +1,10 @@
+import logging
 from datetime import timedelta
 
 from django.db import transaction
 from django.utils import formats, timezone
+
+logger = logging.getLogger(__name__)
 
 
 def notificar_push(usuario_id, titulo, corpo, tipo, purpose, escala_id=None, throttle_horas=0):
@@ -28,8 +31,17 @@ def notificar_push(usuario_id, titulo, corpo, tipo, purpose, escala_id=None, thr
 
     if not Device.objects.filter(usuario_id=usuario_id, ativo=True).exists():
         return False
-    transaction.on_commit(lambda: enviar_push_task.delay(
-        usuario_id, titulo, corpo, tipo, purpose, escala_id=escala_id, throttle_horas=throttle_horas))
+
+    def enfileirar():
+        # Roda depois do commit: se a fila (Redis) estiver fora, o que o usuário fez já foi salvo e
+        # não pode virar erro 500 — o push se perde, o aviso continua na caixa do app.
+        try:
+            enviar_push_task.delay(
+                usuario_id, titulo, corpo, tipo, purpose, escala_id=escala_id, throttle_horas=throttle_horas)
+        except Exception:
+            logger.exception('Push não enfileirado (fila indisponível): usuário %s, %s', usuario_id, purpose)
+
+    transaction.on_commit(enfileirar)
     return True
 
 

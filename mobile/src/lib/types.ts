@@ -104,7 +104,14 @@ export type Troca = { id: number; data_solicitacao: string; pessoa: Pessoa; esca
 export type Candidatura = { id: number; pessoa: Pessoa; equipe: string; equipe_id: number };
 
 /** Voluntário que se ofereceu para uma vaga em aberto. */
-export type Oferta = { id: number; data_candidatura: string; pessoa: Pessoa; escala: EscalaDaEquipe };
+/** `ja_escalado_em`: outra função em que a pessoa já serve neste evento (ex.: "Revisor · COPY"). */
+export type Oferta = {
+  id: number;
+  data_candidatura: string;
+  pessoa: Pessoa;
+  escala: EscalaDaEquipe;
+  ja_escalado_em?: string | null;
+};
 
 export type PendenciasDoLider = {
   impedimentos: Impedimento[];
@@ -116,7 +123,13 @@ export type PendenciasDoLider = {
 /** `ofertas`: quantos se ofereceram e esperam o líder (ausente em servidor antigo). */
 export type Vaga = EscalaDaEquipe & { disponiveis: number; ofertas?: number };
 
-export type Candidato = Pessoa & { disponivel: boolean; se_ofereceu: boolean; servicos_no_mes: number };
+export type Candidato = Pessoa & {
+  disponivel: boolean;
+  se_ofereceu: boolean;
+  servicos_no_mes: number;
+  /** Outra função em que já serve neste evento; o líder pode escalar mesmo assim, confirmando. */
+  ja_escalado_em?: string | null;
+};
 
 /** Impedimento ou troca à espera na escala: o líder vê quem pode substituir antes de aprovar. */
 export type PedidoNaEscala = { tipo: 'impedimentos' | 'trocas'; id: number; pessoa: Pessoa; motivo: string | null };
@@ -141,8 +154,9 @@ export type EscalaDoCulto = {
   confirmada: boolean;
   tem_impedimento: boolean;
   troca_pendente: boolean;
-  /** Só nas vagas: quem se ofereceu e quantos marcaram disponibilidade (ausentes em servidor antigo). */
-  ofertas?: Pessoa[];
+  /** Só nas vagas: quem se ofereceu e quantos marcaram disponibilidade (ausentes em servidor antigo).
+   * `ja_escalado_em`: outra função em que a pessoa já serve neste evento. */
+  ofertas?: (Pessoa & { ja_escalado_em?: string | null })[];
   disponiveis?: number | null;
 };
 

@@ -132,6 +132,8 @@ export type AcaoDoLider = {
   tipo: 'impedimentos' | 'trocas' | 'ofertas' | 'candidaturas';
   id: number;
   acao: 'aprovar' | 'recusar';
+  /** Oferta de quem já serve em outra função do evento: o líder confirmou que quer escalar. */
+  mesmo_evento?: boolean;
 };
 
 function useAtualizarPainel() {
@@ -148,17 +150,23 @@ function useAtualizarPainel() {
 export function useAcaoDoLider() {
   const atualizar = useAtualizarPainel();
   return useMutation({
-    mutationFn: ({ tipo, id, acao }: AcaoDoLider) =>
-      api<{ vaga_id: number } | undefined>('POST', `/lider/${tipo}/${id}/${acao}/`),
-    onSuccess: atualizar,
+    mutationFn: ({ tipo, id, acao, mesmo_evento }: AcaoDoLider) =>
+      api<{ vaga_id: number } | undefined>(
+        'POST',
+        `/lider/${tipo}/${id}/${acao}/`,
+        mesmo_evento ? { mesmo_evento } : undefined,
+      ),
+    // Também no erro: a ação pode ter sido salva (ex.: falha depois do commit) e a tela deve mostrar o real.
+    onSettled: atualizar,
   });
 }
 
 export function useEscalarNaVaga(vagaId: number) {
   const atualizar = useAtualizarPainel();
   return useMutation({
-    mutationFn: (usuarioId: number) => api('POST', `/lider/vagas/${vagaId}/escalar/`, { usuario_id: usuarioId }),
-    onSuccess: atualizar,
+    mutationFn: ({ usuarioId, mesmoEvento }: { usuarioId: number; mesmoEvento?: boolean }) =>
+      api('POST', `/lider/vagas/${vagaId}/escalar/`, { usuario_id: usuarioId, mesmo_evento: !!mesmoEvento }),
+    onSettled: atualizar,
   });
 }
 
