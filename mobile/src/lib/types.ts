@@ -185,3 +185,41 @@ export type Aviso = {
 };
 
 export type CaixaDeAvisos = { nao_lidos: number; avisos: Aviso[] };
+
+// ── Ferramentas do líder: criar evento, gerar em massa, funções em eventos e PDF ──
+
+export type FuncaoDaEquipe = { id: number; nome: string };
+
+/** Equipes que o líder lidera (com as funções) e os meses do "gerar em massa" (atual e próximo). */
+export type OpcoesDeEventos = {
+  admin: boolean;
+  equipes: (Equipe & { funcoes: FuncaoDaEquipe[] })[];
+  meses: { valor: string; rotulo: string }[];
+};
+
+/** Evento futuro onde o líder pode pôr funções; `funcao_ids` = funções das equipes dele já presentes. */
+export type EventoEditavel = EventoComEquipe & { funcao_ids: number[] };
+
+export type NovoEvento = {
+  nome: string;
+  /** Nulo = evento público (só admin). */
+  equipe_id: number | null;
+  data_inicio: string;
+  data_fim: string;
+  observacao: string;
+  funcao_ids: number[];
+};
+
+export type EventosEmMassa = {
+  nome: string;
+  equipe_id: number;
+  meses: string[];
+  /** 0 = segunda ... 6 = domingo, como no site. */
+  dias_da_semana: number[];
+  horario_inicio: string;
+  horario_fim: string;
+  observacao: string;
+  funcao_ids: number[];
+};
+
+export type PedidoDePdf = { equipe_id: number; ano: number; mes: number; estilo: 'connect' | 'escuro' | 'mural' };

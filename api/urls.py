@@ -4,7 +4,7 @@ from django.urls import path, re_path
 from disponivel.services import disponibilidades
 from ocupado.services import indisponibilidades
 
-from .views import avisos, conta, devices, equipes, escalas, eventos, lideranca, periodos
+from .views import avisos, conta, devices, equipes, escalas, eventos, eventos_do_lider, lideranca, periodos
 from .views.auth import LoginView, LogoutAllView, LogoutView, RecuperarSenhaView
 from .views.conta import MeView, MetaView
 
@@ -76,6 +76,11 @@ urlpatterns = [
     re_path(r'^lider/candidaturas/(?P<pk>\d+)/(?P<acao>aprovar|recusar)/$',
             lideranca.CandidaturaView.as_view(), name='api_lider_candidatura'),
     path('lider/vagas/', lideranca.VagaListView.as_view(), name='api_lider_vagas'),
+    path('lider/eventos/', eventos_do_lider.EventosView.as_view(), name='api_lider_eventos'),
+    path('lider/eventos/opcoes/', eventos_do_lider.OpcoesView.as_view(), name='api_lider_eventos_opcoes'),
+    path('lider/eventos/em-massa/', eventos_do_lider.EventosEmMassaView.as_view(), name='api_lider_eventos_em_massa'),
+    path('lider/eventos/funcoes/', eventos_do_lider.AplicarFuncoesView.as_view(), name='api_lider_eventos_funcoes'),
+    path('lider/pdf/', eventos_do_lider.PdfDaEscalaView.as_view(), name='api_lider_pdf'),
     path('lider/vagas/<int:pk>/', lideranca.VagaDetailView.as_view(), name='api_lider_vaga'),
     path('lider/vagas/<int:pk>/escalar/', lideranca.EscalarView.as_view(), name='api_lider_escalar'),
 

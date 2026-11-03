@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from .models import Evento
 from .services import feed_calendario
+from .services import gerar_eventos_em_massa as gerar_eventos_em_massa_service
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.db.models import Count, Q
@@ -18,10 +19,6 @@ from django.utils.timezone import now
 from escalaconnect.tasks import enviar_email_confirmacao_task
 from escalaconnect.notificacoes import pedir_confirmacao
 from django.contrib import messages
-from django.db import transaction
-from django.utils import timezone
-from datetime import date, datetime
-import calendar
 
 
 
@@ -183,47 +180,17 @@ def gerar_eventos_em_massa(request):
                 meses = [valor for valor, _ in form.fields['mes'].choices if valor != 'ambos']
             else:
                 meses = [mes_escolhido]
-            dias_escolhidos = {int(dia) for dia in form.cleaned_data['dias_da_semana']}
-            horario_inicio = form.cleaned_data['horario_inicio']
-            horario_fim = form.cleaned_data['horario_fim']
-            equipe = form.cleaned_data['equipe']
-            agora = timezone.now()
-            eventos = []
-            ignorados = 0
-
-            for valor_mes in meses:
-                ano, mes = map(int, valor_mes.split('-'))
-                for numero_dia in range(1, calendar.monthrange(ano, mes)[1] + 1):
-                    data_evento = date(ano, mes, numero_dia)
-                    if data_evento.weekday() not in dias_escolhidos:
-                        continue
-
-                    inicio = timezone.make_aware(datetime.combine(data_evento, horario_inicio))
-                    fim = timezone.make_aware(datetime.combine(data_evento, horario_fim))
-                    if inicio <= agora or Evento.objects.filter(
-                        nome=form.cleaned_data['nome'],
-                        equipe=equipe,
-                        data_inicio=inicio,
-                    ).exists():
-                        ignorados += 1
-                        continue
-
-                    eventos.append(Evento(
-                        nome=form.cleaned_data['nome'],
-                        equipe=equipe,
-                        data_inicio=inicio,
-                        data_fim=fim,
-                        observacao=form.cleaned_data['observacao'],
-                    ))
-
             funcoes = list(form.cleaned_data['funcoes'])
-            with transaction.atomic():
-                for evento in eventos:
-                    evento.save()
-                # Uma vaga por função em cada evento; sem voluntário, então ninguém é avisado agora.
-                Escala.objects.bulk_create([
-                    Escala(evento=evento, funcao=funcao) for evento in eventos for funcao in funcoes
-                ])
+            eventos, ignorados = gerar_eventos_em_massa_service(
+                nome=form.cleaned_data['nome'],
+                equipe=form.cleaned_data['equipe'],
+                meses=meses,
+                dias_da_semana=form.cleaned_data['dias_da_semana'],
+                horario_inicio=form.cleaned_data['horario_inicio'],
+                horario_fim=form.cleaned_data['horario_fim'],
+                observacao=form.cleaned_data['observacao'],
+                funcoes=funcoes,
+            )
 
             vagas = f" com {len(funcoes)} vaga(s) cada" if funcoes and eventos else ""
             messages.success(

@@ -14,8 +14,13 @@ import {
   Escala,
   EventoCalendario,
   EventoComEquipe,
+  EventoEditavel,
+  EventosEmMassa,
   Historico,
   Home,
+  NovoEvento,
+  OpcoesDeEventos,
+  PedidoDePdf,
   PendenciasDoLider,
   Vaga,
   VagaAberta,
@@ -241,3 +246,49 @@ export function useMarcarAvisosLidos() {
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['home'] }),
   });
 }
+
+// ── Ferramentas do líder ──
+
+export const useOpcoesDeEventos = () =>
+  useQuery({ queryKey: ['lider', 'eventos', 'opcoes'], queryFn: () => api<OpcoesDeEventos>('GET', '/lider/eventos/opcoes/') });
+
+export const useEventosEditaveis = () =>
+  useQuery({ queryKey: ['lider', 'eventos'], queryFn: () => api<EventoEditavel[]>('GET', '/lider/eventos/') });
+
+/** Criar evento, gerar em massa e pôr funções mudam cultos, vagas e calendário. */
+function useAtualizarEventos() {
+  const queryClient = useQueryClient();
+  return () => {
+    for (const chave of ['lider', 'eventos', 'vagas', 'home']) void queryClient.invalidateQueries({ queryKey: [chave] });
+  };
+}
+
+export function useCriarEvento() {
+  const atualizar = useAtualizarEventos();
+  return useMutation({
+    mutationFn: (evento: NovoEvento) => api<EventoComEquipe & { vagas: number }>('POST', '/lider/eventos/', evento),
+    onSuccess: atualizar,
+  });
+}
+
+export function useGerarEventosEmMassa() {
+  const atualizar = useAtualizarEventos();
+  return useMutation({
+    mutationFn: (pedido: EventosEmMassa) =>
+      api<{ criados: number; ignorados: number; vagas_por_evento: number }>('POST', '/lider/eventos/em-massa/', pedido),
+    onSuccess: atualizar,
+  });
+}
+
+export function useAplicarFuncoes() {
+  const atualizar = useAtualizarEventos();
+  return useMutation({
+    mutationFn: (pedido: { evento_ids: number[]; funcao_ids: number[] }) =>
+      api<{ criadas: number; existentes: number }>('POST', '/lider/eventos/funcoes/', pedido),
+    onSuccess: atualizar,
+  });
+}
+
+/** Link temporário do PDF (o mesmo do site), para abrir no navegador do celular. */
+export const useLinkDoPdf = () =>
+  useMutation({ mutationFn: (pedido: PedidoDePdf) => api<{ url: string }>('POST', '/lider/pdf/', pedido) });

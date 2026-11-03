@@ -1,12 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
-from django.db import transaction
 from django.db.models import Q, Count
 from django.urls import reverse
 from django.http import HttpResponseNotFound, JsonResponse, HttpResponse
 from escala import agenda
 from escala.models import Escala, Funcao
 from evento.models import Evento
+from evento.services import aplicar_funcoes
 from escala.forms import EscalaForm, MultiEscalaForm, AplicarFuncoesEventosForm
 from escala.solicitacao_desistencia_forms import DesistenciaForm
 from equipe.decorators import require_lideranca 
@@ -400,21 +400,7 @@ def aplicar_funcoes_eventos(request):
     if request.method == 'POST':
         form = AplicarFuncoesEventosForm(request.POST, user=request.user)
         if form.is_valid():
-            eventos = list(form.cleaned_data['eventos'])
-            funcoes = list(form.funcoes_selecionadas())
-            criadas = 0
-            existentes = 0
-
-            with transaction.atomic():
-                for evento in eventos:
-                    for funcao in funcoes:
-                        ja_existe = Escala.objects.filter(evento=evento, funcao=funcao).exists()
-                        if ja_existe:
-                            existentes += 1
-                            continue
-
-                        Escala.objects.create(evento=evento, funcao=funcao)
-                        criadas += 1
+            criadas, existentes = aplicar_funcoes(form.cleaned_data['eventos'], form.funcoes_selecionadas())
 
             if criadas:
                 messages.success(

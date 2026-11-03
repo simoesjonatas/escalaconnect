@@ -22,6 +22,7 @@ from django.contrib.auth.views import LogoutView, LoginView
 
 from .views import base_view, calendario_view, redirect_to_home, confirmar_presenca, view_enviar_confirmacao, privacidade
 from escala.views import agenda_ics, carregar_funcoes
+from equipe.views_pdf import pdf_por_link
 from usuario.views_monitor import monitoramento_uso, monitoramento_app
 
 urlpatterns = [
@@ -36,6 +37,7 @@ urlpatterns = [
     path('privacidade/', privacidade, name='privacidade'),
     # Link de agenda sem login, assinado (botões "Adicionar à agenda" do app).
     path('agenda/<str:token>.ics', agenda_ics, name='agenda_ics'),
+    path('pdf/escala/<str:token>/', pdf_por_link, name='pdf_da_escala'),
 
     # API JSON do app mobile (as demais rotas api/... abaixo devolvem HTML).
     path('api/v1/', include('api.urls')),

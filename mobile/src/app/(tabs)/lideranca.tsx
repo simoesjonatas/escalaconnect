@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ComponentProps, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { diaCurto } from '../../lib/datas';
@@ -8,7 +8,20 @@ import { aplicar, CartaoDeFiltros, escolher, Filtro, filtrosDeEquipe, filtrosDeP
 import { AcaoDoLider, useAcaoDoLider, useCultos, usePendenciasDoLider, useVagas } from '../../lib/hooks';
 import { Cores, useTema } from '../../lib/tema';
 import { ContagemDoCulto, Culto, EscalaDaEquipe, PendenciasDoLider, Pessoa, Vaga } from '../../lib/types';
-import { Botao, Cartao, Erro, Estado, Etiqueta, Linha, Segmentos, Suave, Subtitulo, Tela } from '../../lib/ui';
+import {
+  Botao,
+  Cartao,
+  Erro,
+  Estado,
+  Etiqueta,
+  Grupo,
+  ItemDeGrupo,
+  Linha,
+  Segmentos,
+  Suave,
+  Subtitulo,
+  Tela,
+} from '../../lib/ui';
 
 type Aba = 'pendencias' | 'cultos' | 'vagas';
 
@@ -306,11 +319,25 @@ export default function Lideranca() {
 
       {aba === 'cultos' && (
         <>
-          <Atalho
-            icone="paper-plane-outline"
-            texto="Pedir disponibilidade da equipe"
-            aoTocar={() => router.push('/lider/disponibilidade')}
-          />
+          <Grupo titulo="Ferramentas">
+            <ItemDeGrupo
+              icone="paper-plane-outline"
+              titulo="Pedir disponibilidade da equipe"
+              aoTocar={() => router.push('/lider/disponibilidade')}
+            />
+            <ItemDeGrupo icone="add-circle-outline" titulo="Criar evento" aoTocar={() => router.push('/lider/evento/novo')} />
+            <ItemDeGrupo
+              icone="calendar-outline"
+              titulo="Gerar eventos em massa"
+              aoTocar={() => router.push('/lider/evento/em-massa')}
+            />
+            <ItemDeGrupo
+              icone="layers-outline"
+              titulo="Funções em eventos"
+              aoTocar={() => router.push('/lider/evento/funcoes')}
+            />
+            <ItemDeGrupo icone="document-text-outline" titulo="Escala em PDF" aoTocar={() => router.push('/lider/pdf')} />
+          </Grupo>
           <Estado
             consulta={cultos}
             vazio={cultos.data?.length === 0 && 'Nenhum culto com escala da sua equipe nos próximos 60 dias.'}
@@ -443,31 +470,5 @@ function LinhaDeCulto({ culto, contagem }: { culto: Culto; contagem: ContagemDoC
       corStatus={completo ? cores.confirmada : cores.pendente}
       aoTocar={() => abrirCulto(culto.id)}
     />
-  );
-}
-
-function Atalho({
-  icone,
-  texto,
-  aoTocar,
-}: {
-  icone: ComponentProps<typeof Ionicons>['name'];
-  texto: string;
-  aoTocar: () => void;
-}) {
-  const { cores } = useTema();
-  return (
-    <Pressable
-      onPress={aoTocar}
-      accessibilityRole="button"
-      hitSlop={6}
-      style={({ pressed }) => [
-        { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-        pressed && { opacity: 0.6 },
-      ]}>
-      <Ionicons name={icone} size={18} color={cores.primaria} />
-      <Text style={{ color: cores.primaria, fontSize: 15, fontWeight: '600', flex: 1 }}>{texto}</Text>
-      <Ionicons name="chevron-forward" size={16} color={cores.primaria} />
-    </Pressable>
   );
 }
