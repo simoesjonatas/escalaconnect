@@ -1,12 +1,12 @@
 from django.utils import timezone
 
-from escala.models import Desistencia, SolicitacaoTroca
+from escala.models import Desistencia, Escala, Funcao, SolicitacaoTroca
 from escalaconnect import mensagens_push
 from escalaconnect.push import notificar_push
 from escalaconnect.regras import RegraDeNegocio
 from evento.models import Notification
 
-from .models import Equipe, MembrosEquipe
+from .models import Equipe, Lideranca, MembrosEquipe
 
 
 def equipes_lideradas(usuario):
@@ -106,4 +106,63 @@ def recusar_candidatura(membro):
     """Recusa uma candidatura pendente (sem aviso, como no site)."""
     if membro.aprovado:
         raise RegraDeNegocio("Esta pessoa já é membro da equipe.", code='ja_membro')
+    membro.delete()
+
+
+# ── Gestão da equipe pelo líder (app): funções, lideranças e integrantes ──
+# Mesmos papéis do site: o líder mexe em funções e integrantes e remove lideranças;
+# renomear a equipe e adicionar líderes continuam só com o admin.
+
+def _nome_de_funcao(equipe, nome, exceto=None):
+    nome = (nome or '').strip()
+    if not nome:
+        raise RegraDeNegocio("Informe o nome da função.", code='nome_vazio')
+    repetidas = Funcao.objects.filter(equipe=equipe, nome__iexact=nome)
+    if exceto is not None:
+        repetidas = repetidas.exclude(pk=exceto.pk)
+    if repetidas.exists():
+        raise RegraDeNegocio(f"A equipe já tem a função {nome}.", code='funcao_repetida')
+    return nome
+
+
+def criar_funcao(equipe, nome):
+    return Funcao.objects.create(equipe=equipe, nome=_nome_de_funcao(equipe, nome))
+
+
+def renomear_funcao(funcao, nome):
+    funcao.nome = _nome_de_funcao(funcao.equipe, nome, exceto=funcao)
+    funcao.save(update_fields=['nome'])
+    return funcao
+
+
+def excluir_funcao(funcao):
+    """Só exclui função sem nenhuma escala: apagar levaria junto o histórico de quem serviu."""
+    if Escala.objects.filter(funcao=funcao).exists():
+        raise RegraDeNegocio(
+            f"A função {funcao.nome} já tem escalas. Para não perder o histórico, peça ao admin para excluir.",
+            code='funcao_com_escalas')
+    funcao.delete()
+
+
+def remover_lideranca(lideranca):
+    """Tira alguém da liderança (continua integrante). A equipe não fica sem líder."""
+    if not Lideranca.objects.filter(equipe_id=lideranca.equipe_id).exclude(pk=lideranca.pk).exists():
+        raise RegraDeNegocio("A equipe precisa ter pelo menos um líder.", code='ultimo_lider')
+    lideranca.delete()
+
+
+def adicionar_integrante(equipe, usuario):
+    """Coloca a pessoa na equipe já aprovada, como no site. Candidatura pendente é aprovada (com aviso)."""
+    membro, criado = MembrosEquipe.objects.get_or_create(equipe=equipe, usuario=usuario, defaults={'aprovado': True})
+    if not criado:
+        if membro.aprovado:
+            raise RegraDeNegocio("Essa pessoa já faz parte da equipe.", code='ja_membro')
+        aprovar_candidatura(membro)
+    return membro
+
+
+def remover_integrante(membro):
+    """Tira a pessoa da equipe. Líder sai da liderança primeiro; escalas já feitas continuam."""
+    if Lideranca.objects.filter(equipe_id=membro.equipe_id, usuario_id=membro.usuario_id).exists():
+        raise RegraDeNegocio("Essa pessoa é líder da equipe. Remova a liderança primeiro.", code='e_lider')
     membro.delete()

@@ -3,13 +3,14 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
 
-import { periodo } from '../../../lib/datas';
+import { diaPorExtenso, periodo } from '../../../lib/datas';
 import { alternar, ChipsDeEscolha, Passo } from '../../../lib/formulario-lider';
 import { LinhaDeFiltro } from '../../../lib/filtros';
 import { useAplicarFuncoes, useEventosEditaveis, useOpcoesDeEventos } from '../../../lib/hooks';
 import { useTema } from '../../../lib/tema';
+import { contemTudo } from '../../../lib/texto';
 import { EventoEditavel } from '../../../lib/types';
-import { Botao, Cartao, Erro, Estado, Subtitulo, Suave, Tela } from '../../../lib/ui';
+import { Botao, Campo, Cartao, Erro, Estado, Subtitulo, Suave, Tela } from '../../../lib/ui';
 
 const EXIBIR = [
   { valor: 'todos', rotulo: 'Todos' },
@@ -26,11 +27,17 @@ export default function FuncoesEmEventos() {
   const [funcoes, setFuncoes] = useState<number[]>([]);
   const [marcados, setMarcados] = useState<number[]>([]);
   const [exibir, setExibir] = useState('todos');
+  const [busca, setBusca] = useState('');
 
   const equipes = opcoes.data?.equipes ?? [];
   const nomeDaFuncao = new Map(equipes.flatMap((e) => e.funcoes.map((f) => [f.id, f.nome] as const)));
+  // Busca pelo nome, pela equipe e pela data ("domingo", "15/11", "novembro").
+  const textoDoEvento = (e: EventoEditavel) =>
+    `${e.nome} ${e.equipe ?? 'público'} ${diaPorExtenso(e.data_inicio)} ${periodo(e.data_inicio, e.data_fim)} ${new Date(e.data_inicio).toLocaleDateString('pt-BR')}`;
   const lista = (eventos.data ?? []).filter(
-    (e) => exibir === 'todos' || (exibir === 'publicos' ? !e.equipe_id : !!e.equipe_id),
+    (e) =>
+      (exibir === 'todos' || (exibir === 'publicos' ? !e.equipe_id : !!e.equipe_id)) &&
+      (!busca.trim() || contemTudo(textoDoEvento(e), busca)),
   );
   const todosMarcados = lista.length > 0 && lista.every((e) => marcados.includes(e.id));
 
@@ -86,6 +93,14 @@ export default function FuncoesEmEventos() {
 
           <Passo numero={2} titulo="Eventos">
             <LinhaDeFiltro titulo="Exibir eventos" opcoes={EXIBIR} valor={exibir} aoEscolher={setExibir} />
+            <Campo
+              rotulo="Buscar evento"
+              value={busca}
+              onChangeText={setBusca}
+              placeholder="Nome, equipe ou data (ex.: domingo, 15/11)"
+              autoCorrect={false}
+              clearButtonMode="while-editing"
+            />
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Suave>
                 {marcados.length} selecionado{marcados.length === 1 ? '' : 's'}
@@ -112,7 +127,7 @@ export default function FuncoesEmEventos() {
             aoTocar={adicionar}
           />
 
-          <Estado consulta={eventos} vazio={lista.length === 0 && 'Nenhum evento futuro para mostrar.'} />
+          <Estado consulta={eventos} vazio={lista.length === 0 && (busca.trim() ? 'Nenhum evento com essa busca.' : 'Nenhum evento futuro para mostrar.')} />
           {lista.map((evento) => {
             const marcado = marcados.includes(evento.id);
             const aviso = jaTem(evento);

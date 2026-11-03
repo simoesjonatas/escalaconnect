@@ -3,16 +3,12 @@ import { useState } from 'react';
 import { Alert, Pressable } from 'react-native';
 
 import { periodo } from '../../../lib/datas';
+import { semAcento } from '../../../lib/texto';
 import { useAcaoDoLider, useEscalarNaVaga, useVaga } from '../../../lib/hooks';
 import { useTema } from '../../../lib/tema';
 import { Candidato } from '../../../lib/types';
 import { Campo, Cartao, Erro, Estado, Etiqueta, Grupo, ItemDeGrupo, Rotulo, Suave, Subtitulo, Tela, Texto } from '../../../lib/ui';
 
-const semAcento = (texto: string) =>
-  texto
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
 
 /**
  * Escolher quem ocupa uma vaga em aberto: disponíveis primeiro, depois os demais membros da equipe.

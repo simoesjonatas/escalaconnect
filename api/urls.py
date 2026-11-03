@@ -4,7 +4,9 @@ from django.urls import path, re_path
 from disponivel.services import disponibilidades
 from ocupado.services import indisponibilidades
 
-from .views import avisos, conta, devices, equipes, escalas, eventos, eventos_do_lider, lideranca, periodos
+from .views import (
+    avisos, conta, devices, equipe_do_lider, equipes, escalas, eventos, eventos_do_lider, lideranca, periodos,
+)
 from .views.auth import LoginView, LogoutAllView, LogoutView, RecuperarSenhaView
 from .views.conta import MeView, MetaView
 
@@ -81,6 +83,13 @@ urlpatterns = [
     path('lider/eventos/em-massa/', eventos_do_lider.EventosEmMassaView.as_view(), name='api_lider_eventos_em_massa'),
     path('lider/eventos/funcoes/', eventos_do_lider.AplicarFuncoesView.as_view(), name='api_lider_eventos_funcoes'),
     path('lider/pdf/', eventos_do_lider.PdfDaEscalaView.as_view(), name='api_lider_pdf'),
+    path('lider/equipes/<int:pk>/', equipe_do_lider.EquipeDoLiderView.as_view(), name='api_lider_equipe'),
+    path('lider/equipes/<int:pk>/funcoes/', equipe_do_lider.FuncoesDaEquipeView.as_view(), name='api_lider_equipe_funcoes'),
+    path('lider/equipes/<int:pk>/integrantes/', equipe_do_lider.IntegrantesView.as_view(),
+         name='api_lider_equipe_integrantes'),
+    path('lider/funcoes/<int:pk>/', equipe_do_lider.FuncaoView.as_view(), name='api_lider_funcao'),
+    path('lider/liderancas/<int:pk>/', equipe_do_lider.LiderancaView.as_view(), name='api_lider_lideranca'),
+    path('lider/integrantes/<int:pk>/', equipe_do_lider.IntegranteView.as_view(), name='api_lider_integrante'),
     path('lider/vagas/<int:pk>/', lideranca.VagaDetailView.as_view(), name='api_lider_vaga'),
     path('lider/vagas/<int:pk>/escalar/', lideranca.EscalarView.as_view(), name='api_lider_escalar'),
 

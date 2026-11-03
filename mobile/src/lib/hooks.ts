@@ -9,6 +9,7 @@ import {
   DetalheDaVaga,
   DetalheDoCulto,
   DisponibilidadeDaEquipe,
+  EquipeDoLider,
   Disponibilidade,
   Equipes,
   Escala,
@@ -22,6 +23,7 @@ import {
   OpcoesDeEventos,
   PedidoDePdf,
   PendenciasDoLider,
+  Pessoa,
   Vaga,
   VagaAberta,
 } from './types';
@@ -292,3 +294,55 @@ export function useAplicarFuncoes() {
 /** Link temporário do PDF (o mesmo do site), para abrir no navegador do celular. */
 export const useLinkDoPdf = () =>
   useMutation({ mutationFn: (pedido: PedidoDePdf) => api<{ url: string }>('POST', '/lider/pdf/', pedido) });
+
+// ── Gestão da equipe ──
+
+export const useEquipeDoLider = (id: number | undefined) =>
+  useQuery({
+    queryKey: ['lider', 'equipe', id],
+    queryFn: () => api<EquipeDoLider>('GET', `/lider/equipes/${id}/`),
+    enabled: !!id,
+  });
+
+/** Busca quem pode entrar na equipe (a partir de 2 letras). */
+export const useBuscaDeIntegrantes = (equipeId: number, termo: string) =>
+  useQuery({
+    queryKey: ['lider', 'equipe', equipeId, 'busca', termo],
+    queryFn: () => api<Pessoa[]>('GET', `/lider/equipes/${equipeId}/integrantes/?q=${encodeURIComponent(termo)}`),
+    enabled: termo.trim().length >= 2,
+  });
+
+export type MudancaNaEquipe =
+  | { tipo: 'renomear-equipe'; equipeId: number; nome: string }
+  | { tipo: 'criar-funcao'; equipeId: number; nome: string }
+  | { tipo: 'renomear-funcao'; id: number; nome: string }
+  | { tipo: 'excluir-funcao'; id: number }
+  | { tipo: 'remover-lider'; id: number }
+  | { tipo: 'adicionar-integrante'; equipeId: number; usuarioId: number }
+  | { tipo: 'remover-integrante'; id: number };
+
+/** Funções, lideranças e integrantes; tudo recarrega a equipe, o painel e as opções de eventos. */
+export function useMudarEquipe() {
+  const atualizar = useAtualizarEventos();
+  return useMutation({
+    mutationFn: (m: MudancaNaEquipe) => {
+      switch (m.tipo) {
+        case 'renomear-equipe':
+          return api('PATCH', `/lider/equipes/${m.equipeId}/`, { nome: m.nome });
+        case 'criar-funcao':
+          return api('POST', `/lider/equipes/${m.equipeId}/funcoes/`, { nome: m.nome });
+        case 'renomear-funcao':
+          return api('PATCH', `/lider/funcoes/${m.id}/`, { nome: m.nome });
+        case 'excluir-funcao':
+          return api('DELETE', `/lider/funcoes/${m.id}/`);
+        case 'remover-lider':
+          return api('DELETE', `/lider/liderancas/${m.id}/`);
+        case 'adicionar-integrante':
+          return api('POST', `/lider/equipes/${m.equipeId}/integrantes/`, { usuario_id: m.usuarioId });
+        case 'remover-integrante':
+          return api('DELETE', `/lider/integrantes/${m.id}/`);
+      }
+    },
+    onSettled: atualizar,
+  });
+}

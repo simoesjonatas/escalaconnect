@@ -337,6 +337,7 @@ export default function Lideranca() {
               aoTocar={() => router.push('/lider/evento/funcoes')}
             />
             <ItemDeGrupo icone="document-text-outline" titulo="Escala em PDF" aoTocar={() => router.push('/lider/pdf')} />
+            <ItemDeGrupo icone="settings-outline" titulo="Gerenciar equipe" aoTocar={() => router.push('/lider/equipe')} />
           </Grupo>
           <Estado
             consulta={cultos}

@@ -223,3 +223,17 @@ export type EventosEmMassa = {
 };
 
 export type PedidoDePdf = { equipe_id: number; ano: number; mes: number; estilo: 'connect' | 'escuro' | 'mural' };
+
+// ── Gestão da equipe pelo líder ──
+
+export type EquipeDoLider = {
+  id: number;
+  nome: string;
+  /** Só o admin troca o nome da equipe (como no site). */
+  pode_renomear: boolean;
+  /** `escalas`: quantas escalas usam a função; com alguma, não dá para excluir pelo app. */
+  funcoes: { id: number; nome: string; escalas: number }[];
+  lideres: { id: number; pessoa: Pessoa; sou_eu: boolean }[];
+  integrantes: { id: number; pessoa: Pessoa; lider: boolean; escalas_futuras: number }[];
+  pendentes: { id: number; pessoa: Pessoa }[];
+};
