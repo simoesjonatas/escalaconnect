@@ -16,7 +16,10 @@ from django.contrib import messages
 from django.conf import settings
 from usuario.models import Usuario
 from equipe.models import Lideranca, Equipe
-from escala.utils import usuarios_disponiveis_para_evento, preencher_vagas, LIMITE_ESCALAS_POR_MES
+from escala.utils import (
+    LIMITE_ESCALAS_POR_MES, anotar_disponiveis, escalas_com_situacao, ofertas_da_vaga, preencher_vagas, resumo_das_escalas,
+    usuarios_disponiveis_para_evento,
+)
 from escala.services import RegraDeNegocio, confirmar_escala, escalas_futuras, validar_confirmacao
 
 
@@ -38,22 +41,28 @@ def escalas_por_evento(request, pk):
     if direction == 'desc':
         order_by = f'-{order_by}'
 
-    escalas = Escala.objects.filter(
-        evento=evento
-    ).filter(
-        Q(usuario__username__icontains=query) |
-        Q(funcao__nome__icontains=query)
-    ).order_by(order_by)
+    todas = Escala.objects.filter(evento=evento)
+    escalas = escalas_com_situacao(
+        todas.filter(
+            Q(usuario__username__icontains=query) |
+            Q(usuario__first_name__icontains=query) |
+            Q(funcao__nome__icontains=query)
+        )
+    ).order_by(order_by, 'pk')
 
     paginator = Paginator(escalas, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # Prévia para o líder: quantos estão disponíveis em cada função ainda não fechada.
+    anotar_disponiveis(page_obj, evento)
+
+    resumo = resumo_das_escalas(todas)
+
     escala_fields = [
-        ('usuario__username', 'Usuário'),
         ('funcao__nome', 'Função'),
-        ('confirmada', 'Confirmada'),
-        ('data_confirmacao', 'Data de Confirmação'),
+        ('usuario__first_name', 'Pessoa'),
+        ('confirmada', 'Situação'),
     ]
 
     context = {
@@ -62,6 +71,7 @@ def escalas_por_evento(request, pk):
         'order_by': order_by.lstrip('-'),
         'direction': direction,
         'escala_fields': escala_fields,
+        'resumo': resumo,
         'query': query
     }
     return render(request, 'escala/escala_list.html', context)
@@ -127,6 +137,12 @@ def escala_detail(request, pk):
     )
     usuarios_disponiveis = list(Usuario.objects.filter(id__in=ids_disponiveis))
 
+    # Quem se ofereceu para a vaga pelo app ou pelo site (aba "Querem servir").
+    ofertas = ofertas_da_vaga(escala, ids_disponiveis)
+    ids_que_ofereceram = {o.candidato_id for o in ofertas}
+    for usuario in usuarios_disponiveis:
+        usuario.quer_servir = usuario.id in ids_que_ofereceram
+
     # Aplica o filtro de busca
     if query:
         usuarios_disponiveis = [
@@ -181,6 +197,9 @@ def escala_detail(request, pk):
     return render(request, 'escala/escala_detail.html', {
         'escala': escala,
         'usuarios_disponiveis': page_obj,
+        'ofertas': ofertas,
+        # Abre em "Querem servir", menos quando o líder está buscando ou paginando os disponíveis.
+        'ofertas_primeiro': bool(ofertas) and not query and not request.GET.get('page'),
         'is_leader': is_leader,
         'page_obj': page_obj,
         'order_by': order_by.lstrip('-'),

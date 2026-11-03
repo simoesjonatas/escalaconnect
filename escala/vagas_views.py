@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.http import QueryDict
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from equipe.decorators import pode_gerenciar_equipe
 
@@ -129,4 +130,8 @@ def recusar_oferta(request, pk):
             messages.success(request, f'Oferta de {nome} recusada.')
         else:
             messages.error(request, 'Você não tem permissão para realizar esta ação.')
+    # Volta para a tela de onde veio (detalhe pela equipe ou pela lista de eventos).
+    proxima = request.POST.get('next')
+    if proxima and url_has_allowed_host_and_scheme(proxima, allowed_hosts={request.get_host()}):
+        return redirect(proxima)
     return redirect('escala_detail_equipe', equipe_pk=escala.equipe.pk, pk=escala.pk)

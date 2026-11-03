@@ -3,7 +3,9 @@ from .models import Evento
 from .services import feed_calendario
 from django.views.decorators.csrf import csrf_exempt
 import json
+from django.db.models import Count, Q
 from escala.models import Escala
+from escala.utils import anotar_disponiveis, escalas_com_situacao, resumo_das_escalas
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from .forms import EventoForm
@@ -120,7 +122,18 @@ def evento_list(request):
     elif equipe_filtro:
         eventos = eventos.filter(equipe_id=equipe_filtro)
 
-    eventos = eventos.order_by(order_by)
+    # Prévia das escalas de cada evento, numa consulta só (antes: has_issues por linha).
+    vaga = Q(escala__usuario__isnull=True)
+    eventos = eventos.select_related('equipe').annotate(
+        funcoes=Count('escala', distinct=True),
+        confirmadas=Count('escala', filter=Q(escala__usuario__isnull=False, escala__confirmada=True), distinct=True),
+        vagas=Count('escala', filter=vaga, distinct=True),
+        querem_servir=Count('escala__rendimento', filter=vaga & Q(escala__rendimento__aprovada=False), distinct=True),
+        pendencias=(
+            Count('escala__desistencia', filter=Q(escala__desistencia__aprovada=False), distinct=True)
+            + Count('escala__solicitacoes_origem', filter=Q(escala__solicitacoes_origem__aprovada=False), distinct=True)
+        ),
+    ).order_by(order_by, 'pk')
 
     # Equipes oferecidas no filtro: as que o usuário lidera (admin vê todas).
     if request.user.is_superuser or request.user.is_staff:
@@ -133,10 +146,8 @@ def evento_list(request):
     page_obj = paginator.get_page(page_number)
 
     fields = [
-        ('id', 'ID'),
-        ('nome', 'Nome'),
-        ('data_inicio', 'Data de Início'),
-        ('data_fim', 'Data de Fim'),
+        ('nome', 'Evento'),
+        ('data_inicio', 'Quando'),
     ]
 
     context = {
@@ -257,9 +268,15 @@ def evento_delete(request, pk):
 def evento_detail(request, pk):
     evento = get_object_or_404(Evento, pk=pk)
     pode_gerenciar = request.user.is_authenticated and evento.pode_ser_gerenciada_por(request.user)
+    # Funções do evento por equipe, com a situação e a prévia de quem pode servir.
+    todas = Escala.objects.filter(evento=evento)
+    escalas = list(escalas_com_situacao(todas).order_by('funcao__equipe__nome', 'funcao__nome', 'pk'))
+    anotar_disponiveis(escalas, evento)
     return render(request, 'evento/evento_detail.html', {
         'evento': evento,
         'pode_gerenciar': pode_gerenciar,
+        'escalas': escalas,
+        'resumo': resumo_das_escalas(todas),
     })
 
 @login_required(login_url='/login/')

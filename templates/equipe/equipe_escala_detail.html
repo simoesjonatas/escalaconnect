@@ -118,47 +118,7 @@
             <div class="tab-content escala-tab-content" id="escalaTabsContent">
                 {% if ofertas %}
                 <div class="tab-pane fade show active" id="ofertas" role="tabpanel" aria-labelledby="ofertas-tab">
-                    <div class="pessoa-lista">
-                        {% for oferta in ofertas %}
-                        {% with usuario=oferta.candidato %}
-                        <div class="pessoa-row">
-                            <div class="resumo-avatar">{{ usuario.get_full_name|default:usuario.username|first|upper }}</div>
-                            <div class="pessoa-info">
-                                <strong>
-                                    {{ usuario.get_full_name|default:usuario.username }}
-                                    <span class="servico-badge{% if usuario.servicos_no_mes >= limite_escalas_mes %} servico-badge--cheio{% endif %}"
-                                          title="Escalado {{ usuario.servicos_no_mes }} vez(es) neste mês na equipe {{ equipe.nome }}{% if usuario.servicos_no_mes >= limite_escalas_mes %} — já atingiu o limite de {{ limite_escalas_mes }}/mês{% endif %}">
-                                        <i class="fa fa-calendar-check"></i>{{ usuario.servicos_no_mes }} no mês
-                                    </span>
-                                </strong>
-                                <small>
-                                    Se ofereceu em {{ oferta.data_candidatura|date:"d/m" }} às {{ oferta.data_candidatura|date:"H:i" }}
-                                    {% if oferta.ja_escalado %}· <span class="oferta-alerta">já está escalado em outra função deste evento</span>
-                                    {% elif not oferta.disponivel %}· <span class="oferta-alerta">não marcou disponibilidade</span>{% endif %}
-                                </small>
-                            </div>
-                            {% if request.user.is_staff or request.user.is_superuser or is_leader %}
-                            <div class="pessoa-acoes">
-                                <form method="post" action="{% url 'recusar_oferta' oferta.pk %}" class="d-inline"
-                                      onsubmit="return confirm('Recusar a oferta de {{ usuario.get_full_name|default:usuario.username|escapejs }}? A pessoa não recebe aviso.');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-secondary btn-sm"><i class="fa fa-times"></i> Recusar</button>
-                                </form>
-                                {% if oferta.ja_escalado %}
-                                <a class="btn btn-success btn-sm" href="javascript:void(0);" onclick="confirmarEscala(event, '{% url 'escalar_usuario_equipe' escala.pk usuario.pk %}', '{{ usuario.get_full_name|default:usuario.username|escapejs }}')">
-                                    <i class="fa fa-user-plus"></i> Escalar
-                                </a>
-                                {% else %}
-                                <a class="btn btn-success btn-sm" href="{% url 'escalar_usuario_equipe' escala.pk usuario.pk %}">
-                                    <i class="fa fa-user-plus"></i> Escalar
-                                </a>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endwith %}
-                        {% endfor %}
-                    </div>
+                    {% include 'escala/_ofertas_da_vaga.html' with escalar_url='escalar_usuario_equipe' %}
                 </div>
                 {% endif %}
                 <div class="tab-pane fade{% if not ofertas %} show active{% endif %}" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
@@ -292,10 +252,6 @@
     {% endif %}
 
 </div>
-<style>
-    .pessoa-info .oferta-alerta { color: var(--connect-warning); font-weight: 600; }
-    .pessoa-info .oferta-ok { color: var(--connect-green); font-weight: 600; }
-</style>
 <script>
     document.addEventListener('DOMContentLoaded', () => {
         const tabLinks = document.querySelectorAll('#escalaTabs .nav-link');

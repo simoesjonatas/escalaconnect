@@ -14,7 +14,7 @@ from django.conf import settings
 from datetime import datetime
 
 from escalaconnect.tasks_availability import disparar_pedido_disponibilidades
-from escala.utils import preencher_vagas, usuarios_disponiveis_para_evento, LIMITE_ESCALAS_POR_MES
+from escala.utils import ofertas_da_vaga, preencher_vagas, usuarios_disponiveis_para_evento, LIMITE_ESCALAS_POR_MES
 
 VISOES_ESCALA = ('lista', 'grade')
 COOKIE_VISAO_ESCALA = 'connect-escalas-view'
@@ -228,12 +228,7 @@ def escala_detail_equipe(request, equipe_pk, pk):
     ]
 
     # Quem se ofereceu para a vaga pelo app ou pelo site (só enquanto ela está em aberto).
-    ofertas = [] if escala.usuario_id else list(
-        Rendimento.objects
-        .filter(escala=escala, aprovada=False)
-        .select_related('candidato')
-        .order_by('data_candidatura')
-    )
+    ofertas = ofertas_da_vaga(escala, [u.id for u in usuarios_disponiveis])
     ids_que_ofereceram = {o.candidato_id for o in ofertas}
     for usuario in usuarios_disponiveis:
         usuario.quer_servir = usuario.id in ids_que_ofereceram
@@ -245,7 +240,6 @@ def escala_detail_equipe(request, equipe_pk, pk):
     mes_evento = timezone.localtime(evento.data_inicio)
     ids_relevantes = {u.id for u in usuarios_disponiveis}
     ids_relevantes.update(e.usuario_id for e in usuarios_ja_escalados)
-    ids_relevantes.update(ids_que_ofereceram)
     servicos_no_mes = dict(
         Escala.objects
         .filter(
@@ -262,17 +256,6 @@ def escala_detail_equipe(request, equipe_pk, pk):
         usuario.servicos_no_mes = servicos_no_mes.get(usuario.id, 0)
     for esc in usuarios_ja_escalados:
         esc.usuario.servicos_no_mes = servicos_no_mes.get(esc.usuario_id, 0)
-    # Quem se ofereceu mas não marcou disponibilidade ou já serve em outra função do evento:
-    # o líder precisa saber antes de escalar.
-    ids_disponiveis = {u.id for u in usuarios_disponiveis}
-    ids_escalados = set(
-        Escala.objects.filter(evento=evento, usuario_id__in=ids_que_ofereceram)
-        .exclude(pk=escala.pk).values_list('usuario_id', flat=True)
-    )
-    for oferta in ofertas:
-        oferta.candidato.servicos_no_mes = servicos_no_mes.get(oferta.candidato_id, 0)
-        oferta.disponivel = oferta.candidato_id in ids_disponiveis
-        oferta.ja_escalado = oferta.candidato_id in ids_escalados
 
     return render(request, 'equipe/equipe_escala_detail.html', {
         'escala': escala,

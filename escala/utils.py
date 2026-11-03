@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 
 from django.conf import settings
-from django.db.models import Q, Count
+from django.db.models import Count, Exists, OuterRef, Q, Subquery
 from django.apps import apps
 from django.utils.timezone import now, localtime
 
@@ -81,6 +81,88 @@ def usuarios_disponiveis_para_evento(equipe, evento, excluir_escala_id=None):
 
     finais_ids = set(disponiveis_ids) - set(escalados_ids)
     return list(finais_ids)
+
+
+def escalas_com_situacao(escalas):
+    """Anota em cada escala o que o líder precisa ver numa lista, sem uma consulta por linha:
+    `ofertas` (quem se ofereceu e espera decisão), `impedimento_aberto` e `troca_aberta_id`."""
+    Desistencia = apps.get_model('escala', 'Desistencia')
+    SolicitacaoTroca = apps.get_model('escala', 'SolicitacaoTroca')
+    return (
+        escalas
+        .select_related('usuario', 'funcao__equipe')
+        .annotate(
+            ofertas=Count('rendimento', filter=Q(rendimento__aprovada=False), distinct=True),
+            impedimento_aberto=Exists(Desistencia.objects.filter(escala=OuterRef('pk'), aprovada=False)),
+            troca_aberta_id=Subquery(
+                SolicitacaoTroca.objects.filter(escala_origem=OuterRef('pk'), aprovada=False).values('pk')[:1]),
+        )
+    )
+
+
+def anotar_disponiveis(escalas, evento):
+    """Em cada escala ainda não fechada (vaga, a confirmar ou com pedido), quantos da equipe estão
+    disponíveis e não servem neste evento (`disponiveis`), e `em_aberto`. Uma conta por equipe.
+    Espera escalas anotadas por `escalas_com_situacao`."""
+    por_equipe = {}
+    for escala in escalas:
+        equipe = escala.funcao.equipe
+        if equipe.pk not in por_equipe:
+            por_equipe[equipe.pk] = len(usuarios_disponiveis_para_evento(equipe, evento))
+        escala.disponiveis = por_equipe[equipe.pk]
+        escala.em_aberto = bool(not escala.confirmada or escala.impedimento_aberto or escala.troca_aberta_id)
+    return escalas
+
+
+def resumo_das_escalas(escalas):
+    """Contagens de um conjunto de escalas (ex.: as de um evento) para o topo das telas."""
+    Rendimento = apps.get_model('escala', 'Rendimento')
+    resumo = escalas.aggregate(
+        total=Count('pk'),
+        confirmadas=Count('pk', filter=Q(usuario__isnull=False, confirmada=True)),
+        a_confirmar=Count('pk', filter=Q(usuario__isnull=False, confirmada=False)),
+        vagas=Count('pk', filter=Q(usuario__isnull=True)),
+    )
+    resumo['querem_servir'] = Rendimento.objects.filter(
+        escala__in=escalas, escala__usuario__isnull=True, aprovada=False).count()
+    return resumo
+
+
+def ofertas_da_vaga(escala, ids_disponiveis):
+    """Quem se ofereceu para a vaga (só enquanto ela está em aberto), na ordem em que se ofereceu.
+
+    Cada oferta vem com `disponivel`, `ja_escalado` (em outra função do mesmo evento) e
+    `candidato.servicos_no_mes` (nesta equipe, no mês do evento), para o líder decidir.
+    Usada pelas duas telas de detalhe da escala no site.
+    """
+    if escala.usuario_id:
+        return []
+    Rendimento = apps.get_model('escala', 'Rendimento')
+    Escala = apps.get_model('escala', 'Escala')
+    ofertas = list(
+        Rendimento.objects.filter(escala=escala, aprovada=False)
+        .select_related('candidato').order_by('data_candidatura')
+    )
+    if not ofertas:
+        return []
+    ids = [o.candidato_id for o in ofertas]
+    ano, mes = _ano_mes_local(escala.evento.data_inicio)
+    servicos = dict(
+        Escala.objects
+        .filter(funcao__equipe_id=escala.funcao.equipe_id, usuario_id__in=ids,
+                evento__data_inicio__year=ano, evento__data_inicio__month=mes)
+        .values('usuario_id').annotate(total=Count('id')).values_list('usuario_id', 'total')
+    )
+    escalados = set(
+        Escala.objects.filter(evento_id=escala.evento_id, usuario_id__in=ids)
+        .exclude(pk=escala.pk).values_list('usuario_id', flat=True)
+    )
+    ids_disponiveis = set(ids_disponiveis)
+    for oferta in ofertas:
+        oferta.candidato.servicos_no_mes = servicos.get(oferta.candidato_id, 0)
+        oferta.disponivel = oferta.candidato_id in ids_disponiveis
+        oferta.ja_escalado = oferta.candidato_id in escalados
+    return ofertas
 
 
 def _ano_mes_local(dt):

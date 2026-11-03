@@ -854,3 +854,24 @@ html[data-theme="light"] .escala-tabs .nav-link.active {
     background: rgba(57, 255, 20, .15); color: var(--connect-green);
 }
 .busca-select-vazio { padding: 12px; color: var(--connect-muted); font-size: 14px; text-align: center; }
+
+/* Detalhe da escala: avisos na aba "Querem servir" e na lista de disponíveis */
+.pessoa-info .oferta-alerta { color: var(--connect-warning); font-weight: 600; }
+.pessoa-info .oferta-ok { color: var(--connect-green); font-weight: 600; }
+
+/* Prévia das escalas (lista de eventos, detalhe do evento e escalas do evento) */
+.escalas-resumo { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-top: 4px; color: var(--connect-muted); }
+.escalas-resumo strong { color: var(--connect-text); }
+.escalas-resumo .er-ok { color: var(--connect-green); }
+.escalas-resumo .er-pend { color: var(--connect-warning); }
+.escalas-resumo .er-vaga { color: var(--connect-danger); }
+.escalas-resumo .er-oferta { color: var(--connect-green); font-weight: 600; }
+.escalas-evento tbody tr, .eventos-lista tbody tr { cursor: pointer; }
+.quem-pode { display: flex; flex-wrap: wrap; gap: 6px; }
+.qp-chip {
+    display: inline-flex; align-items: center; gap: .35em; white-space: nowrap;
+    font-size: .78rem; font-weight: 600; padding: .25em .65em; border-radius: 999px;
+    border: 1px solid var(--connect-border); color: var(--connect-muted);
+}
+.qp-chip.qp-oferta { background: var(--connect-green); border-color: var(--connect-green); color: #0b0b0b; }
+.qp-chip.qp-nenhum { color: var(--connect-warning); border-color: color-mix(in srgb, var(--connect-warning) 45%, var(--connect-border)); }

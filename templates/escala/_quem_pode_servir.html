@@ -1,0 +1,16 @@
+{% comment %}Prévia de uma escala ainda não fechada: quem quer servir e quantos estão disponíveis
+(escala.utils.escalas_com_situacao + anotar_disponiveis). Com `sem_traco`, não mostra nada nas fechadas.{% endcomment %}
+{% if escala.em_aberto %}
+<div class="quem-pode">
+    {% if not escala.usuario and escala.ofertas %}
+    <span class="qp-chip qp-oferta"><i class="fa fa-hand-paper"></i> {{ escala.ofertas }} quer{{ escala.ofertas|pluralize:",em" }} servir</span>
+    {% endif %}
+    {% if escala.disponiveis %}
+    <span class="qp-chip"><i class="fa fa-user-check"></i> {{ escala.disponiveis }} disponíve{{ escala.disponiveis|pluralize:"l,is" }}</span>
+    {% else %}
+    <span class="qp-chip qp-nenhum"><i class="fa fa-user-slash"></i> ninguém disponível</span>
+    {% endif %}
+</div>
+{% elif not sem_traco %}
+<span class="text-muted">—</span>
+{% endif %}

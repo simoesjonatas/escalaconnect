@@ -12,19 +12,84 @@
 
 {% block content %}
 <div class="container">
-    <h3>{{ evento.nome }}</h3>
-    <ul>
-        <li><strong>Data de Início:</strong> {{ evento.data_inicio }}</li>
-        <li><strong>Data de Fim:</strong> {{ evento.data_fim }}</li>
-        <li><strong>Observação:</strong> {{ evento.observacao }}</li>
-    </ul>
-    <div class="clearfix">
+
+    <!-- Resumo do evento -->
+    <div class="escala-resumo">
+        <div>
+            <h3>{{ evento.nome }}</h3>
+            <p class="resumo-data">
+                <i class="fa fa-clock mr-1"></i>
+                {{ evento.data_inicio|date:"l, d/m/Y H:i" }} — {% if evento.data_inicio|date:"Ymd" == evento.data_fim|date:"Ymd" %}{{ evento.data_fim|date:"H:i" }}{% else %}{{ evento.data_fim|date:"l, d/m/Y H:i" }}{% endif %}
+            </p>
+            <div class="resumo-tags">
+                {% if evento.equipe %}
+                <span class="badge badge-secondary"><i class="fa fa-users mr-1"></i>{{ evento.equipe.nome }}</span>
+                {% else %}
+                <span class="badge badge-info"><i class="fa fa-globe mr-1"></i>Público</span>
+                {% endif %}
+            </div>
+            {% if evento.observacao %}
+            <p class="evento-obs"><i class="fa fa-info-circle mr-1"></i>{{ evento.observacao|linebreaksbr }}</p>
+            {% endif %}
+        </div>
+        {% if escalas %}
+        {% include 'escala/_resumo_das_escalas.html' %}
+        {% endif %}
+    </div>
+
+    <div class="clearfix mb-4">
         <a class="btn btn-secondary" href="{% url 'evento_list' %}">Voltar</a>
+        <a class="btn btn-primary" href="{% url 'evento_escalas' evento.pk %}"><i class="fa fa-clipboard-list mr-1"></i> Escalas do evento</a>
         {% if pode_gerenciar %}
         <a class="btn btn-warning" href="{% url 'evento_update' evento.pk %}">Editar</a>
         <a class="btn btn-danger" href="{% url 'evento_delete' evento.pk %}">Excluir</a>
         {% endif %}
-        <a class="btn btn-info" href="{% url 'evento_escalas' evento.pk %}">Planejamento de Equipe</a>
+    </div>
+
+    <div class="section-card">
+        <h4 class="mb-3"><i class="fa fa-users mr-1"></i> Funções</h4>
+        {% regroup escalas by funcao.equipe.nome as por_equipe %}
+        {% for grupo in por_equipe %}
+        {% if por_equipe|length > 1 %}<h5 class="evento-equipe">{{ grupo.grouper }}</h5>{% endif %}
+        <div class="pessoa-lista mb-3">
+            {% for escala in grupo.list %}
+            <a class="pessoa-row pessoa-row-link" href="{% url 'escala_detail' escala.pk %}">
+                <div class="resumo-avatar">
+                    {% if escala.usuario %}{{ escala.usuario.get_full_name|default:escala.usuario.username|first|upper }}{% else %}<i class="fa fa-user-plus"></i>{% endif %}
+                </div>
+                <div class="pessoa-info">
+                    <strong>{{ escala.funcao.nome }}</strong>
+                    <small>{% if escala.usuario %}{{ escala.usuario.get_full_name|default:escala.usuario.username }}{% else %}ninguém ainda{% endif %}</small>
+                </div>
+                <div class="pessoa-acoes">
+                    {% include 'escala/_quem_pode_servir.html' with sem_traco=True %}
+                    {% if escala.impedimento_aberto %}
+                    <span class="badge badge-danger">Impedimento</span>
+                    {% elif escala.troca_aberta_id %}
+                    <span class="badge badge-danger">Troca pedida</span>
+                    {% elif not escala.usuario %}
+                    <span class="badge badge-danger">Vaga em aberto</span>
+                    {% elif escala.confirmada %}
+                    <span class="badge badge-success">Confirmada</span>
+                    {% else %}
+                    <span class="badge badge-warning">A confirmar</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <div class="pessoa-vazio">
+            <i class="fa fa-clipboard d-block mb-1"></i>
+            Este evento ainda não tem funções.
+            {% if pode_gerenciar %}<br><small>Use “Escalas do evento” para adicionar.</small>{% endif %}
+        </div>
+        {% endfor %}
     </div>
 </div>
+<style>
+    .escala-resumo .evento-obs { margin: 12px 0 0; color: var(--connect-muted); max-width: 640px; }
+    .evento-equipe { font-size: .85rem; text-transform: uppercase; letter-spacing: .06em; color: var(--connect-muted); margin: 6px 0 8px; }
+    a.pessoa-row-link { color: inherit; text-decoration: none; }
+</style>
 {% endblock %}

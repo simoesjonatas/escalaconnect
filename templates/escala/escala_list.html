@@ -51,8 +51,10 @@ Escalas do Evento {{ evento.nome }}
         {% endif %}
     </div>
 
+    {% include 'escala/_resumo_das_escalas.html' %}
+
     <div class="table-responsive">
-        <table class="table table-bordered mt-3">
+        <table class="table table-bordered mt-3 escalas-evento">
             <thead>
                 <tr>
                     {% for field_display in escala_fields %}
@@ -65,36 +67,44 @@ Escalas do Evento {{ evento.nome }}
                         </a>
                     </th>
                     {% endfor %}
+                    <th>Quem pode servir</th>
                 </tr>
             </thead>
             <tbody>
                 {% for escala in page_obj %}
                 <tr onclick="window.location.href='{% url 'escala_detail' escala.pk %}'">
-                    <td>{{ escala.usuario.username }}</td>
-                    <td>{{ escala.funcao }}</td>
-                        {% if escala.has_impedimento or escala.has_solicitacao_troca_aberta%}
-                            {% if escala.has_impedimento%}
-                            <td>
-                                <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger" role="button">
-                                    <i class="fa fa-exclamation-circle" title="Impedimento pendente. Clique para mais detalhes."></i> Impedimento
-                                </a>
-                            </td>            
-                            {% endif %}   
-                            {% if escala.has_solicitacao_troca_aberta%}
-                            <td>
-                                {% with troca_id=escala.get_pending_troca_id %}
-                                    {% if troca_id %}
-                                        <a href="{% url 'detalhes_solicitacao_troca' troca_id %}" class="btn btn-danger" role="button">
-                                            <i class="fa fa-exclamation-circle" title="Solicitação de troca. Clique para mais detalhes."></i> Troca
-                                        </a>
-                                    {% endif %}
-                                {% endwith %}
-                            </td>            
-                            {% endif %}  
-                        {% else %}  
-                        <td>{{ escala.confirmada|yesno:"Sim,Não" }}</td>
+                    <td>
+                        <strong>{{ escala.funcao.nome }}</strong>
+                        <small class="d-block text-muted">{{ escala.funcao.equipe.nome }}</small>
+                    </td>
+                    <td>
+                        {% if escala.usuario %}
+                            {{ escala.usuario.get_full_name|default:escala.usuario.username }}
+                        {% else %}
+                            <span class="text-muted"><i class="fa fa-user-plus"></i> ninguém ainda</span>
                         {% endif %}
-                    <td>{{ escala.data_confirmacao|default:"-" }}</td>
+                    </td>
+                    <td>
+                        {% if escala.impedimento_aberto %}
+                            <a href="{% url 'detalhes_desistencia_escala' escala.pk %}" class="btn btn-danger btn-sm" onclick="event.stopPropagation()">
+                                <i class="fa fa-exclamation-circle"></i> Impedimento
+                            </a>
+                        {% elif escala.troca_aberta_id %}
+                            <a href="{% url 'detalhes_solicitacao_troca' escala.troca_aberta_id %}" class="btn btn-danger btn-sm" onclick="event.stopPropagation()">
+                                <i class="fa fa-exclamation-circle"></i> Troca
+                            </a>
+                        {% elif not escala.usuario %}
+                            <span class="badge badge-danger">Vaga em aberto</span>
+                        {% elif escala.confirmada %}
+                            <span class="badge badge-success">Confirmada</span>
+                            {% if escala.data_confirmacao %}<small class="d-block text-muted">{{ escala.data_confirmacao|date:"d/m H:i" }}</small>{% endif %}
+                        {% else %}
+                            <span class="badge badge-warning">A confirmar</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% include 'escala/_quem_pode_servir.html' %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>

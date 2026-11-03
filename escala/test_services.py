@@ -271,6 +271,54 @@ class OfertasNoSiteDoLiderTests(TestCase):
         self.assertContains(resp, 'não marcou disponibilidade')
         self.assertContains(resp, reverse('recusar_oferta', args=[self.oferta_ana.pk]))
 
+    def test_detalhe_pela_lista_de_eventos_tambem_mostra(self):
+        resp = self.client.get(reverse('escala_detail', args=[self.vaga.pk]))
+        self.assertEqual([o.candidato for o in resp.context['ofertas']], [self.ana, self.bia])
+        self.assertTrue(resp.context['ofertas_primeiro'])
+        self.assertContains(resp, 'Querem servir')
+        self.assertContains(resp, '2 pessoas querem servir')
+        self.assertContains(resp, reverse('escalar_usuario', args=[self.vaga.pk, self.ana.pk]))
+        # Buscando entre os disponíveis, a aba deles fica aberta.
+        self.assertFalse(self.client.get(reverse('escala_detail', args=[self.vaga.pk]), {'q': 'x'}).context['ofertas_primeiro'])
+        # Recusar por essa tela volta para ela.
+        url = reverse('escala_detail', args=[self.vaga.pk])
+        resp = self.client.post(reverse('recusar_oferta', args=[self.oferta_ana.pk]), {'next': url})
+        self.assertRedirects(resp, url, fetch_redirect_response=False)
+        resp = self.client.post(reverse('recusar_oferta', args=[self.oferta_bia.pk]), {'next': 'https://outro.site/'})
+        self.assertRedirects(resp, reverse('escala_detail_equipe', args=[self.equipe.pk, self.vaga.pk]),
+                             fetch_redirect_response=False)
+
+    def test_lista_de_escalas_do_evento_mostra_previa(self):
+        from disponivel.models import Disponivel
+        Escala.objects.create(funcao=self.funcao, evento=self.culto, usuario=self.lider, confirmada=True)
+        Disponivel.objects.create(usuario=self.ana, evento=self.culto,
+                                  data_inicio=self.culto.data_inicio, data_fim=self.culto.data_fim)
+        resp = self.client.get(reverse('evento_escalas', args=[self.culto.pk]))
+        self.assertEqual(resp.context['resumo'],
+                         {'total': 2, 'confirmadas': 1, 'a_confirmar': 0, 'vagas': 1, 'querem_servir': 2})
+        vaga = next(e for e in resp.context['page_obj'] if e.pk == self.vaga.pk)
+        self.assertEqual((vaga.ofertas, vaga.disponiveis, bool(vaga.em_aberto)), (2, 1, True))
+        self.assertContains(resp, '2 querem servir')
+        self.assertContains(resp, '1 disponível')
+
+    def test_detalhe_e_lista_de_eventos_mostram_previa(self):
+        from escala.models import Desistencia
+        ocupada = Escala.objects.create(funcao=self.funcao, evento=self.culto, usuario=self.lider)
+        Desistencia.objects.create(escala=ocupada, usuario=self.lider, motivo='Viagem')
+
+        resp = self.client.get(reverse('evento_detail', args=[self.culto.pk]))
+        self.assertEqual(resp.context['resumo'],
+                         {'total': 2, 'confirmadas': 0, 'a_confirmar': 1, 'vagas': 1, 'querem_servir': 2})
+        self.assertContains(resp, '2 querem servir')
+        self.assertContains(resp, 'Impedimento')
+        self.assertContains(resp, reverse('escala_detail', args=[self.vaga.pk]))
+
+        resp = self.client.get(reverse('evento_list'))
+        (evento,) = [e for e in resp.context['page_obj'] if e.pk == self.culto.pk]
+        self.assertEqual((evento.funcoes, evento.confirmadas, evento.vagas, evento.querem_servir, evento.pendencias),
+                         (2, 0, 1, 2, 1))
+        self.assertContains(resp, '0/2 confirmadas')
+
     def test_grade_e_lista_mostram_as_ofertas(self):
         url = reverse('listar_escalas', args=[self.equipe.pk])
         mes = timezone.localtime(self.culto.data_inicio).strftime('%Y-%m')
