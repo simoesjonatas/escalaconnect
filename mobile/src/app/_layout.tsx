@@ -117,6 +117,7 @@ function Telas({ estado }: { estado: EstadoDaSessao }) {
       <Stack.Protected guard={estado === 'liberado'}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="escala/[id]" options={{ title: 'Escala' }} />
+        <Stack.Screen name="evento/[id]" options={{ title: 'Escala do evento' }} />
         <Stack.Screen name="periodo/por-evento" options={{ title: 'Registrar disponibilidade' }} />
         <Stack.Screen name="equipes" options={{ title: 'Minhas equipes' }} />
         <Stack.Screen name="historico" options={{ title: 'Meu histórico' }} />

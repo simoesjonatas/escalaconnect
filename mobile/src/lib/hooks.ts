@@ -5,6 +5,7 @@ import {
   Agenda,
   CaixaDeAvisos,
   Colega,
+  EscalaDoEvento,
   Culto,
   DetalheDaVaga,
   DetalheDoCulto,
@@ -119,6 +120,12 @@ export const useAgenda = () =>
 
 export const useColegas = (id: number) =>
   useQuery({ queryKey: ['escalas', id, 'equipe'], queryFn: () => api<Colega[]>('GET', `/escalas/${id}/equipe/`) });
+
+export const useEscalaDoEvento = (id: number) =>
+  useQuery({
+    queryKey: ['eventos', id, 'escala'],
+    queryFn: () => api<EscalaDoEvento>('GET', `/eventos/${id}/escala/`),
+  });
 
 export const useHistorico = () =>
   useQuery({ queryKey: ['historico'], queryFn: () => api<Historico>('GET', '/me/historico/') });

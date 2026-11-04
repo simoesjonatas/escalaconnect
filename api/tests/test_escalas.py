@@ -264,3 +264,37 @@ class HistoricoTests(EscalasApiTestCase):
     def test_sem_historico(self):
         resp = self.client.get('/api/v1/me/historico/')
         self.assertEqual((resp.data['total'], resp.data['mes'], resp.data['desde'], resp.data['ultimas']), (0, 0, None, []))
+
+
+class EscalaDoEventoTests(EscalasApiTestCase):
+    def url_do_evento(self, evento):
+        return f'/api/v1/eventos/{evento.pk}/escala/'
+
+    def test_mostra_quem_serviu_num_evento_passado_por_equipe(self):
+        passada = self.criar_escala(self.outro, dias=-3, nome='Culto passado', confirmada=True)
+        evento = passada.evento
+        musica = Equipe.objects.create(nome='Música')
+        Escala.objects.create(evento=evento, funcao=Funcao.objects.create(nome='Violão', equipe=musica), usuario=self.user)
+        Escala.objects.create(evento=evento, funcao=Funcao.objects.create(nome='Bateria', equipe=musica))
+
+        resp = self.client.get(self.url_do_evento(evento))
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data['passado'])
+        self.assertEqual([e['equipe'] for e in resp.data['equipes']], ['Música', 'Recepção'])
+        musica_resp, recepcao = resp.data['equipes']
+        # Pessoas antes das vagas; a vaga vem sem nome.
+        self.assertEqual([(p['funcao'], p['eu']) for p in musica_resp['pessoas']], [('Violão', True), ('Bateria', False)])
+        self.assertIsNone(musica_resp['pessoas'][1]['nome'])
+        self.assertEqual(recepcao['pessoas'][0]['funcao'], 'Porta')
+        self.assertTrue(recepcao['pessoas'][0]['confirmada'])
+
+    def test_evento_futuro_nao_e_passado(self):
+        resp = self.client.get(self.url_do_evento(self.escala.evento))
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.data['passado'])
+
+    def test_evento_de_equipe_alheia_nao_aparece(self):
+        alheia = Equipe.objects.create(nome='Kids')
+        inicio = timezone.now() - timedelta(days=2)
+        evento = Evento.objects.create(nome='Ensaio', equipe=alheia, data_inicio=inicio, data_fim=inicio + timedelta(hours=1))
+        self.assertEqual(self.client.get(self.url_do_evento(evento)).status_code, 404)

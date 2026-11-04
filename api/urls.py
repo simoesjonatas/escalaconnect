@@ -55,6 +55,7 @@ urlpatterns = [
     path('vagas/<int:pk>/oferta/', escalas.OfertaView.as_view(), name='api_vaga_oferta'),
 
     path('eventos/', eventos.EventoListView.as_view(), name='api_eventos'),
+    path('eventos/<int:pk>/escala/', eventos.EscalaDoEventoView.as_view(), name='api_evento_escala'),
     *rotas_de_periodos('disponibilidades', disponibilidades),
     *rotas_de_periodos('indisponibilidades', indisponibilidades),
 

@@ -5,12 +5,10 @@ import { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { diaEHora, diaPorExtenso, hora } from '../../lib/datas';
-import { situacaoDaEscala } from '../../lib/escala-ui';
+import { LinhaDeColega, situacaoDaEscala } from '../../lib/escala-ui';
 import { useAcaoDeEscala, useColegas, useEscala } from '../../lib/hooks';
 import { useTema } from '../../lib/tema';
-import { Colega } from '../../lib/types';
 import {
-  Avatar,
   Botao,
   Campo,
   Cartao,
@@ -42,57 +40,6 @@ function Aviso({ icone, cor, texto }: { icone: Icone; cor: string; texto: string
       <Ionicons name={icone} size={20} color={cor} />
       <Text style={{ flex: 1, fontSize: 14, lineHeight: 20, color: cores.texto }}>{texto}</Text>
     </Cartao>
-  );
-}
-
-function LinhaDeColega({ colega }: { colega: Colega }) {
-  const { cores } = useTema();
-  const situacao = !colega.nome
-    ? { icone: 'alert-circle-outline' as const, texto: 'Vaga', cor: cores.pendente }
-    : colega.confirmada
-      ? { icone: 'checkmark-circle' as const, texto: 'Confirmou', cor: cores.confirmada }
-      : { icone: 'time-outline' as const, texto: 'A confirmar', cor: cores.textoSuave };
-  return (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: cores.borda,
-      }}>
-      {colega.nome ? (
-        <Avatar nome={colega.nome} />
-      ) : (
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1,
-            borderStyle: 'dashed',
-            borderColor: cores.pendente,
-          }}>
-          <Ionicons name="person-add-outline" size={15} color={cores.pendente} />
-        </View>
-      )}
-      <View style={{ flex: 1, gap: 1 }}>
-        <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '600', color: colega.nome ? cores.texto : cores.textoSuave }}>
-          {colega.nome ?? 'Ninguém escalado'}
-        </Text>
-        <Text numberOfLines={1} style={{ fontSize: 13, color: cores.textoSuave }}>
-          {colega.funcao}
-        </Text>
-      </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <Ionicons name={situacao.icone} size={16} color={situacao.cor} />
-        <Text style={{ fontSize: 13, fontWeight: '600', color: situacao.cor }}>{situacao.texto}</Text>
-      </View>
-    </View>
   );
 }
 

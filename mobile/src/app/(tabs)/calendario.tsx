@@ -36,6 +36,8 @@ function porEvento<T>(itens: T[] | undefined, evento: (item: T) => number) {
   return mapa;
 }
 
+const jaPassou = (e: EventoCalendario) => new Date(e.data_fim) < new Date();
+
 const plural = (n: number, um: string, varios: string) => `${n} ${n === 1 ? um : varios}`;
 
 export default function Calendario() {
@@ -95,10 +97,13 @@ export default function Calendario() {
   }, [porDia, dia, cores]);
 
   function abrir(evento: EventoCalendario) {
-    // Evento em que estou escalado abre a minha escala; para o líder, o culto da equipe.
-    const escala = escalas.data?.find((e) => e.evento.id === evento.id);
+    // Evento que já passou mostra quem serviu. Nos próximos: a minha escala; para o líder, o culto
+    // da equipe; nos demais, quem está escalado.
+    const escala = !jaPassou(evento) && escalas.data?.find((e) => e.evento.id === evento.id);
     if (escala) router.push({ pathname: '/escala/[id]', params: { id: escala.id } });
-    else if (cultoDoLider.has(evento.id)) router.push({ pathname: '/lider/culto/[id]', params: { id: evento.id } });
+    else if (!jaPassou(evento) && cultoDoLider.has(evento.id))
+      router.push({ pathname: '/lider/culto/[id]', params: { id: evento.id } });
+    else router.push({ pathname: '/evento/[id]', params: { id: evento.id } });
   }
 
   function oferecer(vaga: VagaAberta) {
@@ -158,7 +163,7 @@ export default function Calendario() {
       {doDia.map((evento) => {
         const culto = cultoDoLider.get(evento.id);
         return (
-          <Pressable key={evento.id} onPress={() => abrir(evento)} disabled={!evento.escalado && !culto}>
+          <Pressable key={evento.id} onPress={() => abrir(evento)} accessibilityRole="button">
             <Cartao>
               {evento.escalado && (
                 <Etiqueta texto={evento.confirmada ? 'Confirmada' : 'A confirmar'} cor={corDoEvento(evento, cores)} />
@@ -169,6 +174,9 @@ export default function Calendario() {
               </Texto>
               {evento.escalado && <Suave>Você serve como: {evento.funcoes.join(', ')}</Suave>}
               {!!evento.equipe && <Suave>Evento da equipe {evento.equipe}</Suave>}
+              {jaPassou(evento) && (
+                <Suave style={{ color: cores.primaria, fontWeight: '600' }}>Toque para ver quem serviu</Suave>
+              )}
 
               {culto && <ResumoDoLider culto={culto} vagas={vagasDaEquipe.get(evento.id) ?? []} />}
 

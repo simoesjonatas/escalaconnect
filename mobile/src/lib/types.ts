@@ -82,6 +82,13 @@ export type Agenda = { https: string; webcal: string };
 /** Outra função da mesma equipe no mesmo culto; `nome` nulo = vaga sem ninguém. */
 export type Colega = { funcao: string; nome: string | null; confirmada: boolean };
 
+/** GET /eventos/{id}/escala/: quem está (ou esteve) escalado, por equipe. */
+export type EscalaDoEvento = {
+  evento: EventoComEquipe;
+  passado: boolean;
+  equipes: { equipe: string; pessoas: (Colega & { eu: boolean })[] }[];
+};
+
 export type Historico = {
   mes: number;
   ano: number;
