@@ -9,6 +9,7 @@ import { verificarAtualizacaoAgora } from '../../lib/atualizacoes';
 import { useAuth } from '../../lib/auth';
 import { useAgenda } from '../../lib/hooks';
 import { useTema } from '../../lib/tema';
+import { useTour } from '../../lib/tour';
 import { BUILD_ATUAL } from '../../lib/versao';
 import { Avatar, Cartao, Grupo, Icone, ItemDeGrupo, Subtitulo, Suave, Tela } from '../../lib/ui';
 
@@ -36,6 +37,7 @@ export default function Perfil() {
   const { usuario, sair } = useAuth();
   const [verificando, setVerificando] = useState(false);
   const agenda = useAgenda();
+  const tour = useTour();
   if (!usuario) return null;
   const nome = usuario.nome_completo || usuario.username;
 
@@ -93,6 +95,7 @@ export default function Perfil() {
       </Grupo>
 
       <Grupo titulo="Aplicativo">
+        <ItemDeGrupo icone="compass-outline" titulo="Ver o tour do app" aoTocar={tour.iniciar} />
         <ItemDeGrupo
           icone="refresh-outline"
           titulo="Verificar atualização"
