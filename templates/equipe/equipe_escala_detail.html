@@ -48,7 +48,7 @@
             <div>
                 <div class="pessoa-nome resumo-vaga">Vaga em aberto</div>
                 <div class="pessoa-status">
-                    {% if ofertas %}{{ ofertas|length }} pessoa{{ ofertas|length|pluralize }} quer{{ ofertas|length|pluralize:",em" }} servir — escolha abaixo{% else %}Escale alguém disponível abaixo{% endif %}
+                    {% if podem_servir_total %}{{ podem_servir_total }} pessoa{{ podem_servir_total|pluralize }} pode{{ podem_servir_total|pluralize:",m" }} servir — escolha abaixo{% else %}Ninguém pode servir ainda{% endif %}
                 </div>
             </div>
             {% endif %}
@@ -93,18 +93,10 @@
             <!-- Abas: disponíveis x escalados -->
             <div class="section-card">
             <ul class="escala-tabs" id="escalaTabs" role="tablist">
-                {% if ofertas %}
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link active" id="ofertas-tab" data-bs-toggle="tab" href="#ofertas" role="tab" aria-controls="ofertas" aria-selected="true">
-                        <i class="fa fa-hand-paper"></i> Querem servir
-                        <span class="tab-count">{{ ofertas|length }}</span>
-                    </a>
-                </li>
-                {% endif %}
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link{% if not ofertas %} active{% endif %}" id="disponiveis-tab" data-bs-toggle="tab" href="#disponiveis" role="tab" aria-controls="disponiveis" aria-selected="{% if ofertas %}false{% else %}true{% endif %}">
-                        <i class="fa fa-user-check"></i> Disponíveis
-                        <span class="tab-count">{{ usuarios_disponiveis|length }}</span>
+                    <a class="nav-link active" id="disponiveis-tab" data-bs-toggle="tab" href="#disponiveis" role="tab" aria-controls="disponiveis" aria-selected="true">
+                        <i class="fa fa-user-check"></i> Podem servir
+                        <span class="tab-count">{{ podem_servir_total }}</span>
                     </a>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -116,13 +108,9 @@
             </ul>
 
             <div class="tab-content escala-tab-content" id="escalaTabsContent">
-                {% if ofertas %}
-                <div class="tab-pane fade show active" id="ofertas" role="tabpanel" aria-labelledby="ofertas-tab">
-                    {% include 'escala/_ofertas_da_vaga.html' with escalar_url='escalar_usuario_equipe' %}
-                </div>
-                {% endif %}
-                <div class="tab-pane fade{% if not ofertas %} show active{% endif %}" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
+                <div class="tab-pane fade show active" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
                     <div class="pessoa-lista">
+                        {% include 'escala/_ofertas_da_vaga.html' with escalar_url='escalar_usuario_equipe' %}
                         {% for usuario in usuarios_disponiveis %}
                         <div class="pessoa-row">
                             <div class="resumo-avatar">{{ usuario.get_full_name|default:usuario.username|first|upper }}</div>
@@ -134,7 +122,7 @@
                                         <i class="fa fa-calendar-check"></i>{{ usuario.servicos_no_mes }} no mês
                                     </span>
                                 </strong>
-                                <small>Disponível neste horário{% if usuario.quer_servir %} · <span class="oferta-ok"><i class="fa fa-hand-paper"></i> quer servir nesta vaga</span>{% endif %}</small>
+                                <small>Disponível neste horário</small>
                             </div>
                             {% if request.user.is_staff or request.user.is_superuser or is_leader %}
                             <div class="pessoa-acoes">
@@ -145,11 +133,13 @@
                             {% endif %}
                         </div>
                         {% empty %}
+                        {% if not ofertas %}
                         <div class="pessoa-vazio">
                             <i class="fa fa-user-slash d-block mb-1"></i>
-                            Ninguém da equipe está disponível neste horário.<br>
+                            Ninguém se ofereceu e ninguém da equipe está disponível neste horário.<br>
                             <small>Se precisar, use “Escalar alguém da equipe” acima (ignora a disponibilidade).</small>
                         </div>
+                        {% endif %}
                         {% endfor %}
                     </div>
                 </div>

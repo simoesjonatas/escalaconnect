@@ -84,6 +84,8 @@
     .disp-badge.green { background:color-mix(in srgb, var(--connect-green) 18%, transparent); color:var(--connect-green); }
     .pill-tag { display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:.76rem; font-weight:700; }
     .pill-tag.danger { background:color-mix(in srgb, var(--connect-danger) 16%, transparent); color:var(--connect-danger); }
+    .cell-sub .fa-hand-paper { color:var(--connect-green); }
+    .pill-tag.success { background:color-mix(in srgb, var(--connect-green) 18%, transparent); color:var(--connect-green); }
     .pill-tag.warning { background:color-mix(in srgb, var(--connect-warning) 20%, transparent); color:var(--connect-warning); }
     .rank-pos { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%;
         background:var(--connect-surface-2); border:1px solid var(--connect-border); font-weight:800; font-size:.8rem; }
@@ -195,13 +197,13 @@
     {% endif %}
 
     <!-- Pendências -->
-    {% if impedimentos or trocas_abertas %}
+    {% if impedimentos or trocas_abertas or ofertas %}
     <div class="panel">
         <div class="panel-title">
             <i class="fa fa-exclamation-triangle" style="color:var(--connect-danger)"></i> Pendências aguardando você
             <span class="count-pill">{{ pendencias_total }}</span>
         </div>
-        <div class="panel-sub">Impedimentos e trocas que travam a escala.</div>
+        <div class="panel-sub">Impedimentos e trocas que travam a escala, e quem se ofereceu para servir numa vaga.</div>
         <div class="table-responsive">
             <table class="dash-table">
                 <thead>
@@ -226,6 +228,15 @@
                         <td><a class="btn btn-warning btn-xs" href="{% url 'detalhes_solicitacao_troca' t.pk %}">Analisar</a></td>
                     </tr>
                     {% endfor %}
+                    {% for o in ofertas %}
+                    <tr>
+                        <td><span class="pill-tag success"><i class="fa fa-hand-paper"></i> Quer servir</span></td>
+                        <td>{{ o.escala.evento.nome }}<br><span class="cell-sub">{{ o.escala.evento.data_inicio|date:"d/m/Y H:i" }}</span></td>
+                        <td>{{ o.escala.funcao.equipe.nome }} — {{ o.escala.funcao.nome }}</td>
+                        <td>{{ o.candidato.get_full_name|default:o.candidato.username }}<br><span class="cell-sub">se ofereceu em {{ o.data_candidatura|date:"d/m H:i" }}</span></td>
+                        <td><a class="btn btn-success btn-xs" href="{% url 'escala_detail_equipe' o.escala.funcao.equipe_id o.escala.pk %}">Escolher</a></td>
+                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>
@@ -238,25 +249,23 @@
             <i class="fa fa-user-slash" style="color:var(--connect-danger)"></i> Buracos na escala
             <span class="count-pill">{{ buracos_total }}</span>
         </div>
-        <div class="panel-sub">Próximos eventos sem voluntário — a cor mostra quantos estão disponíveis para preencher.</div>
+        <div class="panel-sub">Próximos eventos sem voluntário — a cor mostra quantas pessoas podem servir (se ofereceram ou estão disponíveis).</div>
         <div class="table-responsive">
             <table class="dash-table">
                 <thead>
-                    <tr><th>Evento</th><th>Equipe</th><th>Função</th><th>Disponíveis</th><th></th></tr>
+                    <tr><th>Evento</th><th>Equipe</th><th>Função</th><th>Podem servir</th><th></th></tr>
                 </thead>
                 <tbody>
                     {% for b in buracos %}
-                    {% with c=b.disponiveis_count names=b.disponiveis_names %}
+                    {% with c=b.podem_servir|length %}
                     <tr>
                         <td>{{ b.evento.nome }}<br><span class="cell-sub">{{ b.evento.data_inicio_com_dia_da_semana|safe }}</span></td>
                         <td>{{ b.funcao.equipe.nome }}</td>
                         <td>{{ b.funcao.nome }}</td>
                         <td>
                             <span class="disp-badge {% if c == 0 %}red{% elif c == 1 %}yellow{% else %}green{% endif %}">{{ c }}</span>
-                            {% if names %}
-                            <span class="cell-sub">
-                                {% for n in names|slice:":3" %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if names|length > 3 %} +{{ names|length|add:"-3" }}{% endif %}
-                            </span>
+                            {% if c %}
+                            <span class="cell-sub">{% include 'escala/_nomes_podem_servir.html' with pessoas=b.podem_servir %}</span>
                             {% endif %}
                         </td>
                         <td><a class="btn btn-primary btn-xs" href="{% url 'escala_detail' b.pk %}"><i class="fa fa-user-plus"></i> Escalar</a></td>

@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 from django.db.models import Count, Q
 from escala.models import Escala
-from escala.utils import anotar_disponiveis, escalas_com_situacao, resumo_das_escalas
+from escala.utils import anotar_podem_servir, escalas_com_situacao, resumo_das_escalas
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
 from .forms import EventoForm
@@ -125,7 +125,6 @@ def evento_list(request):
         funcoes=Count('escala', distinct=True),
         confirmadas=Count('escala', filter=Q(escala__usuario__isnull=False, escala__confirmada=True), distinct=True),
         vagas=Count('escala', filter=vaga, distinct=True),
-        querem_servir=Count('escala__rendimento', filter=vaga & Q(escala__rendimento__aprovada=False), distinct=True),
         pendencias=(
             Count('escala__desistencia', filter=Q(escala__desistencia__aprovada=False), distinct=True)
             + Count('escala__solicitacoes_origem', filter=Q(escala__solicitacoes_origem__aprovada=False), distinct=True)
@@ -238,7 +237,7 @@ def evento_detail(request, pk):
     # Funções do evento por equipe, com a situação e a prévia de quem pode servir.
     todas = Escala.objects.filter(evento=evento)
     escalas = list(escalas_com_situacao(todas).order_by('funcao__equipe__nome', 'funcao__nome', 'pk'))
-    anotar_disponiveis(escalas, evento)
+    anotar_podem_servir(escalas)
     return render(request, 'evento/evento_detail.html', {
         'evento': evento,
         'pode_gerenciar': pode_gerenciar,

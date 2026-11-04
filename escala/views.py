@@ -17,7 +17,7 @@ from django.conf import settings
 from usuario.models import Usuario
 from equipe.models import Lideranca, Equipe
 from escala.utils import (
-    LIMITE_ESCALAS_POR_MES, anotar_disponiveis, escalas_com_situacao, ofertas_da_vaga, preencher_vagas, resumo_das_escalas,
+    LIMITE_ESCALAS_POR_MES, anotar_podem_servir, escalas_com_situacao, ofertas_da_vaga, preencher_vagas, resumo_das_escalas,
     usuarios_disponiveis_para_evento,
 )
 from escala.services import RegraDeNegocio, confirmar_escala, escalas_futuras, validar_confirmacao
@@ -54,8 +54,8 @@ def escalas_por_evento(request, pk):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
-    # Prévia para o líder: quantos estão disponíveis em cada função ainda não fechada.
-    anotar_disponiveis(page_obj, evento)
+    # Prévia para o líder: quem pode servir em cada função ainda não fechada.
+    anotar_podem_servir(page_obj)
 
     resumo = resumo_das_escalas(todas)
 
@@ -135,13 +135,11 @@ def escala_detail(request, pk):
         evento=evento,
         excluir_escala_id=escala.pk,
     )
-    usuarios_disponiveis = list(Usuario.objects.filter(id__in=ids_disponiveis))
-
-    # Quem se ofereceu para a vaga pelo app ou pelo site (aba "Querem servir").
+    # Quem pode servir: quem se ofereceu (no topo da aba, mesmo sem disponibilidade) e os
+    # disponíveis, sem repetir quem já está entre os que se ofereceram.
     ofertas = ofertas_da_vaga(escala, ids_disponiveis)
     ids_que_ofereceram = {o.candidato_id for o in ofertas}
-    for usuario in usuarios_disponiveis:
-        usuario.quer_servir = usuario.id in ids_que_ofereceram
+    usuarios_disponiveis = list(Usuario.objects.filter(id__in=ids_disponiveis).exclude(id__in=ids_que_ofereceram))
 
     # Aplica o filtro de busca
     if query:
@@ -197,9 +195,9 @@ def escala_detail(request, pk):
     return render(request, 'escala/escala_detail.html', {
         'escala': escala,
         'usuarios_disponiveis': page_obj,
-        'ofertas': ofertas,
-        # Abre em "Querem servir", menos quando o líder está buscando ou paginando os disponíveis.
-        'ofertas_primeiro': bool(ofertas) and not query and not request.GET.get('page'),
+        # Quem se ofereceu aparece no topo da primeira página, quando não há busca.
+        'ofertas': ofertas if not query and page_obj.number == 1 else [],
+        'podem_servir_total': len(ofertas) + paginator.count,
         'is_leader': is_leader,
         'page_obj': page_obj,
         'order_by': order_by.lstrip('-'),

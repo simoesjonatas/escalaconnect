@@ -383,25 +383,9 @@ Escalas da Equipe {{ equipe.nome }}
     .equipe-escalas-page .gc-chip.gc-vaga.disp-1 { border-left-color: var(--connect-warning); }
     .equipe-escalas-page .gc-chip.gc-vaga.disp-ok { border-left-color: var(--connect-green); }
     .equipe-escalas-page .gc-vazio { color: var(--connect-muted); }
-    /* Vaga em que alguém se ofereceu: destaque para o líder decidir. */
-    .equipe-escalas-page .gc-oferta {
-        display: flex;
-        width: max-content;
-        max-width: 100%;
-        align-items: center;
-        gap: 5px;
-        margin-top: 5px;
-        padding: 2px 8px;
-        border-radius: 999px;
-        background: var(--connect-green);
-        color: #0b0b0b;
-        font-size: .74rem;
-        font-weight: 700;
-        line-height: 1.5;
-    }
-    .equipe-escalas-page .gc-oferta i { font-size: .9em; }
-    .equipe-escalas-page .gc-chip.gc-vaga.com-oferta { border-style: solid; }
-    .equipe-escalas-page .me-tags .badge-oferta { background: var(--connect-green); color: #0b0b0b; }
+    .equipe-escalas-page .gc-chip small.gc-nomes { display: block; font-size: .74rem; }
+    .equipe-escalas-page .me-pessoa .pessoa-info small.vaga-dica { display: block; }
+    .equipe-escalas-page .fa-hand-paper { color: var(--connect-green); }
 
     @media (max-width: 720px) {
         .equipe-escalas-page .visao-switch { display: flex; }
@@ -496,14 +480,12 @@ Escalas da Equipe {{ equipe.nome }}
                             <strong>Vaga não preenchida</strong>
                         </a>
                         {% else %}
-                        {% with c=escala.vaga_disponiveis %}
-                        <a class="gc-chip gc-vaga {% if c == 0 %}disp-0{% elif c == 1 %}disp-1{% else %}disp-ok{% endif %}{% if escala.vaga_ofertas %} com-oferta{% endif %}"
+                        {% with c=escala.podem_servir|length %}
+                        <a class="gc-chip gc-vaga {% if c == 0 %}disp-0{% elif c == 1 %}disp-1{% else %}disp-ok{% endif %}"
                            href="{% url 'escala_detail_equipe' equipe.pk escala.pk %}">
                             <strong>Vaga em aberto</strong>
-                            <small>{{ c }} disponíve{{ c|pluralize:"l,is" }}</small>
-                            {% if escala.vaga_ofertas %}
-                            <span class="gc-oferta"><i class="fa fa-hand-paper"></i> {{ escala.vaga_ofertas }} quer{{ escala.vaga_ofertas|pluralize:",em" }} servir</span>
-                            {% endif %}
+                            <small>{% if c %}{{ c }} pode{{ c|pluralize:",m" }} servir{% else %}ninguém pode servir{% endif %}</small>
+                            {% if c %}<small class="gc-nomes">{% include 'escala/_nomes_podem_servir.html' with pessoas=escala.podem_servir %}</small>{% endif %}
                         </a>
                         {% endwith %}
                         {% endif %}
@@ -519,11 +501,11 @@ Escalas da Equipe {{ equipe.nome }}
     </div>
 
     <div class="cal-legend mt-2">
-        <span><i class="cal-dot" style="background:var(--connect-green)"></i> Confirmada / vaga com vários disponíveis</span>
+        <span><i class="cal-dot" style="background:var(--connect-green)"></i> Confirmada / vaga com várias pessoas que podem servir</span>
         <span><i class="cal-dot" style="background:var(--connect-info)"></i> A confirmar</span>
-        <span><i class="cal-dot" style="background:var(--connect-warning)"></i> Vaga com só 1 disponível</span>
-        <span><i class="cal-dot" style="background:var(--connect-danger)"></i> Vaga sem ninguém disponível</span>
-        <span><span class="gc-oferta" style="display:inline-flex;margin-top:0"><i class="fa fa-hand-paper"></i> quer servir</span> Alguém se ofereceu: abra a vaga para escalar</span>
+        <span><i class="cal-dot" style="background:var(--connect-warning)"></i> Vaga com só 1 pessoa</span>
+        <span><i class="cal-dot" style="background:var(--connect-danger)"></i> Vaga sem ninguém</span>
+        <span><i class="fa fa-hand-paper" style="color:var(--connect-green)"></i> Se ofereceu para a vaga</span>
     </div>
     {% else %}
     <div class="pessoa-vazio">
@@ -533,14 +515,14 @@ Escalas da Equipe {{ equipe.nome }}
     {% endif %}
     {% else %}
     <div class="cal-legend mb-2">
-        <span><i class="cal-dot" style="background:var(--connect-danger)"></i> Ninguém disponível</span>
-        <span><i class="cal-dot" style="background:var(--connect-warning)"></i> Só 1 disponível</span>
-        <span><i class="cal-dot" style="background:var(--connect-green)"></i> Vários disponíveis</span>
+        <span><i class="cal-dot" style="background:var(--connect-danger)"></i> Ninguém pode servir</span>
+        <span><i class="cal-dot" style="background:var(--connect-warning)"></i> Só 1 pode servir</span>
+        <span><i class="cal-dot" style="background:var(--connect-green)"></i> Vários podem servir</span>
     </div>
 
     <div class="minhas-escalas-lista">
         {% for escala in page_obj %}
-        {% with c=escala.disponiveis_count names=escala.disponiveis_names %}
+        {% with c=escala.podem_servir|length %}
         <div class="minha-escala-card {% if c == 0 %}disp-0{% elif c == 1 %}disp-1{% else %}disp-ok{% endif %}"
              onclick="window.location.href='{% url 'escala_detail_equipe' equipe.pk escala.pk %}'">
             <div class="me-data">
@@ -554,9 +536,6 @@ Escalas da Equipe {{ equipe.nome }}
                 <small>{{ escala.evento.data_inicio|date:"l, d/m/Y" }}</small>
                 <div class="me-tags">
                     <span class="badge badge-info">{{ escala.funcao.nome }}</span>
-                    {% if escala.ofertas and not escala.usuario %}
-                    <span class="badge badge-oferta"><i class="fa fa-hand-paper"></i> {{ escala.ofertas }} quer{{ escala.ofertas|pluralize:",em" }} servir</span>
-                    {% endif %}
                     {% if escala.has_impedimento %}
                     <span class="badge badge-danger">Impedimento em análise</span>
                     {% endif %}
@@ -566,11 +545,11 @@ Escalas da Equipe {{ equipe.nome }}
                 </div>
             </div>
 
-            <div class="me-disp" title="{% if names %}Disponíveis: {{ names|join:", " }}{% else %}Ninguém da equipe está disponível neste horário{% endif %}">
+            <div class="me-disp" title="{% if c %}Podem servir: {% for p in escala.podem_servir %}{{ p.nome }}{% if p.ofereceu %} (se ofereceu){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}Ninguém da equipe pode servir neste horário{% endif %}">
                 <span class="badge-disp {% if c == 0 %}red{% elif c == 1 %}yellow{% else %}green{% endif %}">{{ c }}</span>
-                <span class="me-disp-label">disponíve{{ c|pluralize:"l,is" }}</span>
-                {% if names %}
-                <small class="disp-names">{% for n in names|slice:":2" %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}{% if names|length > 2 %} +{{ names|length|add:"-2" }}{% endif %}</small>
+                <span class="me-disp-label">pode{{ c|pluralize:",m" }} servir</span>
+                {% if c %}
+                <small class="disp-names">{% include 'escala/_nomes_podem_servir.html' with pessoas=escala.podem_servir %}</small>
                 {% endif %}
             </div>
 
@@ -591,7 +570,7 @@ Escalas da Equipe {{ equipe.nome }}
                 <div class="resumo-avatar resumo-avatar-sm"><i class="fa fa-user-plus"></i></div>
                 <div class="pessoa-info">
                     <strong class="resumo-vaga">Vaga em aberto</strong>
-                    <small>{% if escala.ofertas %}Veja quem quer servir{% else %}Escolha alguém disponível{% endif %}</small>
+                    <small class="vaga-dica">{% if c %}Escolha quem vai servir{% else %}Ninguém pode servir ainda{% endif %}</small>
                 </div>
                 {% endif %}
             </div>

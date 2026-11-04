@@ -534,7 +534,7 @@ class EscalasEquipeGradeTests(TestCase):
         projecao, som = resp.context['linhas'][0]['celulas']
         self.assertEqual(som[0].usuario, self.vol)
         self.assertIsNone(projecao[0].usuario)
-        self.assertEqual(projecao[0].vaga_disponiveis, 0)
+        self.assertEqual(projecao[0].podem_servir, [])
         self.assertEqual(resp.context['vagas_abertas'], 1)
         self.assertContains(resp, "Ana Grade")
         self.assertContains(resp, "Vaga em aberto")

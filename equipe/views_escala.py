@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from .models import Equipe, Lideranca
-from escala.models import Escala, Desistencia, Funcao, Rendimento
+from escala.models import Escala, Desistencia, Funcao
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from django.utils import timezone
@@ -14,7 +14,9 @@ from django.conf import settings
 from datetime import datetime
 
 from escalaconnect.tasks_availability import disparar_pedido_disponibilidades
-from escala.utils import ofertas_da_vaga, preencher_vagas, usuarios_disponiveis_para_evento, LIMITE_ESCALAS_POR_MES
+from escala.utils import (
+    LIMITE_ESCALAS_POR_MES, anotar_podem_servir, ofertas_da_vaga, preencher_vagas,
+)
 
 VISOES_ESCALA = ('lista', 'grade')
 COOKIE_VISAO_ESCALA = 'connect-escalas-view'
@@ -59,7 +61,6 @@ def listar_escalas(request, equipe_pk):
     escalas_list = (Escala.objects
         .filter(funcao__equipe=equipe, evento__data_inicio__date__gte=today)
         .select_related('funcao', 'funcao__equipe', 'evento', 'usuario')
-        .annotate(ofertas=Count('rendimento', filter=Q(rendimento__aprovada=False)))
         .order_by(order_by)
     )
     if query:
@@ -73,6 +74,9 @@ def listar_escalas(request, equipe_pk):
     paginator = Paginator(escalas_list, 10)  # Display 10 escalas per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+
+    # Quem pode servir em cada escala da página (se ofereceu ou está disponível, tanto faz).
+    anotar_podem_servir(page_obj)
     
     # desistencias =get_unapproved_desistencias(equipe.pk)
 
@@ -117,20 +121,15 @@ def _contexto_grade(request, equipe):
     funcoes = list(Funcao.objects.filter(equipe=equipe).order_by('nome'))
     coluna_por_funcao = {funcao.id: i for i, funcao in enumerate(funcoes)}
 
-    escalas = (Escala.objects
+    escalas = list(Escala.objects
         .filter(funcao__equipe=equipe, evento__data_inicio__gte=inicio, evento__data_inicio__lt=fim)
-        .select_related('funcao', 'evento', 'usuario')
+        .select_related('funcao__equipe', 'evento', 'usuario')
         .order_by('evento__data_inicio', 'evento_id', 'funcao__nome', 'pk')
     )
 
-    # Quem se ofereceu para cada vaga em aberto (uma query para o mês todo).
-    ofertas_por_vaga = dict(
-        Rendimento.objects
-        .filter(escala__in=escalas, escala__usuario__isnull=True, aprovada=False)
-        .values('escala_id')
-        .annotate(total=Count('id'))
-        .values_list('escala_id', 'total')
-    )
+    # Vagas em aberto de hoje em diante: quem pode assumir (se ofereceu ou está disponível).
+    anotar_podem_servir([
+        e for e in escalas if not e.usuario_id and timezone.localtime(e.evento.data_inicio).date() >= hoje])
 
     linhas = []
     linha_por_evento = {}
@@ -142,7 +141,6 @@ def _contexto_grade(request, equipe):
                 'evento': escala.evento,
                 'passado': timezone.localtime(escala.evento.data_inicio).date() < hoje,
                 'celulas': [[] for _ in funcoes],
-                'disponiveis': None,
             }
             linha_por_evento[escala.evento_id] = linha
             linhas.append(linha)
@@ -150,12 +148,6 @@ def _contexto_grade(request, equipe):
         total += 1
         if escala.usuario_id:
             preenchidas += 1
-        elif not linha['passado']:
-            # Vaga em aberto: quantos da equipe ainda podem assumir (uma conta por evento).
-            if linha['disponiveis'] is None:
-                linha['disponiveis'] = len(usuarios_disponiveis_para_evento(equipe, escala.evento))
-            escala.vaga_disponiveis = linha['disponiveis']
-            escala.vaga_ofertas = ofertas_por_vaga.get(escala.pk, 0)
         linha['celulas'][coluna_por_funcao[escala.funcao_id]].append(escala)
 
     return {
@@ -227,11 +219,10 @@ def escala_detail_equipe(request, equipe_pk, pk):
         if not Escala.objects.filter(usuario=usuario, evento=evento).exclude(pk=escala.pk).exists()
     ]
 
-    # Quem se ofereceu para a vaga pelo app ou pelo site (só enquanto ela está em aberto).
+    # Quem pode servir: quem se ofereceu (primeiro, mesmo sem disponibilidade) e os disponíveis.
     ofertas = ofertas_da_vaga(escala, [u.id for u in usuarios_disponiveis])
     ids_que_ofereceram = {o.candidato_id for o in ofertas}
-    for usuario in usuarios_disponiveis:
-        usuario.quer_servir = usuario.id in ids_que_ofereceram
+    usuarios_disponiveis = [u for u in usuarios_disponiveis if u.id not in ids_que_ofereceram]
 
     # Quantas vezes cada pessoa (disponível OU já escalada no evento) já foi
     # escalada NESTE mês NESTA equipe — dá ao líder a base para equilibrar quem
@@ -262,6 +253,7 @@ def escala_detail_equipe(request, equipe_pk, pk):
         'equipe': equipe,
         'usuarios_disponiveis': usuarios_disponiveis,
         'ofertas': ofertas,
+        'podem_servir_total': len(ofertas) + len(usuarios_disponiveis),
         'usuarios_escalados': usuarios_ja_escalados,
         'usuarios_equipe': usuarios_equipe,  # <<< AQUI
         'is_leader': is_leader,

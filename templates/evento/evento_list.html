@@ -87,9 +87,6 @@
                             {% if evento.vagas %}
                             <span class="qp-chip qp-nenhum"><i class="fa fa-user-plus"></i> {{ evento.vagas }} vaga{{ evento.vagas|pluralize }}</span>
                             {% endif %}
-                            {% if evento.querem_servir %}
-                            <span class="qp-chip qp-oferta"><i class="fa fa-hand-paper"></i> {{ evento.querem_servir }} quer{{ evento.querem_servir|pluralize:",em" }} servir</span>
-                            {% endif %}
                         </div>
                         {% else %}
                         <span class="text-muted">Sem funções</span>

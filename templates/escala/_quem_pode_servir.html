@@ -1,16 +1,17 @@
-{% comment %}Prévia de uma escala ainda não fechada: quem quer servir e quantos estão disponíveis
-(escala.utils.escalas_com_situacao + anotar_disponiveis). Com `sem_traco`, não mostra nada nas fechadas.{% endcomment %}
+{% comment %}Prévia de uma escala ainda não fechada: quantos podem servir (se ofereceram ou estão
+disponíveis, tanto faz) e os nomes (escala.utils.anotar_podem_servir). Com `sem_traco`, não mostra
+nada nas fechadas.{% endcomment %}
 {% if escala.em_aberto %}
+{% with n=escala.podem_servir|length %}
 <div class="quem-pode">
-    {% if not escala.usuario and escala.ofertas %}
-    <span class="qp-chip qp-oferta"><i class="fa fa-hand-paper"></i> {{ escala.ofertas }} quer{{ escala.ofertas|pluralize:",em" }} servir</span>
-    {% endif %}
-    {% if escala.disponiveis %}
-    <span class="qp-chip"><i class="fa fa-user-check"></i> {{ escala.disponiveis }} disponíve{{ escala.disponiveis|pluralize:"l,is" }}</span>
+    {% if n %}
+    <span class="qp-chip qp-ok"><i class="fa fa-user-check"></i> {{ n }} pode{{ n|pluralize:",m" }} servir</span>
+    <small class="qp-nomes">{% include 'escala/_nomes_podem_servir.html' with pessoas=escala.podem_servir %}</small>
     {% else %}
-    <span class="qp-chip qp-nenhum"><i class="fa fa-user-slash"></i> ninguém disponível</span>
+    <span class="qp-chip qp-nenhum"><i class="fa fa-user-slash"></i> ninguém pode servir</span>
     {% endif %}
 </div>
+{% endwith %}
 {% elif not sem_traco %}
 <span class="text-muted">—</span>
 {% endif %}

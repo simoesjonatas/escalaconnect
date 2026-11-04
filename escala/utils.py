@@ -85,14 +85,13 @@ def usuarios_disponiveis_para_evento(equipe, evento, excluir_escala_id=None):
 
 def escalas_com_situacao(escalas):
     """Anota em cada escala o que o líder precisa ver numa lista, sem uma consulta por linha:
-    `ofertas` (quem se ofereceu e espera decisão), `impedimento_aberto` e `troca_aberta_id`."""
+    `impedimento_aberto` e `troca_aberta_id`."""
     Desistencia = apps.get_model('escala', 'Desistencia')
     SolicitacaoTroca = apps.get_model('escala', 'SolicitacaoTroca')
     return (
         escalas
         .select_related('usuario', 'funcao__equipe')
         .annotate(
-            ofertas=Count('rendimento', filter=Q(rendimento__aprovada=False), distinct=True),
             impedimento_aberto=Exists(Desistencia.objects.filter(escala=OuterRef('pk'), aprovada=False)),
             troca_aberta_id=Subquery(
                 SolicitacaoTroca.objects.filter(escala_origem=OuterRef('pk'), aprovada=False).values('pk')[:1]),
@@ -100,32 +99,59 @@ def escalas_com_situacao(escalas):
     )
 
 
-def anotar_disponiveis(escalas, evento):
-    """Em cada escala ainda não fechada (vaga, a confirmar ou com pedido), quantos da equipe estão
-    disponíveis e não servem neste evento (`disponiveis`), e `em_aberto`. Uma conta por equipe.
-    Espera escalas anotadas por `escalas_com_situacao`."""
-    por_equipe = {}
+def anotar_podem_servir(escalas):
+    """Em cada escala, `podem_servir`: quem pode ocupá-la, [{'nome', 'ofereceu'}].
+
+    Para o líder tanto faz o caminho: entra quem se ofereceu para a vaga (primeiro, mesmo sem ter
+    marcado disponibilidade) e quem está disponível no horário e livre no evento, sem repetir
+    ninguém e sem quem já está nela. Também `em_aberto` (vaga, a confirmar ou com pedido), para
+    as telas que só mostram isso nas escalas ainda não fechadas.
+
+    Uma conta de disponíveis por (equipe, evento) e uma consulta de ofertas e de nomes.
+    """
+    escalas = list(escalas)
+    if not escalas:
+        return escalas
+    Rendimento = apps.get_model('escala', 'Rendimento')
+    User = apps.get_model(settings.AUTH_USER_MODEL)
+
+    ofertas = {}
+    for escala_id, candidato_id in (Rendimento.objects
+                                    .filter(escala__in=[e for e in escalas if not e.usuario_id], aprovada=False)
+                                    .order_by('data_candidatura').values_list('escala_id', 'candidato_id')):
+        ofertas.setdefault(escala_id, []).append(candidato_id)
+
+    disponiveis = {}
     for escala in escalas:
-        equipe = escala.funcao.equipe
-        if equipe.pk not in por_equipe:
-            por_equipe[equipe.pk] = len(usuarios_disponiveis_para_evento(equipe, evento))
-        escala.disponiveis = por_equipe[equipe.pk]
-        escala.em_aberto = bool(not escala.confirmada or escala.impedimento_aberto or escala.troca_aberta_id)
+        chave = (escala.funcao.equipe_id, escala.evento_id)
+        if chave not in disponiveis:
+            disponiveis[chave] = usuarios_disponiveis_para_evento(escala.funcao.equipe, escala.evento)
+
+    todos = set().union(*disponiveis.values(), *ofertas.values())
+    nomes = {u.pk: u.get_full_name() or u.username for u in User.objects.filter(pk__in=todos)}
+
+    for escala in escalas:
+        ofereceram = [u for u in ofertas.get(escala.pk, []) if u in nomes]
+        livres = sorted(
+            (u for u in disponiveis[(escala.funcao.equipe_id, escala.evento_id)]
+             if u not in ofereceram and u != escala.usuario_id and u in nomes),
+            key=lambda u: nomes[u].lower())
+        escala.podem_servir = ([{'nome': nomes[u], 'ofereceu': True} for u in ofereceram]
+                               + [{'nome': nomes[u], 'ofereceu': False} for u in livres])
+        escala.em_aberto = bool(
+            not escala.confirmada
+            or getattr(escala, 'impedimento_aberto', False) or getattr(escala, 'troca_aberta_id', None))
     return escalas
 
 
 def resumo_das_escalas(escalas):
     """Contagens de um conjunto de escalas (ex.: as de um evento) para o topo das telas."""
-    Rendimento = apps.get_model('escala', 'Rendimento')
-    resumo = escalas.aggregate(
+    return escalas.aggregate(
         total=Count('pk'),
         confirmadas=Count('pk', filter=Q(usuario__isnull=False, confirmada=True)),
         a_confirmar=Count('pk', filter=Q(usuario__isnull=False, confirmada=False)),
         vagas=Count('pk', filter=Q(usuario__isnull=True)),
     )
-    resumo['querem_servir'] = Rendimento.objects.filter(
-        escala__in=escalas, escala__usuario__isnull=True, aprovada=False).count()
-    return resumo
 
 
 def ofertas_da_vaga(escala, ids_disponiveis):

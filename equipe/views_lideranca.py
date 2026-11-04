@@ -4,11 +4,12 @@ from datetime import timedelta
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse
 from django.core.paginator import Paginator
-from django.db.models import Q, Count
+from django.db.models import Count, Q
 from django.contrib.auth import get_user_model
 from equipe.models import Equipe, Lideranca, MembrosEquipe
+from escala import services as escala_services
 from escala.models import Escala, Desistencia, SolicitacaoTroca
-from escala.utils import usuarios_disponiveis_para_evento
+from escala.utils import anotar_podem_servir, usuarios_disponiveis_para_evento
 from django.utils.timezone import now, localtime
 from equipe.lideranca_forms import LiderancaForm
 from django.contrib.auth.decorators import login_required
@@ -188,6 +189,14 @@ def dashboard_lider(request):
         .order_by('escala_origem__evento__data_inicio')
     )
 
+    # Quem se ofereceu para uma vaga (app ou site): mesma regra das pendências do app.
+    ofertas = (
+        escala_services.ofertas_pendentes()
+        .filter(escala__funcao__equipe__in=equipes)
+        .select_related('escala', 'escala__evento', 'escala__funcao', 'escala__funcao__equipe', 'candidato')
+        .order_by('escala__evento__data_inicio', 'data_candidatura')
+    )
+
     # Voluntários que ainda dá para aproveitar: membros aprovados que NÃO foram
     # escalados na equipe neste mês E que conseguem cobrir alguma OPORTUNIDADE
     # futura da equipe — seja uma vaga em aberto, seja uma escala ainda NÃO
@@ -287,11 +296,13 @@ def dashboard_lider(request):
         'confirmadas': confirmadas,
         'a_confirmar': designadas_total - confirmadas,
         'taxa_confirmacao': round(100 * confirmadas / designadas_total) if designadas_total else 0,
-        'buracos': buracos[:25],
+        # Quem pode ocupar cada buraco: se ofereceu ou está disponível, tanto faz.
+        'buracos': anotar_podem_servir(buracos[:25]),
         'ranking': ranking,
         'impedimentos': impedimentos[:25],
         'trocas_abertas': trocas_abertas[:25],
-        'pendencias_total': impedimentos.count() + trocas_abertas.count(),
+        'ofertas': ofertas[:25],
+        'pendencias_total': impedimentos.count() + trocas_abertas.count() + ofertas.count(),
         'disponiveis_ociosos': disponiveis_ociosos,
         'ociosos_total': ociosos_total,
         'alguem_escalado_no_mes': alguem_escalado_no_mes,

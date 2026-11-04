@@ -4,7 +4,4 @@
     <span class="er-ok"><i class="fa fa-check-circle"></i> {{ resumo.confirmadas }} confirmada{{ resumo.confirmadas|pluralize }}</span>
     <span class="er-pend"><i class="fa fa-clock"></i> {{ resumo.a_confirmar }} a confirmar</span>
     <span class="er-vaga"><i class="fa fa-user-plus"></i> {{ resumo.vagas }} vaga{{ resumo.vagas|pluralize }}</span>
-    {% if resumo.querem_servir %}
-    <span class="er-oferta"><i class="fa fa-hand-paper"></i> {{ resumo.querem_servir }} quer{{ resumo.querem_servir|pluralize:",em" }} servir</span>
-    {% endif %}
 </div>

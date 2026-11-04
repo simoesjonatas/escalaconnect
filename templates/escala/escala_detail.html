@@ -48,7 +48,7 @@
             <div>
                 <div class="pessoa-nome resumo-vaga">Vaga em aberto</div>
                 <div class="pessoa-status">
-                    {% if ofertas %}{{ ofertas|length }} pessoa{{ ofertas|length|pluralize }} quer{{ ofertas|length|pluralize:",em" }} servir — escolha abaixo{% else %}Escale alguém disponível abaixo{% endif %}
+                    {% if podem_servir_total %}{{ podem_servir_total }} pessoa{{ podem_servir_total|pluralize }} pode{{ podem_servir_total|pluralize:",m" }} servir — escolha abaixo{% else %}Ninguém pode servir ainda{% endif %}
                 </div>
             </div>
             {% endif %}
@@ -89,29 +89,13 @@
     {% if not escala.confirmada %}
         <div class="section-card">
             <ul class="escala-tabs" role="tablist">
-                {% if ofertas %}
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link{% if ofertas_primeiro %} active{% endif %}" id="ofertas-tab" data-bs-toggle="tab" href="#ofertas" role="tab" aria-controls="ofertas" aria-selected="{% if ofertas_primeiro %}true{% else %}false{% endif %}">
-                        <i class="fa fa-hand-paper"></i> Querem servir
-                        <span class="tab-count">{{ ofertas|length }}</span>
-                    </a>
-                </li>
-                {% endif %}
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link{% if not ofertas_primeiro %} active{% endif %}" id="disponiveis-tab" data-bs-toggle="tab" href="#disponiveis" role="tab" aria-controls="disponiveis" aria-selected="{% if ofertas_primeiro %}false{% else %}true{% endif %}">
-                        <i class="fa fa-user-check"></i> Disponíveis
-                        <span class="tab-count">{{ page_obj.paginator.count }}</span>
-                    </a>
+                    <span class="nav-link active">
+                        <i class="fa fa-user-check"></i> Podem servir
+                        <span class="tab-count">{{ podem_servir_total }}</span>
+                    </span>
                 </li>
             </ul>
-
-            <div class="tab-content escala-tab-content">
-            {% if ofertas %}
-            <div class="tab-pane fade{% if ofertas_primeiro %} show active{% endif %}" id="ofertas" role="tabpanel" aria-labelledby="ofertas-tab">
-                {% include 'escala/_ofertas_da_vaga.html' with escalar_url='escalar_usuario' %}
-            </div>
-            {% endif %}
-            <div class="tab-pane fade{% if not ofertas_primeiro %} show active{% endif %}" id="disponiveis" role="tabpanel" aria-labelledby="disponiveis-tab">
 
             <!-- Busca -->
             <form method="get" class="form-inline mb-3">
@@ -123,6 +107,7 @@
             </form>
 
             <div class="pessoa-lista">
+                {% include 'escala/_ofertas_da_vaga.html' with escalar_url='escalar_usuario' %}
                 {% for usuario in page_obj %}
                 <div class="pessoa-row">
                     <div class="resumo-avatar">{{ usuario.get_full_name|default:usuario.username|first|upper }}</div>
@@ -134,7 +119,7 @@
                                 <i class="fa fa-calendar-check"></i>{{ usuario.servicos_no_mes }} no mês
                             </span>
                         </strong>
-                        <small>{{ usuario.username }}{% if usuario.email %} · {{ usuario.email }}{% endif %}{% if usuario.quer_servir %} · <span class="oferta-ok"><i class="fa fa-hand-paper"></i> quer servir nesta vaga</span>{% endif %}</small>
+                        <small>{{ usuario.username }}{% if usuario.email %} · {{ usuario.email }}{% endif %}</small>
                     </div>
                     {% if request.user.is_staff or request.user.is_superuser or is_leader %}
                     <div class="pessoa-acoes">
@@ -145,22 +130,22 @@
                     {% endif %}
                 </div>
                 {% empty %}
+                {% if not ofertas %}
                 <div class="pessoa-vazio">
                     {% if query %}
                     <i class="fa fa-search d-block mb-1"></i>
                     Nenhum usuário encontrado para "{{ query }}".
                     {% else %}
                     <i class="fa fa-user-slash d-block mb-1"></i>
-                    Ninguém da equipe está disponível neste horário.
+                    Ninguém se ofereceu e ninguém da equipe está disponível neste horário.
                     {% endif %}
                 </div>
+                {% endif %}
                 {% endfor %}
             </div>
 
             <!-- Paginação -->
             {% include 'includes/pagination.html' %}
-            </div>
-            </div>
         </div>
     {% endif %}
     {% endif %}

@@ -865,7 +865,6 @@ html[data-theme="light"] .escala-tabs .nav-link.active {
 .escalas-resumo .er-ok { color: var(--connect-green); }
 .escalas-resumo .er-pend { color: var(--connect-warning); }
 .escalas-resumo .er-vaga { color: var(--connect-danger); }
-.escalas-resumo .er-oferta { color: var(--connect-green); font-weight: 600; }
 .escalas-evento tbody tr, .eventos-lista tbody tr { cursor: pointer; }
 .quem-pode { display: flex; flex-wrap: wrap; gap: 6px; }
 .qp-chip {
@@ -873,5 +872,7 @@ html[data-theme="light"] .escala-tabs .nav-link.active {
     font-size: .78rem; font-weight: 600; padding: .25em .65em; border-radius: 999px;
     border: 1px solid var(--connect-border); color: var(--connect-muted);
 }
-.qp-chip.qp-oferta { background: var(--connect-green); border-color: var(--connect-green); color: #0b0b0b; }
+.qp-chip.qp-ok { color: var(--connect-green); border-color: color-mix(in srgb, var(--connect-green) 45%, var(--connect-border)); }
+.quem-pode .qp-nomes { color: var(--connect-muted); }
+.quem-pode .qp-nomes .fa-hand-paper { color: var(--connect-green); }
 .qp-chip.qp-nenhum { color: var(--connect-warning); border-color: color-mix(in srgb, var(--connect-warning) 45%, var(--connect-border)); }

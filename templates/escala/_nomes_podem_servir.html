@@ -1,0 +1,2 @@
+{% comment %}Nomes de `pessoas` (escala.podem_servir, de escala.utils.anotar_podem_servir): até 3 e "+N";
+quem se ofereceu para a vaga vem primeiro, com a mãozinha.{% endcomment %}{% for p in pessoas|slice:":3" %}{{ p.nome }}{% if p.ofereceu %} <i class="fa fa-hand-paper" title="Se ofereceu para esta vaga"></i>{% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}{% if pessoas|length > 3 %} +{{ pessoas|length|add:"-3" }}{% endif %}
