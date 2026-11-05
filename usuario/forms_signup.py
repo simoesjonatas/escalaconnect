@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from .models import Usuario
+from .services import gerar_username
 from .utils import normalizar_telefone, validate_telefone
 from django.core.exceptions import ValidationError
 
@@ -29,7 +30,9 @@ class SignupForm(UserCreationForm):
         required=False, widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
     cpf = forms.CharField(
-        max_length=11, required=True, widget=forms.TextInput(attrs={'class': 'form-control'})
+        max_length=11, required=True, widget=forms.TextInput(attrs={'class': 'form-control'}),
+        # Campo declarado no form: a mensagem de CPF repetido (validate_unique) vem daqui.
+        error_messages={'unique': 'Já existe uma conta com este CPF. Use "Esqueci minha senha" para entrar.'},
     )
     email = forms.EmailField(
         required=True, widget=forms.EmailInput(attrs={'class': 'form-control'})
@@ -49,15 +52,17 @@ class SignupForm(UserCreationForm):
         first_name = cleaned_data.get('first_name')
         last_name = cleaned_data.get('last_name')
         if first_name and last_name:
-            cleaned_data['username'] = f"{first_name}.{last_name}".lower().replace(' ', '')
-    
-        username = f"{first_name}.{last_name}".lower().replace(' ', '')
-        if Usuario.objects.filter(username=username).exists():
-            self.add_error(None, f'O nome de usuário "{username}" já está em uso.')
-            # raise ValidationError("Um usuário com este nome de usuário já existe.")
-
+            # Homônimos ganham um número no fim (maria.silva2), em vez de barrar o cadastro.
+            cleaned_data['username'] = gerar_username(first_name, last_name)
         return cleaned_data
 
+
+    def clean_email(self):
+        # O login aceita e-mail: duas contas com o mesmo e-mail ficariam ambíguas.
+        email = self.cleaned_data.get('email', '').strip()
+        if Usuario.objects.filter(email__iexact=email).exists():
+            raise ValidationError('Já existe uma conta com este e-mail. Use "Esqueci minha senha" para entrar.')
+        return email
 
     def clean_telefone(self):
         """Guarda o telefone no formato canônico: só dígitos, com DDD, sem +55."""
@@ -74,9 +79,7 @@ class SignupForm(UserCreationForm):
     
     def save(self, commit=True):
         user = super(SignupForm, self).save(commit=False)
-        first_name = self.cleaned_data['first_name']
-        last_name = self.cleaned_data['last_name']
-        user.username = f"{first_name}.{last_name}".lower().replace(' ', '')
+        user.username = self.cleaned_data['username']
         if commit:
             user.save()
         return user

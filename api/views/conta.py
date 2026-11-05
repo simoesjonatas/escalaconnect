@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from escala.agenda import links_da_agenda
 from usuario.forms import PerfilContatoForm
-from usuario.services import aceitar_termo
+from usuario.services import aceitar_termo, excluir_conta
 
 from ..exceptions import ErroDeNegocio, erros_do_form
 from ..permissions import ContaLiberada
@@ -124,3 +124,14 @@ class AgendaView(APIView):
 
     def get(self, request):
         return Response(links_da_agenda(request.user))
+
+
+class ExcluirContaView(APIView):
+    """POST {senha}: exclui a conta do próprio usuário (dados apagados, histórico anônimo)."""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if not request.user.check_password(str(request.data.get('senha') or '')):
+            raise ErroDeNegocio('Senha incorreta.', code='senha_incorreta')
+        excluir_conta(request.user)
+        return Response(status=204)

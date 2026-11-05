@@ -3,10 +3,11 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import * as Updates from 'expo-updates';
 import { useState } from 'react';
-import { Alert, Linking, Platform, Text, View } from 'react-native';
+import { Alert, Linking, Platform, Switch, Text, View } from 'react-native';
 
 import { verificarAtualizacaoAgora } from '../../lib/atualizacoes';
 import { useAuth } from '../../lib/auth';
+import { useBiometria } from '../../lib/biometria';
 import { useAgenda } from '../../lib/hooks';
 import { useTema } from '../../lib/tema';
 import { useTour } from '../../lib/tour';
@@ -38,6 +39,8 @@ export default function Perfil() {
   const [verificando, setVerificando] = useState(false);
   const agenda = useAgenda();
   const tour = useTour();
+  const biometria = useBiometria();
+  const { cores } = useTema();
   if (!usuario) return null;
   const nome = usuario.nome_completo || usuario.username;
 
@@ -52,6 +55,17 @@ export default function Perfil() {
     setVerificando(true);
     await verificarAtualizacaoAgora();
     setVerificando(false);
+  }
+
+  async function alternarBiometria() {
+    if (biometria.ativa) return biometria.desativar();
+    const ligou = await biometria.ativar();
+    if (ligou) {
+      Alert.alert(
+        `Entrar com ${biometria.nome}`,
+        `Pronto. Ao abrir o app, e ao voltar depois de alguns minutos, ele vai pedir ${biometria.nome === 'digital' ? 'sua digital' : `o ${biometria.nome}`}.`,
+      );
+    }
   }
 
   function confirmarSaida() {
@@ -92,6 +106,18 @@ export default function Perfil() {
       <Grupo titulo="Conta">
         <ItemDeGrupo icone="create-outline" titulo="Atualizar contato" aoTocar={() => router.push('/contato')} />
         <ItemDeGrupo icone="key-outline" titulo="Trocar senha" aoTocar={() => router.push('/trocar-senha')} />
+        {(biometria.disponivel || biometria.ativa) && (
+          <ItemDeGrupo
+            icone={biometria.icone}
+            titulo={`Entrar com ${biometria.nome}`}
+            aoTocar={() => void alternarBiometria()}
+            direita={
+              // Quem responde ao toque é a linha inteira; o interruptor só mostra o estado.
+              <Switch value={biometria.ativa} trackColor={{ true: cores.primaria }} pointerEvents="none" />
+            }
+          />
+        )}
+        <ItemDeGrupo icone="trash-outline" titulo="Excluir minha conta" aoTocar={() => router.push('/excluir-conta')} />
       </Grupo>
 
       <Grupo titulo="Aplicativo">

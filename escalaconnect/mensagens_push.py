@@ -125,3 +125,11 @@ def lider_oferta(oferta):
         'Voluntário para a vaga',
         f'{_nome(oferta.candidato)} · {_quando(escala.evento.data_inicio)} · {escala.funcao.nome}',
     )
+
+
+def lider_vagas_de_quem_saiu(nome, escalas):
+    """Voluntário excluiu a conta: as escalas futuras dele, de uma equipe, viraram vaga."""
+    if len(escalas) == 1:
+        escala = escalas[0]
+        return 'Vaga aberta na escala', f'{nome} saiu do Connect · {_quando(escala.evento.data_inicio)} · {escala.funcao.nome}'
+    return 'Vagas abertas na escala', f'{nome} saiu do Connect · {len(escalas)} escalas ficaram em aberto'

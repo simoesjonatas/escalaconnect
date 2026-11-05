@@ -22,3 +22,8 @@ class LoginUsuarioThrottle(SimpleRateThrottle):
 class RecuperarSenhaThrottle(AnonRateThrottle):
     """Cada pedido manda um e-mail: limite por IP para não virar disparador de mensagens."""
     scope = 'recuperar_senha'
+
+
+class CadastroThrottle(AnonRateThrottle):
+    """Criar conta pelo app: limite por IP contra cadastros em massa."""
+    scope = 'cadastro'

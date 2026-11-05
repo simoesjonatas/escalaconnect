@@ -7,7 +7,7 @@ from ocupado.services import indisponibilidades
 from .views import (
     avisos, conta, devices, equipe_do_lider, equipes, escalas, eventos, eventos_do_lider, lideranca, periodos,
 )
-from .views.auth import LoginView, LogoutAllView, LogoutView, RecuperarSenhaView
+from .views.auth import CadastroView, LoginView, LogoutAllView, LogoutView, RecuperarSenhaView
 from .views.conta import MeView, MetaView
 
 
@@ -29,6 +29,7 @@ def nao_encontrado(request):
 
 urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='api_login'),
+    path('auth/cadastro/', CadastroView.as_view(), name='api_cadastro'),
     path('auth/logout/', LogoutView.as_view(), name='api_logout'),
     path('auth/logout-all/', LogoutAllView.as_view(), name='api_logout_all'),
     path('auth/recuperar-senha/', RecuperarSenhaView.as_view(), name='api_recuperar_senha'),
@@ -38,6 +39,7 @@ urlpatterns = [
     path('me/trocar-senha/', conta.TrocarSenhaView.as_view(), name='api_trocar_senha'),
     path('me/aceitar-termo/', conta.AceitarTermoView.as_view(), name='api_aceitar_termo'),
     path('me/agenda/', conta.AgendaView.as_view(), name='api_agenda'),
+    path('me/excluir-conta/', conta.ExcluirContaView.as_view(), name='api_excluir_conta'),
     path('me/historico/', escalas.HistoricoView.as_view(), name='api_historico'),
     path('termo/', conta.TermoView.as_view(), name='api_termo'),
     path('meta/', MetaView.as_view(), name='api_meta'),

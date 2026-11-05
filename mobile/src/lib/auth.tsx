@@ -8,10 +8,24 @@ import { Usuario } from './types';
 /** Em que parte do app o usuário pode estar (ver os guards em src/app/_layout.tsx). */
 export type EstadoDaSessao = 'carregando' | 'anonimo' | 'senha' | 'termo' | 'liberado';
 
+/** Campos de POST /auth/cadastro/ (os mesmos do cadastro do site). */
+export type DadosDoCadastro = {
+  first_name: string;
+  last_name: string;
+  email: string;
+  cpf: string;
+  telefone: string;
+  aniversario: string; // AAAA-MM-DD
+  password1: string;
+  password2: string;
+};
+
 type Auth = {
   estado: EstadoDaSessao;
   usuario: Usuario | null;
   entrar: (username: string, password: string) => Promise<void>;
+  cadastrar: (dados: DadosDoCadastro) => Promise<void>;
+  excluirConta: (senha: string) => Promise<void>;
   sair: () => Promise<void>;
   /** Atualiza o usuário com o que a API devolveu (ou busca de novo em /me/). */
   atualizarUsuario: (usuario?: Usuario) => Promise<void>;
@@ -68,6 +82,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsuario(resposta.usuario);
   }, []);
 
+  /** Cria a conta (POST /auth/cadastro/) e já entra; o termo fica pendente e abre em seguida. */
+  const cadastrar = useCallback(async (dados: DadosDoCadastro) => {
+    const resposta = await api<{ token: string; usuario: Usuario }>('POST', '/auth/cadastro/', dados);
+    await guardarToken(resposta.token);
+    setUsuario(resposta.usuario);
+  }, []);
+
+  /** Exclui a conta no servidor e limpa a sessão deste aparelho (o servidor já apagou tokens e aparelhos). */
+  const excluirConta = useCallback(
+    async (senha: string) => {
+      await api('POST', '/me/excluir-conta/', { senha });
+      await limparSessao();
+    },
+    [limparSessao],
+  );
+
   // Com usuário na sessão, registra o aparelho para push (falhar aqui não atrapalha o uso).
   const usuarioId = usuario?.id;
   useEffect(() => {
@@ -91,8 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           : 'liberado';
 
   const valor = useMemo(
-    () => ({ estado, usuario, entrar, sair, atualizarUsuario }),
-    [estado, usuario, entrar, sair, atualizarUsuario],
+    () => ({ estado, usuario, entrar, cadastrar, excluirConta, sair, atualizarUsuario }),
+    [estado, usuario, entrar, cadastrar, excluirConta, sair, atualizarUsuario],
   );
   return <AuthContext.Provider value={valor}>{children}</AuthContext.Provider>;
 }

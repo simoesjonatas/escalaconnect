@@ -272,6 +272,7 @@ REST_FRAMEWORK = {
         'login_ip': '30/min',
         'login_usuario': '5/min',
         'recuperar_senha': '10/hour',
+        'cadastro': '10/hour',
     },
     # Quantos proxies ficam na frente do gunicorn (Cloudflare, nginx...), para o
     # throttle por IP ler o cliente certo no X-Forwarded-For. Vazio = não confiar.

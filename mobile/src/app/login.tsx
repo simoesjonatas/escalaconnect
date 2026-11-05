@@ -29,7 +29,7 @@ export default function Login() {
         <View style={{ alignItems: 'center', gap: 8, marginVertical: 32 }}>
           <Logo tamanho={120} />
           <Titulo>Escala Connect</Titulo>
-          <Suave>Entre com o mesmo usuário do site.</Suave>
+          <Suave>Entre com o mesmo usuário e senha do site.</Suave>
         </View>
         <Campo
           rotulo="Usuário ou e-mail"
@@ -53,6 +53,8 @@ export default function Login() {
         <Erro erro={erro} />
         <Botao titulo="Entrar" aoTocar={enviar} carregando={enviando} desabilitado={!username.trim() || !password} />
         <Botao titulo="Esqueci minha senha" variante="secundario" aoTocar={() => router.push('/esqueci-senha')} />
+        <Suave style={{ textAlign: 'center', marginTop: 16 }}>Ainda não tem conta?</Suave>
+        <Botao titulo="Criar conta" variante="secundario" aoTocar={() => router.push('/cadastro')} />
       </Tela>
     </KeyboardAvoidingView>
   );

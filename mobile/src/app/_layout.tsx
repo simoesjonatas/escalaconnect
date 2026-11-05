@@ -7,6 +7,7 @@ import { ActivityIndicator, AppState, Pressable, Text, View } from 'react-native
 
 import { FaixaDeAtualizacao, useVerificarAtualizacoes } from '../lib/atualizacoes';
 import { AuthProvider, EstadoDaSessao, useAuth } from '../lib/auth';
+import { BiometriaProvider } from '../lib/biometria';
 import { usePush } from '../lib/push';
 import { useTema } from '../lib/tema';
 import { TelaDeAtualizacao, useAtualizacaoObrigatoria } from '../lib/versao';
@@ -36,8 +37,11 @@ export default function RootLayout() {
           <StatusBar style={escuro ? 'light' : 'dark'} />
           {/* Container para a faixa de atualização ficar sobreposta às telas. */}
           <View style={{ flex: 1 }}>
-            <Navegacao />
-            <FaixaDeAtualizacao />
+            {/* A trava do Face ID/digital, quando ligada, cobre tudo (inclusive a faixa). */}
+            <BiometriaProvider>
+              <Navegacao />
+              <FaixaDeAtualizacao />
+            </BiometriaProvider>
           </View>
         </ThemeProvider>
       </AuthProvider>
@@ -107,6 +111,7 @@ function Telas({ estado }: { estado: EstadoDaSessao }) {
       <Stack.Protected guard={estado === 'anonimo'}>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="esqueci-senha" options={{ title: 'Esqueci minha senha' }} />
+        <Stack.Screen name="cadastro" options={{ title: 'Criar conta' }} />
       </Stack.Protected>
       <Stack.Protected guard={estado === 'senha'}>
         <Stack.Screen name="definir-senha" options={{ headerShown: false }} />
@@ -123,6 +128,7 @@ function Telas({ estado }: { estado: EstadoDaSessao }) {
         <Stack.Screen name="historico" options={{ title: 'Meu histórico' }} />
         <Stack.Screen name="contato" options={{ title: 'Meu contato' }} />
         <Stack.Screen name="trocar-senha" options={{ title: 'Trocar senha' }} />
+        <Stack.Screen name="excluir-conta" options={{ title: 'Excluir minha conta' }} />
         <Stack.Screen name="lider/vaga/[id]" options={{ title: 'Escalar na vaga' }} />
         <Stack.Screen name="lider/culto/[id]" options={{ title: 'Culto' }} />
         <Stack.Screen name="lider/disponibilidade" options={{ title: 'Pedir disponibilidade' }} />

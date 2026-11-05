@@ -3,19 +3,8 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 
 import { api } from '../lib/api';
+import { dataIso, mascaraDeData } from '../lib/datas';
 import { Botao, Campo, Cartao, Erro, Suave, Subtitulo, Tela, Texto } from '../lib/ui';
-
-/** "07011996" -> "07/01/1996", conforme a pessoa digita. */
-function mascaraDeData(texto: string) {
-  const digitos = texto.replace(/\D/g, '').slice(0, 8);
-  return [digitos.slice(0, 2), digitos.slice(2, 4), digitos.slice(4)].filter(Boolean).join('/');
-}
-
-/** "07/01/1996" -> "1996-01-07"; null enquanto incompleta. */
-function dataIso(texto: string) {
-  const partes = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto);
-  return partes ? `${partes[3]}-${partes[2]}-${partes[1]}` : null;
-}
 
 /** Mesmo fluxo do site: CPF + data de nascimento, e o link para criar a senha nova chega por e-mail. */
 export default function EsqueciSenha() {

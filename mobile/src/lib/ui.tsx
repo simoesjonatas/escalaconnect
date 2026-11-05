@@ -370,12 +370,15 @@ export function ItemDeGrupo({
   aoTocar,
   perigo,
   carregando,
+  direita,
 }: {
   icone: Icone;
   titulo: string;
   aoTocar: () => void;
   perigo?: boolean;
   carregando?: boolean;
+  /** No lugar da seta: um interruptor, por exemplo. */
+  direita?: ReactNode;
 }) {
   const { cores } = useTema();
   return (
@@ -393,7 +396,7 @@ export function ItemDeGrupo({
       {carregando ? (
         <ActivityIndicator size="small" color={cores.textoSuave} />
       ) : (
-        !perigo && <Ionicons name="chevron-forward" size={18} color={cores.textoSuave} />
+        (direita ?? (!perigo && <Ionicons name="chevron-forward" size={18} color={cores.textoSuave} />))
       )}
     </Pressable>
   );

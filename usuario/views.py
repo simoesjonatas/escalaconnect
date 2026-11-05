@@ -105,3 +105,27 @@ def perfil_usuario(request):
     else:
         form = PerfilContatoForm(instance=request.user)
     return render(request, 'perfil_usuario.html', {'user': request.user, 'contato_form': form})
+
+
+@login_required
+def excluir_conta_view(request):
+    """O próprio usuário exclui a conta (mesma regra do app: dados apagados, histórico anônimo)."""
+    from django.contrib.auth import logout
+
+    from escalaconnect.regras import RegraDeNegocio
+    from .services import excluir_conta
+
+    erro = None
+    if request.method == 'POST':
+        if not request.user.check_password(request.POST.get('senha', '')):
+            erro = 'Senha incorreta.'
+        else:
+            try:
+                excluir_conta(request.user)
+            except RegraDeNegocio as e:
+                erro = str(e)
+            else:
+                logout(request)
+                messages.success(request, 'Sua conta foi excluída. Obrigado por ter servido conosco!')
+                return redirect('login')
+    return render(request, 'usuario/excluir_conta.html', {'erro': erro})

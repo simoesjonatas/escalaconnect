@@ -64,15 +64,18 @@
 
             <h3>4. Por quanto tempo</h3>
             <p>
-                Os dados ficam guardados enquanto sua conta existir. Quando você deixa de ser voluntário
-                e pede a exclusão, sua conta é removida e os dados de cadastro são apagados; o histórico de
-                escalas pode ser mantido sem identificação pessoal.
+                Os dados ficam guardados enquanto sua conta existir. Quando você exclui a conta, seus dados
+                de cadastro (nome, e-mail, CPF, telefone e datas), disponibilidades, equipes, acessos e avisos
+                são apagados na hora; o histórico de escalas em que você já serviu é mantido sem identificação
+                pessoal, como "Ex-voluntário".
             </p>
 
             <h3>5. Seus direitos</h3>
             <p>
                 Você pode consultar e corrigir seu e-mail e telefone no próprio sistema ou aplicativo.
-                Para acessar os demais dados, corrigi-los, pedir a exclusão da conta ou tirar dúvidas
+                Para excluir sua conta, use "Excluir minha conta" no Perfil do aplicativo ou em
+                <a href="{% url 'excluir_conta' %}">Perfil &rsaquo; Excluir minha conta</a> no site.
+                Para acessar os demais dados, corrigi-los ou tirar dúvidas
                 sobre esta política, fale com a liderança da sua equipe{% if contato %} ou escreva para
                 <a href="mailto:{{ contato }}">{{ contato }}</a>{% endif %}.
             </p>

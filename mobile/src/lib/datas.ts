@@ -34,3 +34,21 @@ export function mesPorExtenso(data: Date | string): string {
   const texto = nome.charAt(0).toUpperCase() + nome.slice(1);
   return d.getFullYear() === new Date().getFullYear() ? texto : `${texto} ${d.getFullYear()}`;
 }
+
+/** "07011996" -> "07/01/1996", conforme a pessoa digita. */
+export function mascaraDeData(texto: string) {
+  const digitos = texto.replace(/\D/g, '').slice(0, 8);
+  return [digitos.slice(0, 2), digitos.slice(2, 4), digitos.slice(4)].filter(Boolean).join('/');
+}
+
+/** "07/01/1996" -> "1996-01-07"; null enquanto incompleta. */
+export function dataIso(texto: string) {
+  const partes = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto);
+  return partes ? `${partes[3]}-${partes[2]}-${partes[1]}` : null;
+}
+
+/** "12345678909" -> "123.456.789-09", conforme a pessoa digita. */
+export function mascaraDeCpf(texto: string) {
+  const d = texto.replace(/\D/g, '').slice(0, 11);
+  return [d.slice(0, 3), d.slice(3, 6), d.slice(6, 9)].filter(Boolean).join('.') + (d.length > 9 ? `-${d.slice(9)}` : '');
+}

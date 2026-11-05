@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Excluir minha conta{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'perfil_usuario' %}">Perfil do Usuário</a></li>
+    <li class="breadcrumb-item active">Excluir minha conta</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<div class="container mt-4" style="max-width: 640px;">
+    <div class="card">
+        <div class="card-header">Excluir minha conta</div>
+        <div class="card-body">
+            <p>Ao excluir sua conta:</p>
+            <ul>
+                <li>seu nome, e-mail, CPF, telefone e datas são apagados e você não consegue mais entrar;</li>
+                <li>você sai de todas as equipes e suas disponibilidades são apagadas;</li>
+                <li>suas próximas escalas ficam em aberto e a liderança é avisada;</li>
+                <li>as escalas em que você já serviu continuam no histórico, como "Ex-voluntário".</li>
+            </ul>
+            <p class="text-danger"><strong>Não dá para desfazer.</strong> Para voltar depois, será preciso criar uma conta nova.</p>
+
+            {% if erro %}<div class="alert alert-danger">{{ erro }}</div>{% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="senha" class="form-label">Digite sua senha para confirmar</label>
+                    <input type="password" id="senha" name="senha" class="form-control" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn btn-danger">Excluir minha conta</button>
+                <a class="btn btn-secondary" href="{% url 'perfil_usuario' %}">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
