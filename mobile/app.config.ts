@@ -17,9 +17,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     plugins: [
       ...(config.plugins ?? []),
-      // Em desenvolvimento o app fala com o runserver local por HTTP (http://10.0.2.2:8000 no emulador).
-      // Nos demais perfis só HTTPS é permitido.
-      ['expo-build-properties', { android: { usesCleartextTraffic: desenvolvimento } }],
+      [
+        'expo-build-properties',
+        {
+          android: {
+            // Em desenvolvimento o app fala com o runserver local por HTTP (http://10.0.2.2:8000 no emulador).
+            // Nos demais perfis só HTTPS é permitido.
+            usesCleartextTraffic: desenvolvimento,
+            // R8: encolhe e ofusca o código Android do build de release (exigência do Google Play).
+            enableMinifyInReleaseBuilds: true,
+            enableShrinkResourcesInReleaseBuilds: true,
+          },
+        },
+      ],
     ],
   };
 };
