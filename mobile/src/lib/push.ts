@@ -3,8 +3,8 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Platform } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Linking, Platform } from 'react-native';
 
 import { api } from './api';
 
@@ -20,6 +20,15 @@ Notifications.setNotificationHandler({
 
 let tokenRegistrado: string | null = null;
 
+/** No Android 13+ o pedido de permissão só aparece depois que existe um canal. */
+async function prepararCanal() {
+  if (Platform.OS !== 'android') return;
+  await Notifications.setNotificationChannelAsync('default', {
+    name: 'Escalas',
+    importance: Notifications.AndroidImportance.HIGH,
+  });
+}
+
 /**
  * Pede permissão, obtém o token de push da Expo e registra o aparelho na API.
  * Não faz nada em emulador sem Google Play, sem permissão ou antes do `eas init`
@@ -29,12 +38,7 @@ export async function registrarAparelho(): Promise<void> {
   const projectId: string | undefined = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
   if (!Device.isDevice || !projectId) return;
 
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
-      name: 'Escalas',
-      importance: Notifications.AndroidImportance.HIGH,
-    });
-  }
+  await prepararCanal();
   let { status } = await Notifications.getPermissionsAsync();
   if (status !== 'granted') ({ status } = await Notifications.requestPermissionsAsync());
   if (status !== 'granted') return;
@@ -47,6 +51,56 @@ export async function registrarAparelho(): Promise<void> {
     app_versao: Constants.expoConfig?.version ?? '',
   });
   tokenRegistrado = token;
+}
+
+type Permissao = Notifications.NotificationPermissionsStatus;
+
+function permitidas(permissao: Permissao) {
+  return permissao.granted || permissao.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+}
+
+/**
+ * Se as notificações estão permitidas neste aparelho. Relê ao voltar para o app (por exemplo, depois de
+ * ativar nos ajustes do celular) e, quando passam a ser permitidas, registra o aparelho para receber push.
+ */
+export function useNotificacoes() {
+  const [permissao, setPermissao] = useState<Permissao | null>(null);
+
+  const ler = useCallback(async () => {
+    const atual = await Notifications.getPermissionsAsync().catch(() => null);
+    setPermissao(atual);
+    if (atual && permitidas(atual) && !tokenRegistrado) void registrarAparelho().catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    void ler();
+    const inscricao = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') void ler();
+    });
+    return () => inscricao.remove();
+  }, [ler]);
+
+  // Depois de uma recusa o sistema não mostra mais o pedido: só dá para ativar nos ajustes do celular.
+  const precisaDosAjustes = permissao?.canAskAgain === false;
+
+  async function ativar() {
+    if (precisaDosAjustes) {
+      await Linking.openSettings();
+      return;
+    }
+    await prepararCanal();
+    const nova = await Notifications.requestPermissionsAsync();
+    setPermissao(nova);
+    if (permitidas(nova)) void registrarAparelho().catch(() => {});
+  }
+
+  return {
+    carregando: !permissao,
+    ativadas: !!permissao && permitidas(permissao),
+    precisaDosAjustes,
+    ativar,
+    abrirAjustes: () => void Linking.openSettings(),
+  };
 }
 
 /** Antes do logout: este aparelho deixa de receber push da conta. */

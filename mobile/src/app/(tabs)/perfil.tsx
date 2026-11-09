@@ -9,6 +9,7 @@ import { verificarAtualizacaoAgora } from '../../lib/atualizacoes';
 import { useAuth } from '../../lib/auth';
 import { useBiometria } from '../../lib/biometria';
 import { useAgenda } from '../../lib/hooks';
+import { useNotificacoes } from '../../lib/push';
 import { useTema } from '../../lib/tema';
 import { useTour } from '../../lib/tour';
 import { BUILD_ATUAL } from '../../lib/versao';
@@ -40,6 +41,7 @@ export default function Perfil() {
   const agenda = useAgenda();
   const tour = useTour();
   const biometria = useBiometria();
+  const notificacoes = useNotificacoes();
   const { cores } = useTema();
   if (!usuario) return null;
   const nome = usuario.nome_completo || usuario.username;
@@ -121,6 +123,17 @@ export default function Perfil() {
       </Grupo>
 
       <Grupo titulo="Aplicativo">
+        {!notificacoes.carregando && (
+          <ItemDeGrupo
+            icone={notificacoes.ativadas ? 'notifications-outline' : 'notifications-off-outline'}
+            titulo="Notificações"
+            // Desativar só pelos ajustes do celular; ativar pede a permissão (ou abre os ajustes, se já foi negada).
+            aoTocar={() => (notificacoes.ativadas ? notificacoes.abrirAjustes() : void notificacoes.ativar())}
+            direita={
+              <Switch value={notificacoes.ativadas} trackColor={{ true: cores.primaria }} pointerEvents="none" />
+            }
+          />
+        )}
         <ItemDeGrupo icone="compass-outline" titulo="Ver o tour do app" aoTocar={tour.iniciar} />
         <ItemDeGrupo
           icone="refresh-outline"

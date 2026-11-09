@@ -2,13 +2,14 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { isSameDay } from 'date-fns';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 
 import { useAuth } from '../../lib/auth';
 import { hora } from '../../lib/datas';
 import { AvisoSemEquipe } from '../../lib/equipe-ui';
 import { CartaoDeEscala } from '../../lib/escala-ui';
 import { useAcaoDeEscala, useEscalas, useHome } from '../../lib/hooks';
+import { useNotificacoes } from '../../lib/push';
 import { useTema } from '../../lib/tema';
 import { Escala } from '../../lib/types';
 import { Botao, Cartao, Erro, Estado, Etiqueta, Logo, Suave, Subtitulo, Tela, Texto, Titulo } from '../../lib/ui';
@@ -47,6 +48,33 @@ function CartaoDeHoje({ escala }: { escala: Escala }) {
   );
 }
 
+/** Pede para ativar as notificações quando estão bloqueadas: é por elas que chegam escalas e lembretes. */
+function CartaoDeNotificacoes() {
+  const { cores } = useTema();
+  const notificacoes = useNotificacoes();
+  if (notificacoes.carregando || notificacoes.ativadas) return null;
+  return (
+    <Cartao style={{ borderColor: cores.pendente, borderWidth: 1 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Ionicons name="notifications-off-outline" size={22} color={cores.pendente} />
+        <Subtitulo>Notificações desativadas</Subtitulo>
+      </View>
+      <Texto>Sem elas você não fica sabendo quando for escalado nem recebe os lembretes antes do culto.</Texto>
+      <Botao
+        titulo={notificacoes.precisaDosAjustes ? 'Abrir os ajustes do celular' : 'Ativar notificações'}
+        aoTocar={() => void notificacoes.ativar()}
+      />
+      {notificacoes.precisaDosAjustes && (
+        <Suave>
+          {Platform.OS === 'ios'
+            ? 'Nos Ajustes, toque em Notificações e ative "Permitir Notificações".'
+            : 'Nas configurações do app, toque em Notificações e ative.'}
+        </Suave>
+      )}
+    </Cartao>
+  );
+}
+
 export default function Inicio() {
   const { usuario } = useAuth();
   const home = useHome();
@@ -60,9 +88,7 @@ export default function Inicio() {
   const deHoje = futuras.filter(
     (e) => isSameDay(new Date(e.evento.data_inicio), agora) && new Date(e.evento.data_fim) > agora,
   );
-  const proximas = futuras
-    .filter((e) => !deHoje.includes(e) && new Date(e.evento.data_fim) > agora)
-    .slice(0, PROXIMAS);
+  const proximas = futuras.filter((e) => !deHoje.includes(e) && new Date(e.evento.data_fim) > agora).slice(0, PROXIMAS);
 
   // Ao voltar para o Início (de outra aba ou tela), o sino e os cartões se atualizam.
   const { refetch: recarregarHome } = home;
@@ -84,6 +110,8 @@ export default function Inicio() {
       {dados && (
         <>
           {semEquipe && <AvisoSemEquipe />}
+
+          <CartaoDeNotificacoes />
 
           {deHoje.map((escala) => (
             <CartaoDeHoje key={escala.id} escala={escala} />
