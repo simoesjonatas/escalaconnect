@@ -146,6 +146,28 @@ def monitoramento_uso(request):
     return render(request, 'usuario/monitoramento.html', contexto)
 
 
+SEM_VERSAO = 'sem'
+
+
+def _chave_de_versao(versao):
+    """'1.10.0' depois de '1.9.2': compara número a número; sem versão vai para o fim."""
+    try:
+        return (1, tuple(int(parte) for parte in versao.split('.')))
+    except ValueError:
+        return (0, ())
+
+
+def _versoes(aparelhos):
+    """Versões do app nos aparelhos com push ativo (o app informa a versão a cada abertura),
+    da mais nova para a mais antiga, com quantos aparelhos em cada."""
+    contagem = (aparelhos.filter(ativo=True).values('app_versao').annotate(n=Count('id')).order_by())
+    versoes = [
+        {'valor': c['app_versao'] or SEM_VERSAO, 'rotulo': c['app_versao'] or 'sem versão', 'n': c['n']}
+        for c in contagem
+    ]
+    return sorted(versoes, key=lambda v: _chave_de_versao(v['rotulo']), reverse=True)
+
+
 @login_required
 def monitoramento_app(request):
     """Quem usa o aplicativo: aparelhos registrados e sessões (tokens) válidas, com filtros."""
@@ -165,6 +187,7 @@ def monitoramento_app(request):
     periodo = request.GET.get('periodo') or 'todos'
     plataforma = request.GET.get('plataforma') or ''
     push = request.GET.get('push') or ''
+    versao = request.GET.get('versao') or ''
     desde = _desde(periodo)
 
     todos_aparelhos = Device.objects.all()
@@ -175,6 +198,8 @@ def monitoramento_app(request):
         aparelhos = aparelhos.filter(plataforma=plataforma)
     if push in ('ativo', 'desligado'):
         aparelhos = aparelhos.filter(ativo=(push == 'ativo'))
+    if versao:
+        aparelhos = aparelhos.filter(app_versao='' if versao == SEM_VERSAO else versao)
     if desde:
         aparelhos = aparelhos.filter(ultimo_uso__date__gte=desde)
 
@@ -207,6 +232,9 @@ def monitoramento_app(request):
         'periodo': periodo,
         'plataforma': plataforma,
         'push': push,
+        'versao': versao,
+        'versoes': _versoes(todos_aparelhos),
+        'sem_versao': SEM_VERSAO,
         'periodos': PERIODOS,
         'usuarios_com_app': total_sessoes,
         'aparelhos_ativos': todos_aparelhos.filter(ativo=True).count(),

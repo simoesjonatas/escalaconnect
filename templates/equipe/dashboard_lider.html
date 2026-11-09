@@ -93,6 +93,14 @@
     .empty-state { text-align:center; color:var(--connect-muted); padding:22px 10px; }
     .empty-state i { font-size:1.4rem; display:block; margin-bottom:6px; opacity:.7; }
     .btn-xs { padding:4px 12px; font-size:.8rem; border-radius:8px; }
+    /* Filtro das pendências por tipo */
+    .pend-filtros { display:flex; flex-wrap:wrap; gap:8px; margin:-4px 0 14px; }
+    .pend-filtro { display:inline-flex; align-items:center; gap:7px; padding:6px 13px; border-radius:999px; cursor:pointer;
+        background:var(--connect-surface-2); border:1px solid var(--connect-border); color:var(--connect-text);
+        font-size:.83rem; font-weight:600; transition:.15s ease; }
+    .pend-filtro:hover { border-color:var(--connect-green); }
+    .pend-filtro.ativo { background:var(--connect-green); border-color:var(--connect-green); color:#04210a; }
+    .pend-filtro .n { font-weight:800; opacity:.75; }
 </style>
 
 <div class="container dash-wrap">
@@ -204,6 +212,12 @@
             <span class="count-pill">{{ pendencias_total }}</span>
         </div>
         <div class="panel-sub">Impedimentos e trocas que travam a escala, e quem se ofereceu para servir numa vaga.</div>
+        <div class="pend-filtros" role="group" aria-label="Filtrar pendências por tipo">
+            <button type="button" class="pend-filtro ativo" data-filtro="todas">Todas <span class="n">{{ pendencias_total }}</span></button>
+            {% if impedimentos %}<button type="button" class="pend-filtro" data-filtro="impedimento"><i class="fa fa-ban"></i> Impedimentos <span class="n">{{ impedimentos_total }}</span></button>{% endif %}
+            {% if trocas_abertas %}<button type="button" class="pend-filtro" data-filtro="troca"><i class="fa fa-exchange-alt"></i> Trocas <span class="n">{{ trocas_total }}</span></button>{% endif %}
+            {% if ofertas %}<button type="button" class="pend-filtro" data-filtro="oferta"><i class="fa fa-hand-paper"></i> Querem servir <span class="n">{{ ofertas_total }}</span></button>{% endif %}
+        </div>
         <div class="table-responsive">
             <table class="dash-table">
                 <thead>
@@ -211,7 +225,7 @@
                 </thead>
                 <tbody>
                     {% for d in impedimentos %}
-                    <tr>
+                    <tr data-tipo="impedimento">
                         <td><span class="pill-tag danger"><i class="fa fa-ban"></i> Impedimento</span></td>
                         <td>{{ d.escala.evento.nome }}<br><span class="cell-sub">{{ d.escala.evento.data_inicio|date:"d/m/Y H:i" }}</span></td>
                         <td>{{ d.escala.funcao.equipe.nome }} — {{ d.escala.funcao.nome }}</td>
@@ -220,7 +234,7 @@
                     </tr>
                     {% endfor %}
                     {% for t in trocas_abertas %}
-                    <tr>
+                    <tr data-tipo="troca">
                         <td><span class="pill-tag warning"><i class="fa fa-exchange-alt"></i> Troca</span></td>
                         <td>{{ t.escala_origem.evento.nome }}<br><span class="cell-sub">{{ t.escala_origem.evento.data_inicio|date:"d/m/Y H:i" }}</span></td>
                         <td>{{ t.escala_origem.funcao.equipe.nome }} — {{ t.escala_origem.funcao.nome }}</td>
@@ -229,7 +243,7 @@
                     </tr>
                     {% endfor %}
                     {% for o in ofertas %}
-                    <tr>
+                    <tr data-tipo="oferta">
                         <td><span class="pill-tag success"><i class="fa fa-hand-paper"></i> Quer servir</span></td>
                         <td>{{ o.escala.evento.nome }}<br><span class="cell-sub">{{ o.escala.evento.data_inicio|date:"d/m/Y H:i" }}</span></td>
                         <td>{{ o.escala.funcao.equipe.nome }} — {{ o.escala.funcao.nome }}</td>
@@ -241,6 +255,23 @@
             </table>
         </div>
     </div>
+    <script>
+        // Filtro das pendências por tipo; o último escolhido fica lembrado neste navegador.
+        (function () {
+            var botoes = document.querySelectorAll('.pend-filtro');
+            var linhas = document.querySelectorAll('.dash-table tr[data-tipo]');
+            function filtrar(tipo) {
+                if (!document.querySelector('.pend-filtro[data-filtro="' + tipo + '"]')) tipo = 'todas';
+                botoes.forEach(function (b) { b.classList.toggle('ativo', b.dataset.filtro === tipo); });
+                linhas.forEach(function (tr) { tr.hidden = tipo !== 'todas' && tr.dataset.tipo !== tipo; });
+                try { localStorage.setItem('pendencias_filtro', tipo); } catch (e) {}
+            }
+            botoes.forEach(function (b) { b.addEventListener('click', function () { filtrar(b.dataset.filtro); }); });
+            var salvo = 'todas';
+            try { salvo = localStorage.getItem('pendencias_filtro') || 'todas'; } catch (e) {}
+            filtrar(salvo);
+        })();
+    </script>
     {% endif %}
 
     <!-- Buracos na escala -->

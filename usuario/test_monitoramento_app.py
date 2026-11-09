@@ -58,6 +58,22 @@ class MonitoramentoAppTests(TestCase):
         self.assertEqual(nomes(self.client.get(url, {'q': 'mar'})), ['maria'])
         self.assertEqual(self.client.get(url, {'aba': 'sessoes', 'q': 'joao'}).context['total_filtrado'], 0)
 
+    def test_filtro_e_resumo_por_versao(self):
+        ana = criar('ana', '93541134780')
+        Device.objects.filter(usuario=self.maria).update(app_versao='1.0.0')
+        Device.objects.create(usuario=ana, expo_token='ExponentPushToken[c]', plataforma='ios', app_versao='1.1.0')
+        Device.objects.create(usuario=ana, expo_token='ExponentPushToken[d]', plataforma='android', app_versao='1.10.0')
+        self.client.force_login(self.admin)
+        url = reverse('monitoramento_app')
+        resp = self.client.get(url)
+        # Da mais nova para a mais antiga (1.10 depois de 1.9), só aparelhos com push ativo.
+        self.assertEqual([(v['rotulo'], v['n']) for v in resp.context['versoes']],
+                         [('1.10.0', 1), ('1.1.0', 1), ('1.0.0', 1)])
+        nomes = lambda resp: sorted(a.usuario.username for a in resp.context['page_obj'])  # noqa: E731
+        self.assertEqual(nomes(self.client.get(url, {'versao': '1.0.0'})), ['maria'])
+        self.assertEqual(nomes(self.client.get(url, {'versao': 'sem'})), ['joao'])
+        self.assertContains(resp, 'Versão 1.1.0 (1)')
+
     def test_paginacao_de_aparelhos(self):
         for i in range(20):
             Device.objects.create(usuario=self.maria, expo_token=f'ExponentPushToken[x{i}]', plataforma='android')

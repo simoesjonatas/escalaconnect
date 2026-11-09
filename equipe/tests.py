@@ -573,3 +573,25 @@ class SessaoExpiradaTests(TestCase):
         resp = self.client.get(url)
 
         self.assertRedirects(resp, f'/login/?next={url}', fetch_redirect_response=False)
+
+
+class FiltroDePendenciasTests(TestCase):
+    def test_filtros_por_tipo_com_os_totais(self):
+        equipe = Equipe.objects.create(nome="Som F")
+        funcao = Funcao.objects.create(nome="Mesa", equipe=equipe)
+        lider = User.objects.create_user(username="lider_f", password="x", cpf="10000009001",
+                                         is_first_login=False, termo_aceito_em=now())
+        vol = User.objects.create_user(username="vol_f", password="x", cpf="10000009002",
+                                       is_first_login=False, termo_aceito_em=now())
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+        inicio = now() + timedelta(days=3)
+        evento = Evento.objects.create(nome="Culto", data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
+        escala = Escala.objects.create(funcao=funcao, evento=evento, usuario=vol)
+        Desistencia.objects.create(escala=escala, usuario=vol, motivo="Viagem")
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+        self.assertContains(resp, 'data-filtro="impedimento"')
+        self.assertContains(resp, 'Impedimentos <span class="n">1</span>')
+        self.assertNotContains(resp, 'data-filtro="oferta"')  # sem ofertas, sem o filtro
+        self.assertContains(resp, '<tr data-tipo="impedimento">')

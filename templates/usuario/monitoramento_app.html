@@ -39,6 +39,13 @@ Aplicativo
             <p class="monitor-valor">{{ android }} / {{ ios }}</p>
             <p class="monitor-detalhe">aparelhos com push</p>
         </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Versões do app</p>
+            <p class="monitor-valor" style="font-size: 1.05rem; line-height: 1.6;">
+                {% for v in versoes %}<a href="?aba=aparelhos&amp;versao={{ v.valor }}&amp;push=ativo#lista" style="color: inherit; white-space: nowrap;">{% if v.valor != sem_versao %}v{% endif %}{{ v.rotulo }}: {{ v.n }}</a>{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}
+            </p>
+            <p class="monitor-detalhe">aparelhos com push, pela última abertura do app</p>
+        </div>
     </div>
 
     <div class="monitor-painel" id="lista">
@@ -67,9 +74,15 @@ Aplicativo
                 <option value="ativo" {% if push == 'ativo' %}selected{% endif %}>Push ativo</option>
                 <option value="desligado" {% if push == 'desligado' %}selected{% endif %}>Push desligado</option>
             </select>
+            <select name="versao" aria-label="Versão do app" onchange="this.form.submit()">
+                <option value="">Todas as versões</option>
+                {% for v in versoes %}
+                <option value="{{ v.valor }}" {% if versao == v.valor %}selected{% endif %}>{% if v.valor == sem_versao %}Sem versão{% else %}Versão {{ v.rotulo }}{% endif %} ({{ v.n }})</option>
+                {% endfor %}
+            </select>
             {% endif %}
             <button type="submit">Filtrar</button>
-            {% if busca or periodo != 'todos' or plataforma or push %}<a class="limpar" href="?aba={{ aba }}#lista">Limpar</a>{% endif %}
+            {% if busca or periodo != 'todos' or plataforma or push or versao %}<a class="limpar" href="?aba={{ aba }}#lista">Limpar</a>{% endif %}
         </form>
 
         {% if aba == 'aparelhos' %}
