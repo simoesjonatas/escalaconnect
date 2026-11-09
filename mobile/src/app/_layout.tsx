@@ -137,6 +137,7 @@ function Telas({ estado }: { estado: EstadoDaSessao }) {
         <Stack.Screen name="lider/evento/funcoes" options={{ title: 'Funções em eventos' }} />
         <Stack.Screen name="lider/pdf" options={{ title: 'Escala em PDF' }} />
         <Stack.Screen name="lider/equipe/index" options={{ title: 'Gerenciar equipe' }} />
+        <Stack.Screen name="lider/escala-fixa" options={{ title: 'Escala fixa' }} />
         <Stack.Screen name="lider/equipe/adicionar" options={{ title: 'Adicionar integrante' }} />
         <Stack.Screen name="vagas" options={{ title: 'Vagas em aberto' }} />
         <Stack.Screen name="avisos" options={{ title: 'Avisos' }} />

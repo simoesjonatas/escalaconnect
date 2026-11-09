@@ -95,7 +95,7 @@ def aplicar_funcoes(eventos, funcoes):
 
     Devolve (vagas criadas, combinações que já existiam).
     """
-    funcoes = list(funcoes)
+    eventos, funcoes = list(eventos), list(funcoes)
     criadas = existentes = 0
     with transaction.atomic():
         for evento in eventos:
@@ -104,4 +104,14 @@ def aplicar_funcoes(eventos, funcoes):
             Escala.objects.bulk_create(novas)
             criadas += len(novas)
             existentes += len(ja_tem)
+        # bulk_create não dispara os sinais: a escala fixa das equipes preenche as vagas novas aqui.
+        transaction.on_commit(lambda: _aplicar_escalas_fixas(eventos, funcoes))
     return criadas, existentes
+
+
+def _aplicar_escalas_fixas(eventos, funcoes):
+    from escala.fixa import aplicar_no_evento
+
+    for equipe_id in {f.equipe_id for f in funcoes}:
+        for evento in eventos:
+            aplicar_no_evento(evento, equipe_id=equipe_id)

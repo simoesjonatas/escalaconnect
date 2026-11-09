@@ -5,6 +5,7 @@ from .views_lideranca import *
 from .views_membros import *
 from .views_escala import *
 from .views_pdf import *
+from .views_escala_fixa import escala_fixa_equipe
 
 urlpatterns = [
     path('dashboard/', dashboard_lider, name='dashboard_lider'),
@@ -40,6 +41,7 @@ urlpatterns = [
 
     path('<int:equipe_pk>/escalas/', listar_escalas, name='listar_escalas'),
     path('<int:equipe_pk>/auto-escalar/', auto_escalar_equipe, name='auto_escalar_equipe'),
+    path('<int:equipe_pk>/escala-fixa/', escala_fixa_equipe, name='escala_fixa_equipe'),
     path('<int:equipe_pk>/escalas/<int:pk>', escala_detail_equipe, name='escala_detail_equipe'),
 
     path('equipe/<int:equipe_pk>/escalas/exportar-pdf/', exportar_tabela_para_pdf, name='exportar_pdf'),

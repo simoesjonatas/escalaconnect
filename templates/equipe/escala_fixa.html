@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Escala fixa · {{ equipe.nome }}{% endblock page_title %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'listar_escalas' equipe.pk %}">Escalas da equipe</a></li>
+    <li class="breadcrumb-item">Escala fixa</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<style>
+    .escala-fixa-page .ef-topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+    .escala-fixa-page .ef-status { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+    .escala-fixa-page .ef-bolinha { width: 10px; height: 10px; border-radius: 50%; background: #adb5bd; }
+    .escala-fixa-page .ef-bolinha.ativa { background: #28a745; }
+    .escala-fixa-page .ef-grupo { margin-bottom: 18px; }
+    .escala-fixa-page .ef-grupo h5 { margin-bottom: 8px; }
+    .escala-fixa-page .ef-linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 10px 12px; border-top: 1px solid rgba(0,0,0,.08); }
+    .escala-fixa-page .ef-linha:first-of-type { border-top: 0; }
+    .escala-fixa-page .ef-semana { min-width: 170px; color: #6c757d; }
+    .escala-fixa-page .ef-quem { flex: 1; min-width: 180px; }
+    .escala-fixa-page .ef-acoes { display: flex; gap: 6px; }
+    .escala-fixa-page .ef-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; align-items: end; }
+    .escala-fixa-page .ef-editar { width: 100%; padding: 10px 0 4px; }
+</style>
+
+<div class="container escala-fixa-page">
+    <div class="tile">
+        <div class="ef-topo">
+            <div>
+                <h3 class="mb-1">Escala fixa · {{ equipe.nome }}</h3>
+                <span class="ef-status">
+                    <span class="ef-bolinha {% if config.ativa %}ativa{% endif %}"></span>
+                    {% if config.ativa %}Ligada: os cultos são preenchidos sozinhos{% else %}Desligada: a equipe é flexível{% endif %}
+                </span>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                {% if config.ativa %}
+                <input type="hidden" name="acao" value="desligar">
+                <button type="submit" class="btn btn-secondary"
+                        onclick="return confirm('Desligar a escala fixa? Os cultos já preenchidos continuam como estão.');">
+                    Desligar escala fixa
+                </button>
+                {% else %}
+                <input type="hidden" name="acao" value="ligar">
+                <button type="submit" class="btn btn-success"
+                        onclick="return confirm('Ligar a escala fixa? Os cultos já cadastrados com as funções da equipe serão preenchidos com as linhas abaixo e cada pessoa recebe um aviso.');">
+                    Ligar escala fixa
+                </button>
+                {% endif %}
+            </form>
+        </div>
+        <p class="text-muted mt-3 mb-0">
+            Diga uma vez quem serve em cada culto e o sistema escala essas pessoas nos cultos cadastrados com a
+            função delas (culto sem a função da equipe fica de fora; ao incluir a função depois, preenche na hora).
+            Cada pessoa recebe um aviso e confirma, pede impedimento ou troca normalmente. Mudanças feitas por você
+            num culto específico e impedimentos aprovados são respeitados. Uma linha de um domingo específico
+            (ex.: "3º domingo do mês") vale no lugar do "Todo domingo" da mesma função naquele dia.
+        </p>
+    </div>
+
+    <div class="tile">
+        <h4 class="mb-3">Adicionar</h4>
+        {% if not funcoes or not membros %}
+        <p class="text-muted mb-0">Cadastre as funções e os integrantes da equipe antes de montar a escala fixa.</p>
+        {% else %}
+        <form method="post" class="ef-form" data-semanas>
+            {% csrf_token %}
+            <input type="hidden" name="acao" value="adicionar">
+            {% include 'equipe/escala_fixa_campos.html' %}
+            <button type="submit" class="btn btn-primary">Adicionar</button>
+        </form>
+        {% endif %}
+    </div>
+
+    <div class="tile">
+        {% for grupo in grupos %}
+        <div class="ef-grupo">
+            <h5>{{ grupo.titulo }}</h5>
+            {% for item in grupo.itens %}
+            <div class="ef-linha">
+                <span class="ef-semana">{{ item.rotulo_semana }}</span>
+                <span class="ef-quem"><strong>{{ item.funcao.nome }}</strong> · {{ item.usuario.get_full_name|default:item.usuario.username }}</span>
+                <span class="ef-acoes">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            onclick="var f = document.getElementById('editar-{{ item.pk }}'); f.hidden = !f.hidden;">Editar</button>
+                    <form method="post" class="d-inline"
+                          onsubmit="return confirm('Excluir esta linha? Os cultos que ela preencheu e ainda não foram confirmados ficam com a vaga em aberto.');">
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="excluir">
+                        <input type="hidden" name="item" value="{{ item.pk }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                    </form>
+                </span>
+                <div class="ef-editar" id="editar-{{ item.pk }}" hidden>
+                    <form method="post" class="ef-form" data-semanas>
+                        {% csrf_token %}
+                        <input type="hidden" name="acao" value="editar">
+                        <input type="hidden" name="item" value="{{ item.pk }}">
+                        {% include 'equipe/escala_fixa_campos.html' with atual=item %}
+                        <button type="submit" class="btn btn-primary"
+                                onclick="return confirm('Salvar? Os cultos que esta linha já preencheu e ainda não foram confirmados mudam junto.');">
+                            Salvar
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% empty %}
+        <p class="text-muted mb-0">Nenhuma linha ainda. Comece adicionando quem serve em cada culto.</p>
+        {% endfor %}
+    </div>
+
+    <a class="btn btn-secondary" href="{% url 'listar_escalas' equipe.pk %}?view=grade">Ver a escala do mês</a>
+</div>
+
+<script>
+    // "1º domingo do mês" / "1ª quarta do mês" conforme o dia escolhido.
+    (function () {
+        var dias = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+        function atualizar(form) {
+            var dia = parseInt(form.querySelector('[name=dia_semana]').value, 10);
+            var feminino = dia < 5;
+            form.querySelectorAll('[name=semana] option').forEach(function (opcao) {
+                var n = parseInt(opcao.value, 10);
+                opcao.textContent = n === 0
+                    ? (feminino ? 'Toda ' : 'Todo ') + dias[dia]
+                    : n + (feminino ? 'ª ' : 'º ') + dias[dia] + ' do mês';
+            });
+        }
+        document.querySelectorAll('form[data-semanas]').forEach(function (form) {
+            form.querySelector('[name=dia_semana]').addEventListener('change', function () { atualizar(form); });
+            atualizar(form);
+        });
+    })();
+</script>
+{% endblock %}

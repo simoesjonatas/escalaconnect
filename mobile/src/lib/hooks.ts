@@ -11,6 +11,8 @@ import {
   DetalheDoCulto,
   DisponibilidadeDaEquipe,
   EquipeDoLider,
+  EscalaFixa,
+  ResultadoDaEscalaFixa,
   Disponibilidade,
   Equipes,
   Escala,
@@ -244,8 +246,7 @@ export function useOferta() {
 
 // ── Caixa de avisos ──
 
-export const useAvisos = () =>
-  useQuery({ queryKey: ['avisos'], queryFn: () => api<CaixaDeAvisos>('GET', '/avisos/') });
+export const useAvisos = () => useQuery({ queryKey: ['avisos'], queryFn: () => api<CaixaDeAvisos>('GET', '/avisos/') });
 
 /** Marca todos os avisos como lidos; atualiza o sino (contador da /home/). */
 export function useMarcarAvisosLidos() {
@@ -259,7 +260,10 @@ export function useMarcarAvisosLidos() {
 // ── Ferramentas do líder ──
 
 export const useOpcoesDeEventos = () =>
-  useQuery({ queryKey: ['lider', 'eventos', 'opcoes'], queryFn: () => api<OpcoesDeEventos>('GET', '/lider/eventos/opcoes/') });
+  useQuery({
+    queryKey: ['lider', 'eventos', 'opcoes'],
+    queryFn: () => api<OpcoesDeEventos>('GET', '/lider/eventos/opcoes/'),
+  });
 
 export const useEventosEditaveis = () =>
   useQuery({ queryKey: ['lider', 'eventos'], queryFn: () => api<EventoEditavel[]>('GET', '/lider/eventos/') });
@@ -268,7 +272,8 @@ export const useEventosEditaveis = () =>
 function useAtualizarEventos() {
   const queryClient = useQueryClient();
   return () => {
-    for (const chave of ['lider', 'eventos', 'vagas', 'home']) void queryClient.invalidateQueries({ queryKey: [chave] });
+    for (const chave of ['lider', 'eventos', 'vagas', 'home'])
+      void queryClient.invalidateQueries({ queryKey: [chave] });
   };
 }
 
@@ -351,5 +356,46 @@ export function useMudarEquipe() {
       }
     },
     onSettled: atualizar,
+  });
+}
+
+// ── Escala fixa ──
+
+export const useEscalaFixa = (equipeId: number | undefined) =>
+  useQuery({
+    queryKey: ['lider', 'escala-fixa', equipeId],
+    queryFn: () => api<EscalaFixa>('GET', `/lider/equipes/${equipeId}/escala-fixa/`),
+    enabled: !!equipeId,
+  });
+
+export type DadosDaLinha = { dia_semana: number; turno: string; semana: number; funcao_id: number; usuario_id: number };
+
+export type MudancaNaEscalaFixa =
+  | { tipo: 'ligar'; equipeId: number; ativa: boolean }
+  | { tipo: 'adicionar'; equipeId: number; linha: DadosDaLinha }
+  | { tipo: 'editar'; id: number; linha: DadosDaLinha }
+  | { tipo: 'excluir'; id: number };
+
+/** Mexer na escala fixa preenche (ou libera) cultos: recarrega tudo do líder e as escalas. */
+export function useMudarEscalaFixa() {
+  const atualizar = useAtualizarEventos();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (m: MudancaNaEscalaFixa) => {
+      switch (m.tipo) {
+        case 'ligar':
+          return api<ResultadoDaEscalaFixa>('PATCH', `/lider/equipes/${m.equipeId}/escala-fixa/`, { ativa: m.ativa });
+        case 'adicionar':
+          return api<ResultadoDaEscalaFixa>('POST', `/lider/equipes/${m.equipeId}/escala-fixa/itens/`, m.linha);
+        case 'editar':
+          return api<ResultadoDaEscalaFixa>('PATCH', `/lider/escala-fixa/itens/${m.id}/`, m.linha);
+        case 'excluir':
+          return api<ResultadoDaEscalaFixa>('DELETE', `/lider/escala-fixa/itens/${m.id}/`);
+      }
+    },
+    onSettled: () => {
+      atualizar();
+      void queryClient.invalidateQueries({ queryKey: ['escalas'] });
+    },
   });
 }

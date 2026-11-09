@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Escala, Funcao, SolicitacaoTroca, Desistencia, Rendimento
+from .models import Desistencia, Escala, EscalaFixa, EscalaFixaItem, Funcao, Rendimento, SolicitacaoTroca
 
 @admin.register(Escala)
 class EscalaAdmin(admin.ModelAdmin):
@@ -25,3 +25,15 @@ class DesistenciaAdmin(admin.ModelAdmin):
 class RendimentoAdmin(admin.ModelAdmin):
     list_display = ['candidato', 'escala', 'aprovada']
     list_filter = ['aprovada']
+
+
+
+class EscalaFixaItemInline(admin.TabularInline):
+    model = EscalaFixaItem
+    extra = 0
+
+
+@admin.register(EscalaFixa)
+class EscalaFixaAdmin(admin.ModelAdmin):
+    list_display = ['equipe', 'ativa', 'atualizada_em']
+    inlines = [EscalaFixaItemInline]

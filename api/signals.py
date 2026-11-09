@@ -1,15 +1,17 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 
 from equipe.models import Lideranca, MembrosEquipe
+from escala import fixa as escala_fixa
 from escala import services as escala_services
 from escala.models import Desistencia, Escala, Rendimento, SolicitacaoTroca
 from escalaconnect import mensagens_push
 from escalaconnect.push import notificar_push
-from evento.models import Notification
+from evento.models import Evento, Notification
 
 
 @receiver(pre_save, sender=Escala)
@@ -20,12 +22,19 @@ def guardar_usuario_anterior(sender, instance, **kwargs):
         Escala.objects.filter(pk=instance.pk).values_list('usuario_id', flat=True).first()
         if instance.pk else None
     )
+    # Mudou a pessoa fora da escala fixa (líder, troca, impedimento): o resumo da escala fixa
+    # não vale mais para esta escala; quem entrou recebe o aviso normal.
+    if (instance.aviso_pendente and not getattr(instance, '_sem_aviso', False)
+            and instance.usuario_id != instance._usuario_anterior_id):
+        instance.aviso_pendente = False
 
 
 @receiver(post_save, sender=Escala)
 def avisar_quem_foi_escalado(sender, instance, **kwargs):
     if not instance.usuario_id or instance.usuario_id == getattr(instance, '_usuario_anterior_id', None):
         return
+    if getattr(instance, '_sem_aviso', False):
+        return  # escala fixa: o aviso sai em resumo, um por pessoa (escala/fixa.py)
     evento = instance.evento
     if evento.data_fim < timezone.now():
         return
@@ -40,6 +49,31 @@ def encerrar_ofertas_da_vaga(sender, instance, **kwargs):
     # Quem preencheu a vaga (app, site ou auto-escalar) encerra as ofertas que ainda estavam abertas.
     if instance.usuario_id and instance.usuario_id != getattr(instance, '_usuario_anterior_id', None):
         escala_services.encerrar_ofertas(instance, instance.usuario_id)
+
+
+@receiver(post_save, sender=Escala)
+def aplicar_escala_fixa_na_vaga_nova(sender, instance, created, **kwargs):
+    # Função colocada num culto depois de cadastrado (site ou app): a escala fixa da equipe
+    # preenche a vaga, se a linha valer para esse culto.
+    if created and instance.usuario_id is None and instance.item_fixo_id is None:
+        evento_id, funcao_id = instance.evento_id, instance.funcao_id
+
+        def aplicar():
+            from escala.models import Funcao
+            evento = Evento.objects.filter(pk=evento_id, data_inicio__gt=timezone.now()).first()
+            equipe_id = Funcao.objects.filter(pk=funcao_id).values_list('equipe_id', flat=True).first()
+            if evento and equipe_id:
+                escala_fixa.aplicar_no_evento(evento, equipe_id=equipe_id)
+
+        transaction.on_commit(aplicar)
+
+
+@receiver(post_save, sender=Evento)
+def aplicar_escalas_fixas_no_evento_novo(sender, instance, created, **kwargs):
+    # Qualquer caminho de cadastro (site, app, em massa): depois do commit, para as vagas
+    # criadas junto com o culto já existirem e serem reaproveitadas.
+    if created and instance.data_inicio > timezone.now():
+        transaction.on_commit(lambda: escala_fixa.aplicar_no_evento(instance))
 
 
 # ── Pendências para o líder ──

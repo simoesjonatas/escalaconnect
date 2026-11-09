@@ -85,6 +85,29 @@ def pedido_recusado(escala):
     return 'Você continua escalado', f'A liderança não aprovou o pedido para {_dia(escala.evento.data_inicio)}'
 
 
+def escala_fixa(escalas):
+    """A escala fixa da equipe preencheu vários cultos de uma vez: um aviso só, com o resumo."""
+    escalas = sorted(escalas, key=lambda e: e.evento.data_inicio)
+    if len(escalas) == 1:
+        return escalado(escalas[0])
+    meses = []
+    for escala in escalas:
+        mes = formats.date_format(timezone.localtime(escala.evento.data_inicio), 'F').lower()
+        if mes not in meses:
+            meses.append(mes)
+    periodo = ' e '.join(meses) if len(meses) <= 2 else f'{meses[0]} a {meses[-1]}'
+    funcoes = ', '.join(dict.fromkeys(e.funcao.nome for e in escalas))
+    return 'Você está na escala fixa 🙌', f'{len(escalas)} cultos em {periodo} · {funcoes}'
+
+
+def saiu_da_escala_fixa(escalas):
+    """O líder mudou a escala fixa e a pessoa não serve mais nesses cultos (ainda não tinha confirmado)."""
+    escalas = sorted(escalas, key=lambda e: e.evento.data_inicio)
+    if len(escalas) == 1:
+        return 'Sua escala mudou', f'Você não serve mais em {_dia(escalas[0].evento.data_inicio)} · {escalas[0].funcao.nome}'
+    return 'Sua escala mudou', f'Você não serve mais em {len(escalas)} cultos da escala fixa'
+
+
 def entrada_na_equipe(equipe):
     return 'Boas-vindas à equipe! 🙌', f'Agora você faz parte da {nome_da_equipe(equipe.nome)}'
 

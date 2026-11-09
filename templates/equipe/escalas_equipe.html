@@ -430,6 +430,10 @@ Escalas da Equipe {{ equipe.nome }}
                 <i class="fa fa-calendar-check mr-1"></i> Ver Disponibilidades
             </a>
             {% if request.user.is_staff or request.user.is_superuser or request.user.is_leader %}
+            <a href="{% url 'escala_fixa_equipe' equipe_pk=equipe.pk %}" class="btn btn-primary"
+               title="Configure quem serve em cada culto todo mês; os cultos são preenchidos sozinhos">
+                <i class="fa fa-repeat mr-1"></i> Escala fixa
+            </a>
             <form method="post" action="{% url 'auto_escalar_equipe' equipe_pk=equipe.pk %}" class="d-inline"
                   onsubmit="return confirm('Preencher automaticamente as vagas futuras em aberto desta equipe com voluntários disponíveis?');">
                 {% csrf_token %}

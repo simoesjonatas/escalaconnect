@@ -65,11 +65,12 @@ type DadosDoPush = { tipo?: string; escala_id?: number | null; evento_id?: numbe
 export function abrir({ tipo, escala_id, evento_id }: DadosDoPush) {
   if ((tipo === 'escalado' || tipo === 'confirmar_escala' || tipo === 'pedido_recusado') && escala_id) {
     router.push({ pathname: '/escala/[id]', params: { id: escala_id } });
-  } else if (tipo === 'saiu_da_escala') router.navigate('/escalas');
+  } else if (tipo === 'saiu_da_escala' || tipo === 'escala_fixa' || tipo === 'escalado') router.navigate('/escalas');
   else if (tipo === 'disponibilidade') router.navigate('/disponibilidade');
   else if (tipo === 'membro_aprovado') router.push('/equipes');
   // `t` muda a cada toque, para a aba Liderança voltar para Pendências mesmo se já estiver aberta.
-  else if (tipo === 'pendencia_lider') router.navigate({ pathname: '/lideranca', params: { aba: 'pendencias', t: Date.now() } });
+  else if (tipo === 'pendencia_lider')
+    router.navigate({ pathname: '/lideranca', params: { aba: 'pendencias', t: Date.now() } });
   else if (tipo === 'oferta_recusada') router.push('/vagas');
   // Ofertas para o líder: o culto, com quem se ofereceu e quem está disponível em cada vaga.
   else if (tipo === 'oferta_lider') {

@@ -58,7 +58,7 @@ const PASSOS: Passo[] = [
     icone: 'people-outline',
     titulo: 'Liderança',
     texto:
-      'Só para líderes: pendências para aprovar, os cultos, as vagas e as ferramentas (criar eventos, PDF da escala e gerenciar a equipe).',
+      'Só para líderes: pendências para aprovar, os cultos, as vagas e as ferramentas (criar eventos, escala fixa, PDF da escala e gerenciar a equipe).',
   },
   {
     aba: 'perfil',

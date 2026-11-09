@@ -14,13 +14,60 @@ class Funcao(models.Model):
     def __str__(self):
         return self.nome
 
+class EscalaFixa(models.Model):
+    """Escala que se repete todo mês numa equipe (ex.: "1º domingo de manhã: Fulano no Som").
+
+    Desligada (ou inexistente), a equipe é flexível: o líder escala culto a culto.
+    As regras ficam em escala/fixa.py.
+    """
+    equipe = models.OneToOneField('equipe.Equipe', on_delete=models.CASCADE, related_name='escala_fixa')
+    ativa = models.BooleanField(default=False)
+    atualizada_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Escala fixa'
+        verbose_name_plural = 'Escalas fixas'
+
+    def __str__(self):
+        return f"Escala fixa: {self.equipe} ({'ativa' if self.ativa else 'desligada'})"
+
+
+class EscalaFixaItem(models.Model):
+    """Uma linha da escala fixa: em qual culto (dia + turno + semana do mês), quem serve e em qual função."""
+    TURNO_MANHA, TURNO_TARDE, TURNO_NOITE = 'manha', 'tarde', 'noite'
+    TURNOS = [(TURNO_MANHA, 'Manhã'), (TURNO_TARDE, 'Tarde'), (TURNO_NOITE, 'Noite')]
+    # Mesmo número de date.weekday().
+    DIAS = [(0, 'Segunda'), (1, 'Terça'), (2, 'Quarta'), (3, 'Quinta'), (4, 'Sexta'), (5, 'Sábado'), (6, 'Domingo')]
+    TODA_SEMANA = 0
+    SEMANAS = [(0, 'Toda semana'), (1, '1º'), (2, '2º'), (3, '3º'), (4, '4º'), (5, '5º')]
+
+    escala_fixa = models.ForeignKey(EscalaFixa, on_delete=models.CASCADE, related_name='itens')
+    dia_semana = models.PositiveSmallIntegerField(choices=DIAS)
+    turno = models.CharField(max_length=5, choices=TURNOS)
+    semana = models.PositiveSmallIntegerField(choices=SEMANAS, default=TODA_SEMANA)
+    funcao = models.ForeignKey(Funcao, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    class Meta:
+        ordering = ['dia_semana', 'turno', 'semana', 'funcao__nome', 'pk']
+
+    def __str__(self):
+        return f"{self.get_dia_semana_display()} {self.get_turno_display()} ({self.get_semana_display()}): {self.funcao} – {self.usuario}"
+
+
 class Escala(models.Model):
     usuario = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     funcao = models.ForeignKey(Funcao, on_delete=models.CASCADE)
     evento = models.ForeignKey(Evento, on_delete=models.CASCADE)
     confirmada = models.BooleanField(default=False)
     data_confirmacao = models.DateTimeField(null=True, blank=True)
-    
+    # Linha da escala fixa que gerou esta escala: impede preencher de novo o mesmo culto
+    # (troca manual do líder e impedimento aprovado continuam valendo).
+    item_fixo = models.ForeignKey(EscalaFixaItem, on_delete=models.SET_NULL, null=True, blank=True,
+                                  related_name='escalas')
+    # Preenchida pela escala fixa e ainda sem o aviso de resumo (um push por pessoa, não por culto).
+    aviso_pendente = models.BooleanField(default=False)
+
     @property
     def equipe(self):
         return self.funcao.equipe if self.funcao else None

@@ -175,3 +175,26 @@ def limpar_avisos_antigos():
     """Apaga da caixa do app os avisos com mais de 60 dias (roda uma vez por dia)."""
     apagados, _ = Aviso.objects.filter(criado_em__lt=timezone.now() - timedelta(days=DIAS_DE_AVISOS)).delete()
     return apagados
+
+
+# ── Escala fixa (escala/fixa.py) ──
+
+@shared_task
+def avisar_escala_fixa_task(usuario_id):
+    """Um push com todos os cultos que a escala fixa preencheu para a pessoa (agendado com espera)."""
+    from escala.fixa import avisar_escalas_pendentes
+
+    return avisar_escalas_pendentes(usuario_id)
+
+
+@shared_task
+def aplicar_escalas_fixas():
+    """Rede de segurança diária: preenche pela escala fixa os cultos que ficaram sem (evento com data
+    alterada, cadastro por um caminho antigo). Não repete o que já foi preenchido."""
+    from escala.fixa import aplicar_escala_fixa
+    from escala.models import EscalaFixa
+
+    preenchidas = 0
+    for fixa in EscalaFixa.objects.filter(ativa=True).select_related('equipe'):
+        preenchidas += aplicar_escala_fixa(fixa.equipe)['preenchidas']
+    return preenchidas

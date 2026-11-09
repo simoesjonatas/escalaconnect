@@ -1,0 +1,40 @@
+<div>
+    <label class="small text-muted mb-1">Dia</label>
+    <select name="dia_semana" class="form-control" required>
+        {% for valor, nome in dias %}
+        <option value="{{ valor }}" {% if atual and atual.dia_semana == valor %}selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div>
+    <label class="small text-muted mb-1">Turno</label>
+    <select name="turno" class="form-control" required>
+        {% for valor, nome in turnos %}
+        <option value="{{ valor }}" {% if atual and atual.turno == valor %}selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div>
+    <label class="small text-muted mb-1">Quando</label>
+    <select name="semana" class="form-control" required>
+        {% for valor, nome in semanas %}
+        <option value="{{ valor }}" {% if atual and atual.semana == valor %}selected{% endif %}>{{ nome }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div>
+    <label class="small text-muted mb-1">Função</label>
+    <select name="funcao" class="form-control" required>
+        {% for funcao in funcoes %}
+        <option value="{{ funcao.pk }}" {% if atual and atual.funcao_id == funcao.pk %}selected{% endif %}>{{ funcao.nome }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div>
+    <label class="small text-muted mb-1">Pessoa</label>
+    <select name="usuario" class="form-control" required>
+        {% for membro in membros %}
+        <option value="{{ membro.pk }}" {% if atual and atual.usuario_id == membro.pk %}selected{% endif %}>{{ membro.get_full_name|default:membro.username }}</option>
+        {% endfor %}
+    </select>
+</div>

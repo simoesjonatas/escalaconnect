@@ -104,7 +104,13 @@ export type Pessoa = { id: number; nome: string };
 
 export type EscalaDaEquipe = Pick<Escala, 'id' | 'evento' | 'funcao' | 'equipe' | 'equipe_id' | 'confirmada'>;
 
-export type Impedimento = { id: number; motivo: string; data_solicitacao: string; pessoa: Pessoa; escala: EscalaDaEquipe };
+export type Impedimento = {
+  id: number;
+  motivo: string;
+  data_solicitacao: string;
+  pessoa: Pessoa;
+  escala: EscalaDaEquipe;
+};
 
 export type Troca = { id: number; data_solicitacao: string; pessoa: Pessoa; escala: EscalaDaEquipe };
 
@@ -142,7 +148,12 @@ export type Candidato = Pessoa & {
 export type PedidoNaEscala = { tipo: 'impedimentos' | 'trocas'; id: number; pessoa: Pessoa; motivo: string | null };
 
 /** `pessoa`: quem está na escala sem ter confirmado (o líder pode trocar); nula na vaga em aberto. */
-export type DetalheDaVaga = { vaga: Vaga; pedido?: PedidoNaEscala | null; pessoa?: Pessoa | null; candidatos: Candidato[] };
+export type DetalheDaVaga = {
+  vaga: Vaga;
+  pedido?: PedidoNaEscala | null;
+  pessoa?: Pessoa | null;
+  candidatos: Candidato[];
+};
 
 /** Vaga da equipe do voluntário (tela "Vagas em aberto"). */
 export type VagaAberta = EscalaDaEquipe & { me_ofereci: boolean };
@@ -243,4 +254,39 @@ export type EquipeDoLider = {
   lideres: { id: number; pessoa: Pessoa; sou_eu: boolean }[];
   integrantes: { id: number; pessoa: Pessoa; lider: boolean; escalas_futuras: number }[];
   pendentes: { id: number; pessoa: Pessoa }[];
+};
+
+export type Turno = 'manha' | 'tarde' | 'noite';
+
+/** Uma linha da escala fixa: em qual culto (dia + turno + semana do mês), quem e em qual função. */
+export type LinhaDaEscalaFixa = {
+  id: number;
+  /** 0 = segunda … 6 = domingo. */
+  dia_semana: number;
+  turno: Turno;
+  /** 0 = toda semana; 1 a 5 = 1º a 5º daquele dia no mês. */
+  semana: number;
+  /** "Domingo de manhã". */
+  culto: string;
+  /** "Todo domingo", "3º domingo do mês". */
+  quando: string;
+  funcao: { id: number; nome: string };
+  usuario: Pessoa;
+};
+
+export type EscalaFixa = {
+  equipe: { id: number; nome: string };
+  ativa: boolean;
+  itens: LinhaDaEscalaFixa[];
+  funcoes: { id: number; nome: string }[];
+  membros: Pessoa[];
+};
+
+/** O que mudou nos cultos depois de salvar a escala fixa. */
+export type ResultadoDaEscalaFixa = {
+  resumo: string;
+  preenchidas: number;
+  liberadas: number;
+  puladas: { evento: string; data: string; funcao: string; pessoa: string; motivo: string }[];
+  nao_alteradas: { evento: string; data: string; funcao: string; pessoa: string; motivo: string }[];
 };
