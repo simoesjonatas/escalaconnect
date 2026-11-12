@@ -378,6 +378,103 @@ class SubstitutoAntesDeAprovarTests(VagasTestCase):
         self.assertEqual([t for t, _ in self.enviadas_para(OUTRO_TOKEN)], ['Você foi escalado 🙌'])
 
 
+class EscolhasDaPessoaTests(VagasTestCase):
+    """Dias que a pessoa escolheu (disponibilidade e ofertas) e escalar num deles."""
+
+    def escolhas(self, pessoa, usuario=None):
+        return self.como(usuario or self.lider).get(f'/api/v1/lider/pessoas/{pessoa.pk}/escolhas/')
+
+    def resumo(self, pessoa):
+        return [(e['evento']['id'], e['disponivel'], e['ja_escalado_em'],
+                 [(v['id'], v['se_ofereceu']) for v in e['vagas']])
+                for e in self.escolhas(pessoa).data['eventos']]
+
+    def test_disponibilidade_e_oferta_com_as_vagas_de_cada_dia(self):
+        Rendimento.objects.create(escala=self.vaga_quarta, candidato=self.disponivel)
+        resp = self.escolhas(self.disponivel)
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual((resp.data['pessoa']['nome'], resp.data['equipes'], resp.data['servicos_no_mes']),
+                         ('João', ['Recepção'], 0))
+        self.assertEqual(self.resumo(self.disponivel), [
+            (self.evento.pk, True, None, [(self.vaga.pk, False)]),
+            (self.outro_evento.pk, False, None, [(self.vaga_quarta.pk, True)]),
+        ])
+
+    def test_culto_sem_funcao_das_equipes_do_lider_fica_de_fora(self):
+        # Marcou que pode, mas a equipe não serve nesse culto: não há onde escalar.
+        sem_funcao = Evento.objects.create(
+            nome='Culto sem a Recepção', data_inicio=self.evento.data_inicio + timedelta(days=2),
+            data_fim=self.evento.data_fim + timedelta(days=2))
+        Disponivel.objects.create(usuario=self.disponivel, evento=sem_funcao,
+                                  data_inicio=sem_funcao.data_inicio, data_fim=sem_funcao.data_fim)
+        self.assertNotIn(sem_funcao.pk, [e[0] for e in self.resumo(self.disponivel)])
+
+    def test_quantos_mais_podem_ocupar_cada_vaga_e_link_do_culto(self):
+        Rendimento.objects.create(escala=self.vaga_quarta, candidato=self.disponivel)
+        Rendimento.objects.create(escala=self.vaga_quarta, candidato=self.sem_disp)
+        eventos = {e['evento']['id']: e for e in self.escolhas(self.disponivel).data['eventos']}
+        (domingo,) = eventos[self.evento.pk]['vagas']
+        (quarta,) = eventos[self.outro_evento.pk]['vagas']
+        # Domingo: só João está disponível (ele mesmo não conta). Quarta: Pedro também quer.
+        self.assertEqual((domingo['outros_querem'], domingo['outros_disponiveis']), (0, 0))
+        self.assertEqual((quarta['outros_querem'], quarta['outros_disponiveis']), (1, 0))
+        self.assertTrue(all(e['culto_da_equipe'] for e in eventos.values()))
+
+    def test_ocupado_no_horario_nao_conta_como_disponivel(self):
+        from ocupado.models import Ocupado
+        Ocupado.objects.create(usuario=self.disponivel, data_inicio=self.evento.data_inicio,
+                               data_fim=self.evento.data_inicio + timedelta(minutes=30))
+        self.assertEqual(self.resumo(self.disponivel), [])
+
+    def test_ja_escalada_aparece_para_contexto(self):
+        self.assertEqual(self.resumo(self.user), [(self.evento.pk, False, 'Porta · Recepção', [(self.vaga.pk, False)])])
+
+    def test_so_vagas_das_equipes_do_lider_e_so_os_proximos_60_dias(self):
+        louvor = Equipe.objects.create(nome='Louvor')
+        MembrosEquipe.objects.create(usuario=self.disponivel, equipe=louvor, aprovado=True)
+        Escala.objects.create(funcao=Funcao.objects.create(nome='Vocal', equipe=louvor), evento=self.evento)
+        longe = Evento.objects.create(nome='Culto distante', data_inicio=timezone.now() + timedelta(days=70),
+                                      data_fim=timezone.now() + timedelta(days=70, hours=2))
+        Escala.objects.create(funcao=self.funcao, evento=longe)
+        Disponivel.objects.create(usuario=self.disponivel, evento=longe,
+                                  data_inicio=longe.data_inicio, data_fim=longe.data_fim)
+        self.assertEqual(self.resumo(self.disponivel), [(self.evento.pk, True, None, [(self.vaga.pk, False)])])
+
+    def test_atalho_dias_so_para_quem_tem_dias_para_escolher(self):
+        def tem_dias():
+            candidatos = self.como(self.lider).get(f'/api/v1/lider/vagas/{self.vaga_quarta.pk}/').data['candidatos']
+            return {c['nome']: c['tem_dias'] for c in candidatos}
+        # João marcou o domingo (não esta quarta), Pedro não marcou nada.
+        self.assertEqual(tem_dias(), {'João': True, 'Pedro': False, 'Maria Silva': False})
+        Rendimento.objects.create(escala=self.vaga, candidato=self.sem_disp)  # Pedro se oferece no domingo
+        self.assertTrue(tem_dias()['Pedro'])
+        # A regra bate com a tela "Dias": quem tem o atalho tem pelo menos um dia lá.
+        for pessoa in (self.disponivel, self.sem_disp):
+            self.assertTrue(self.escolhas(pessoa).data['eventos'])
+        from ocupado.models import Ocupado
+        Ocupado.objects.create(usuario=self.disponivel, data_inicio=self.evento.data_inicio,
+                               data_fim=self.evento.data_fim)
+        self.assertFalse(tem_dias()['João'])
+
+    def test_permissoes(self):
+        self.assertEqual(self.escolhas(self.disponivel, usuario=self.user).status_code, 403)
+        outro_lider = criar_usuario(username='carlos', cpf='71428793860')
+        Lideranca.objects.create(usuario=outro_lider, equipe=Equipe.objects.create(nome='Louvor'))
+        self.assertEqual(self.escolhas(self.disponivel, usuario=outro_lider).status_code, 404)
+        fora = criar_usuario(username='fora', cpf='86288366757')
+        self.assertEqual(self.escolhas(fora).status_code, 404)
+
+    def test_escalar_num_dos_dias_encerra_a_oferta(self):
+        Rendimento.objects.create(escala=self.vaga_quarta, candidato=self.disponivel)
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.como(self.lider).post(f'/api/v1/lider/vagas/{self.vaga_quarta.pk}/escalar/',
+                                              {'usuario_id': self.disponivel.pk}, format='json')
+        self.assertEqual(resp.status_code, 204)
+        self.assertEqual(self.client.get('/api/v1/lider/pendencias/').data['ofertas'], [])
+        (quarta,) = [e for e in self.escolhas(self.disponivel).data['eventos'] if e['evento']['id'] == self.outro_evento.pk]
+        self.assertEqual((quarta['ja_escalado_em'], quarta['vagas']), ('Porta · Recepção', []))
+
+
 class AgendaTests(PushTestCase):
     def links(self):
         self.autenticar(self.user)
@@ -444,7 +541,7 @@ class OfertaParaVagaTests(LiderancaTestCase):
         self.assertEqual(titulo, 'Voluntário para a vaga')
         self.assertTrue(corpo.startswith('Maria Silva · '))
         self.assertEqual(self.client.get('/api/v1/home/').data['vagas_abertas'], 0)
-        self.assertEqual(self.como(self.lider).get('/api/v1/home/').data['pendencias_lider'], 1)
+        self.assertEqual(self.como(self.lider).get('/api/v1/home/').data['pendencias_lider'], 0)  # oferta não conta
 
         self.assertFalse(self.oferecer('delete').data['me_ofereci'])
         self.assertFalse(Rendimento.objects.exists())
@@ -493,6 +590,17 @@ class OfertaParaVagaTests(LiderancaTestCase):
         self.oferecer()
         self.ofertas_de('joao')
         self.assertEqual(ofertas_na_lista(), (2, 0))  # ninguém marcou disponibilidade, mas 2 querem servir
+        (vaga,) = [v for v in self.client.get('/api/v1/lider/vagas/').data if v['id'] == self.vaga.pk]
+        self.assertEqual(vaga['quem_ofereceu'], ['Maria', 'joao'])  # primeiro nome, por ordem de chegada
+
+    def test_ofertas_nao_contam_no_icone(self):
+        self.oferecer()
+        self.ofertas_de('joao', 'pedro')
+        Desistencia.objects.create(escala=self.escala, usuario=self.user, motivo='Viagem')
+        # 3 ofertas + 1 impedimento = 1: quem quer servir aparece na aba Vagas.
+        self.assertEqual(self.como(self.lider).get('/api/v1/home/').data['pendencias_lider'], 1)
+        # A lista continua trazendo cada oferta (o app 1.0.0 mostra uma a uma).
+        self.assertEqual(len(self.client.get('/api/v1/lider/pendencias/').data['ofertas']), 3)
 
     def test_aviso_de_oferta_abre_o_culto_com_quem_se_ofereceu(self):
         self.oferecer()
@@ -639,6 +747,7 @@ class PedirDisponibilidadePeloAppTests(LiderancaTestCase):
         self.assertEqual((resp.data['equipe_id'], resp.data['ano'], resp.data['mes']), (self.equipe.pk, self.ano, self.mes))
         self.assertEqual([p['nome'] for p in resp.data['faltantes']], ['Maria Silva'])
         self.assertEqual(resp.data['membros'], 2)
+        self.assertEqual(resp.data['marcaram'], [{'id': self.joao.pk, 'nome': 'João', 'marcados': 1}])
 
         with self.captureOnCommitCallbacks(execute=True):
             resp = self.client.post('/api/v1/lider/disponibilidade/pedir/', {

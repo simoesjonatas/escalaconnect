@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Dias que {{ nome }} marcou{% endblock page_title %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'equipe_detail' equipe.pk %}">{{ equipe.nome }}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'listar_membros_equipe' equipe.pk %}">Integrantes</a></li>
+    <li class="breadcrumb-item">{{ nome }}</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+<style>
+    /* Cores do tema (claro e escuro) de static/css/theme.css */
+    .escolhas-page .es-evento { padding: 12px 0; border-top: 1px solid var(--connect-border); }
+    .escolhas-page .es-evento:first-of-type { border-top: 0; }
+    .escolhas-page .es-cabeca { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+    .escolhas-page .es-data, .escolhas-page .es-vazio { color: var(--connect-muted); }
+    .escolhas-page .es-tag { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: .78rem; font-weight: 600;
+        border: 1px solid currentColor; }
+    .escolhas-page .es-tag.pode { color: var(--connect-green); }
+    .escolhas-page .es-tag.ofereceu { color: var(--connect-info); }
+    .escolhas-page .es-tag.escalado { color: var(--connect-muted); }
+    .escolhas-page .es-vagas { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+    .escolhas-page .es-vaga form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 0; }
+    .escolhas-page .es-vazio { font-size: .9rem; margin-top: 6px; }
+    .escolhas-page .es-unica { color: var(--connect-warning); font-weight: 600; }
+</style>
+
+<div class="container escolhas-page">
+    <div class="tile">
+        <h3 class="mb-1">Dias que {{ nome }} marcou</h3>
+        <p class="es-data mb-0">
+            Próximos 60 dias: onde marcou que pode servir ou se ofereceu numa vaga, com as vagas abertas
+            {% if equipes|length == 1 %}da equipe {{ equipes.0.nome }}{% else %}das suas equipes ({% for e in equipes %}{{ e.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}){% endif %}.
+            Serviu {{ servicos_no_mes }} vez{{ servicos_no_mes|pluralize:"es" }} este mês.
+        </p>
+    </div>
+
+    <div class="tile">
+        {% for item in escolhas %}
+        <div class="es-evento">
+            <div class="es-cabeca">
+                <strong>{{ item.evento.nome }}</strong>
+                <span class="es-data">{{ item.evento.data_inicio_com_dia_da_semana }} · {{ item.evento.data_inicio|date:"H:i" }}</span>
+                {% if item.disponivel %}<span class="es-tag pode">Marcou que pode</span>{% endif %}
+                {% for v in item.vagas %}{% if v.se_ofereceu %}<span class="es-tag ofereceu">Se ofereceu: {{ v.funcao.nome }}</span>{% endif %}{% endfor %}
+                {% if item.ja_escalado_em %}<span class="es-tag escalado">Já escalado: {{ item.ja_escalado_em }}</span>{% endif %}
+            </div>
+            {% if item.vagas %}
+            <div class="es-vagas">
+                {% for v in item.vagas %}
+                <div class="es-vaga">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="vaga" value="{{ v.pk }}">
+                        <span>Vaga: <strong>{{ v.funcao.nome }}</strong>{% if equipes|length > 1 %} · {{ v.funcao.equipe.nome }}{% endif %}</span>
+                        {% with outros=v.outros_querem|add:v.outros_disponiveis %}
+                        {% if outros %}
+                        <span class="es-data small">+{{ outros }} {% if outros == 1 %}opção{% else %}opções{% endif %}</span>
+                        {% else %}
+                        <span class="small es-unica">Única opção</span>
+                        {% endif %}
+                        {% endwith %}
+                        {% if item.ja_escalado_em %}
+                        <label class="mb-0 small"><input type="checkbox" name="mesmo_evento" value="1" required>
+                            Já serve neste evento; escalar mesmo assim</label>
+                        {% endif %}
+                        <button type="submit" class="btn btn-sm btn-success">Escalar {{ pessoa.first_name|default:nome }}</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% elif not item.ja_escalado_em %}
+            <div class="es-vazio">Sem vaga aberta neste evento. Para trocar alguém que ainda não confirmou, abra as escalas da equipe.</div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <p class="text-muted mb-0">
+            {{ nome }} não marcou disponibilidade nem se ofereceu para nenhuma vaga nos próximos 60 dias.
+        </p>
+        {% endfor %}
+    </div>
+
+    <a class="btn btn-secondary" href="{% url 'listar_membros_equipe' equipe.pk %}">Voltar</a>
+</div>
+{% endblock content %}

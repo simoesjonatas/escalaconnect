@@ -331,11 +331,8 @@ class OfertasNoSiteDoLiderTests(TestCase):
 
     def test_painel_do_lider_mostra_quem_pode_servir(self):
         resp = self.client.get(reverse('dashboard_lider'))
-        # A oferta continua como pendência (a pessoa espera resposta)...
-        self.assertEqual([o.candidato for o in resp.context['ofertas']], [self.ana, self.bia])
-        self.assertEqual(resp.context['pendencias_total'], 2)
-        self.assertContains(resp, 'Quer servir')
-        self.assertContains(resp, reverse('escala_detail_equipe', args=[self.equipe.pk, self.vaga.pk]))
+        # A oferta não entra nas pendências...
+        self.assertNotContains(resp, 'Pendências aguardando você')
         # ...e no buraco entra junto com os disponíveis, em "Podem servir".
         (buraco,) = resp.context['buracos']
         self.assertEqual([p['nome'] for p in buraco.podem_servir], self.nomes(self.ana, self.bia))

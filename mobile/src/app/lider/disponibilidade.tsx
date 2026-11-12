@@ -1,6 +1,8 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { addMonths } from 'date-fns';
+import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 
 import { mesPorExtenso } from '../../lib/datas';
 import { LinhaDeFiltro } from '../../lib/filtros';
@@ -25,16 +27,26 @@ function Progresso({ feito, total }: { feito: number; total: number }) {
   );
 }
 
-function Pessoa({ nome }: { nome: string }) {
+function Pessoa({ nome, detalhe, aoTocar }: { nome: string; detalhe?: string; aoTocar?: () => void }) {
+  const { cores } = useTema();
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+    <Pressable
+      onPress={aoTocar}
+      disabled={!aoTocar}
+      accessibilityRole={aoTocar ? 'button' : undefined}
+      style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 10 }, pressed && { opacity: 0.6 }]}>
       <Avatar nome={nome} />
       <Texto style={{ flex: 1 }}>{nome}</Texto>
-    </View>
+      {!!detalhe && <Suave>{detalhe}</Suave>}
+      {aoTocar && <Ionicons name="chevron-forward" size={16} color={cores.textoSuave} />}
+    </Pressable>
   );
 }
 
-/** Mostra quem da equipe ainda não marcou disponibilidade no mês e pede (só app, ou e-mail e app). */
+/**
+ * Disponibilidade da equipe no mês: quem ainda não marcou (e o pedido, só app ou e-mail e app) e
+ * quem marcou, que abre os dias da pessoa para escalar.
+ */
 export default function PedirDisponibilidade() {
   const [equipe, setEquipe] = useState<number>();
   const [mes, setMes] = useState(MESES[1].valor); // padrão: próximo mês, como no servidor
@@ -57,7 +69,9 @@ export default function PedirDisponibilidade() {
             onSuccess: ({ faltantes }) =>
               Alert.alert(
                 'Pedido enviado',
-                faltantes ? 'Quem ainda não marcou vai receber o pedido.' : 'Todos da equipe já marcaram disponibilidade.',
+                faltantes
+                  ? 'Quem ainda não marcou vai receber o pedido.'
+                  : 'Todos da equipe já marcaram disponibilidade.',
               ),
           }),
       },
@@ -83,6 +97,23 @@ export default function PedirDisponibilidade() {
       <Estado consulta={consulta} />
       {dados && (
         <>
+          {!!dados.marcaram?.length && (
+            <Cartao style={{ gap: 10 }}>
+              <View style={{ gap: 2 }}>
+                <Rotulo>Marcaram ({dados.marcaram.length})</Rotulo>
+                <Suave>Toque na pessoa para ver os dias que ela marcou e escalar num deles.</Suave>
+              </View>
+              {dados.marcaram.map((pessoa) => (
+                <Pessoa
+                  key={pessoa.id}
+                  nome={pessoa.nome}
+                  detalhe={pessoa.marcados === 1 ? '1 data' : `${pessoa.marcados} datas`}
+                  aoTocar={() => router.push({ pathname: '/lider/pessoa/[id]', params: { id: pessoa.id } })}
+                />
+              ))}
+            </Cartao>
+          )}
+
           <Cartao style={{ gap: 12 }}>
             <View style={{ gap: 4 }}>
               <Subtitulo>

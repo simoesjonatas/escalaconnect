@@ -8,20 +8,20 @@ Este manual explica as ferramentas de liderança do **Escala Connect**. Tudo o q
 
 ## 1. Onde ficam as ferramentas
 
-- **No app:** a aba **Liderança** aparece só para líderes. O número vermelho na aba mostra quantas pendências esperam por você.
+- **No app:** a aba **Liderança** aparece só para líderes. O número vermelho na aba mostra quantas pendências esperam por você (impedimentos, trocas e pedidos para entrar na equipe).
 - **No site:** menu **Painel do Líder** (resumo do mês, pendências, vagas e disponíveis) e a página de cada equipe.
 
 A aba **Liderança** tem três partes:
 
 | Parte | O que mostra |
 |---|---|
-| **Pendências** | Impedimentos, trocas, ofertas "quero servir" e pedidos para entrar na equipe |
+| **Pendências** | Impedimentos, trocas e pedidos para entrar na equipe |
 | **Cultos** | Os próximos cultos das suas equipes, com quem confirmou, quem falta e as vagas |
 | **Vagas** | Funções ainda sem ninguém, com quem se ofereceu e quem está disponível |
 
 <p align="center"><img src="img/lider-pendencias.png" width="250"> <img src="img/lider-cultos.png" width="250"></p>
 
-Na parte **Cultos** ficam as **Ferramentas**: pedir disponibilidade, criar eventos, gerar eventos em massa, funções em eventos, **escala fixa**, escala em PDF e gerenciar equipe.
+Na parte **Cultos** ficam as **Ferramentas**: disponibilidade da equipe, criar eventos, gerar eventos em massa, funções em eventos, **escala fixa**, escala em PDF e gerenciar equipe.
 
 ---
 
@@ -31,17 +31,17 @@ Na parte **Cultos** ficam as **Ferramentas**: pedir disponibilidade, criar event
 2. **Disponibilidade:** peça para a equipe marcar os dias (seção 3).
 3. **Escalar:** preencha as vagas (seção 4) — ou deixe a **escala fixa** fazer isso sozinha (seção 8).
 4. **Confirmações:** acompanhe quem confirmou e peça confirmação de quem falta (seção 5).
-5. **Pendências:** resolva impedimentos, trocas e ofertas assim que chegarem (seção 6).
+5. **Pendências:** resolva impedimentos e trocas assim que chegarem, e escolha quem quer servir nas vagas (seção 6).
 6. **Divulgar:** compartilhe a escala em PDF no grupo da equipe (seção 9).
 
 ---
 
-## 3. Pedir disponibilidade da equipe
+## 3. Disponibilidade da equipe
 
-**Liderança → Ferramentas → Pedir disponibilidade da equipe**
+**Liderança → Ferramentas → Disponibilidade da equipe**
 1. Escolha a **Equipe** e o **Mês**.
-2. Veja quem **ainda não marcou** nada naquele mês (**Faltam marcar**).
-3. Toque em **Pedir pelo app** (notificação) ou **Pedir pelo app e por e-mail**.
+2. Em **Marcaram** ficam as pessoas que já marcaram dias naquele mês, com quantas datas. Toque numa pessoa para ver **os dias que ela marcou** e escalar num deles (veja "Escalar pelos dias que a pessoa marcou", na seção 4).
+3. Em **Faltam marcar** ficam as que ainda não marcaram nada. Toque em **Pedir pelo app** (notificação) ou **Pedir pelo app e por e-mail**.
 
 Só quem ainda não marcou recebe o pedido.
 
@@ -62,6 +62,23 @@ Toque na vaga para escolher a pessoa. A lista mostra primeiro:
 O app avisa se a pessoa já está escalada em outra função naquele culto. Ao escalar, a pessoa recebe **"Você foi escalado 🙌"**.
 
 <p align="center"><img src="img/lider-vagas.png" width="250"> <img src="img/lider-vaga.png" width="250"></p>
+
+### Escalar pelos dias que a pessoa marcou
+Para escolher **a pessoa primeiro** e depois o dia: abra a tela **Dias de Fulano**. Ela mostra, nos próximos 60 dias:
+- **Marcou que pode:** cultos em que a pessoa marcou disponibilidade (sem "ocupado" no horário);
+- **Se ofereceu:** vagas em que ela pediu para servir;
+- **Já escalado:** onde ela já serve, só para você saber.
+
+<p align="center"><img src="img/lider-pessoa.png" width="260"></p>
+
+Embaixo de cada culto aparecem as **vagas em aberto** das suas equipes. Cada vaga mostra quantas **outras** pessoas, além dela, podem ocupá-la, somando quem quer servir e quem está disponível ("+3 opções"), ou **Única opção**, quando só essa pessoa pode. **Ver culto** abre o culto inteiro. Toque numa vaga e confirme em **Escalar**. A pessoa recebe "Você foi escalado 🙌" e as outras ofertas para aquela vaga se encerram. Se o culto não tem vaga aberta, use **Ver culto** para trocar alguém que ainda não confirmou.
+
+Como chegar nessa tela:
+- **Ferramentas → Disponibilidade da equipe → Marcaram** → toque na pessoa;
+- **Ferramentas → Gerenciar equipe → Integrantes** → toque na pessoa;
+- na tela de uma vaga, toque em **Dias** ao lado do nome (aparece só para quem marcou disponibilidade ou se ofereceu para alguma vaga).
+
+No site: **Integrantes** da equipe → **Dias que marcou** (também no detalhe do integrante e no ícone de calendário ao lado de cada pessoa em "Disponíveis ainda não escalados", no Painel do Líder).
 
 ### Pela tela do culto
 **Liderança → Cultos** → toque no culto. Você vê cada função com quem está escalado, quem confirmou e as vagas. Toque numa vaga para escalar, ou numa pessoa que ainda não confirmou para **trocar por outra** (quem sai recebe o aviso "Mudança na sua escala").
@@ -88,9 +105,9 @@ Além disso, o sistema lembra sozinho:
 
 ## 6. Pendências
 
-Você recebe um aviso no celular quando surge uma pendência na sua equipe. Abra **Liderança → Pendências** (use **Filtrar pendências** para ver só um tipo). No site, o **Painel do Líder** tem os mesmos itens, com o filtro **Todas · Impedimentos · Trocas · Querem servir**.
+Você recebe um aviso no celular quando surge uma pendência na sua equipe. Abra **Liderança → Pendências** (use **Filtrar pendências** para ver só um tipo). No site, o **Painel do Líder** tem os mesmos itens, com o filtro **Todas · Impedimentos · Trocas**.
 
-Cada pendência tem os botões **Aprovar** e **Recusar**, e um atalho para abrir o culto ou a vaga e decidir com mais contexto.
+Cada pendência tem os botões **Aprovar** e **Recusar** e, no impedimento e na troca, um atalho para ver quem pode substituir.
 
 ### Impedimento ("não vou poder servir")
 Leia o **motivo** e escolha:
@@ -102,10 +119,11 @@ Leia o **motivo** e escolha:
 Funciona igual ao impedimento: aprove (escalando um substituto ou deixando a vaga aberta) ou recuse.
 
 ### "Quero servir" (oferta para vaga)
-Alguém se ofereceu para uma vaga em aberto.
-- **Aprovar:** a pessoa é escalada e recebe "Você foi escalado 🙌". As outras ofertas para a mesma vaga são encerradas automaticamente.
-- **Recusar:** a oferta é descartada e a vaga continua aberta.
-- Quando várias pessoas querem a mesma vaga, use **Ver os N que querem esta vaga** para comparar antes de escolher.
+As ofertas **não aparecem nas pendências** nem contam no número vermelho, porque eram tantas que escondiam os impedimentos e as trocas. Elas ficam na aba **Vagas**: use **Filtrar vagas → Querem servir** para ver as vagas com o nome de quem se ofereceu em cada uma.
+- Toque na vaga e escolha a pessoa (quem se ofereceu aparece primeiro). Ela recebe "Você foi escalado 🙌" e as outras ofertas para a mesma vaga se encerram sozinhas.
+- Prefere colocar a pessoa em outro dia? Toque em **Dias** ao lado do nome (seção 4).
+
+No site, quem se ofereceu aparece em **Buracos na escala**, na coluna **Podem servir** (com a mãozinha).
 
 Para não lotar seu celular, a **primeira** oferta para um culto chega como notificação ("Voluntário para a vaga"); as seguintes, nas próximas 12 horas, só atualizam o mesmo aviso ("3 pessoas querem servir").
 
@@ -207,7 +225,7 @@ Toque na linha para editar ou **Excluir linha**. Mudam só os cultos futuros que
 **Ferramentas → Gerenciar equipe** (se você lidera mais de uma, escolha a equipe no topo):
 - **Funções:** criar, renomear e excluir (só funções que ainda não têm escalas, para não perder o histórico).
 - **Líderes:** ver e remover lideranças. Para **adicionar** um líder, fale com a administração.
-- **Integrantes:** **Adicionar integrante** (busque pelo nome) e remover. Ao remover alguém, as escalas já marcadas continuam — troque a pessoa no culto se precisar.
+- **Integrantes:** **Adicionar integrante** (busque pelo nome) e remover. Ao remover alguém, as escalas já marcadas continuam — troque a pessoa no culto se precisar. Tocar no integrante abre **os dias que ele marcou** (seção 4).
 - Pedidos para entrar na equipe aparecem em **Pendências**.
 
 <p align="center"><img src="img/lider-equipe.png" width="260"></p>
@@ -230,7 +248,8 @@ Tocar no aviso abre a aba **Liderança** (ou a tela do culto, no caso das oferta
 
 ## 12. No site (connect.pibvp.org.br)
 
-- **Painel do Líder:** resumo do mês (escalas, vagas, confirmações), **Pendências** com filtro por tipo, **Buracos na escala** (vagas com quem pode servir) e voluntários disponíveis que ainda não serviram no mês.
+- **Painel do Líder:** resumo do mês (escalas, vagas, confirmações), **Pendências** com filtro por tipo (sem as ofertas), **Buracos na escala** (vagas com quem pode servir, inclusive quem se ofereceu) e voluntários disponíveis que ainda não serviram no mês.
+- **Integrantes → Dias que marcou:** os dias que a pessoa marcou e as vagas em que se ofereceu, com o botão **Escalar**.
 - **Escalas da equipe:** lista e **grade do mês**, **Auto-escalar**, **Exportar PDF**, **Ver Disponibilidades** e **Escala fixa**.
 - Administração de cultos gerais, equipes e líderes: com a administração do sistema.
 

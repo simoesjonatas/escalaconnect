@@ -101,6 +101,8 @@ urlpatterns = [
     path('lider/integrantes/<int:pk>/', equipe_do_lider.IntegranteView.as_view(), name='api_lider_integrante'),
     path('lider/vagas/<int:pk>/', lideranca.VagaDetailView.as_view(), name='api_lider_vaga'),
     path('lider/vagas/<int:pk>/escalar/', lideranca.EscalarView.as_view(), name='api_lider_escalar'),
+    path('lider/pessoas/<int:pk>/escolhas/', lideranca.EscolhasDaPessoaView.as_view(),
+         name='api_lider_escolhas_da_pessoa'),
 
     path('devices/', devices.DeviceView.as_view(), name='api_devices'),
     path('devices/<str:token>/', devices.DeviceDetailView.as_view(), name='api_device'),

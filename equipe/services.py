@@ -55,7 +55,16 @@ def pendencias_do_lider(usuario):
 
 
 def total_pendencias_do_lider(usuario):
-    return sum(qs.count() for qs in pendencias_do_lider(usuario).values())
+    """Número do ícone da Liderança: impedimentos, trocas e candidaturas. As ofertas "Quer
+    servir" não contam (eram tantas que poluíam): o líder as vê na aba Vagas."""
+    pendencias = pendencias_do_lider(usuario)
+    pendencias.pop('ofertas')
+    return sum(qs.count() for qs in pendencias.values())
+
+
+def equipes_em_comum(lider, usuario):
+    """Equipes do líder em que a pessoa é membro aprovado."""
+    return equipes_lideradas(lider).filter(membros__usuario=usuario, membros__aprovado=True).distinct()
 
 
 def equipes_do_usuario(usuario):

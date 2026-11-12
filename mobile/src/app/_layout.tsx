@@ -28,7 +28,14 @@ export default function RootLayout() {
   const base = escuro ? DarkTheme : DefaultTheme;
   const tema = {
     ...base,
-    colors: { ...base.colors, primary: cores.primaria, background: cores.fundo, card: cores.cartao, text: cores.texto, border: cores.borda },
+    colors: {
+      ...base.colors,
+      primary: cores.primaria,
+      background: cores.fundo,
+      card: cores.cartao,
+      text: cores.texto,
+      border: cores.borda,
+    },
   };
   return (
     <QueryClientProvider client={queryClient}>
@@ -93,6 +100,30 @@ function VoltarAoInicio() {
   );
 }
 
+/**
+ * Atalho no cabeçalho das telas do líder que se encadeiam (vaga → dias da pessoa → culto → vaga…):
+ * volta direto para a aba Liderança, fechando tudo o que está por cima. O "Voltar" continua.
+ * Só para líderes.
+ */
+function IrParaLideranca() {
+  const { cores } = useTema();
+  // Mesma regra da aba Liderança: quem não lidera não vê o atalho (a aba nem existe para ele).
+  const lider = useAuth().usuario?.lider ?? false;
+  if (!lider) return null;
+  return (
+    <Pressable
+      onPress={() => router.dismissTo('/lideranca')}
+      accessibilityRole="button"
+      accessibilityLabel="Ir para a Liderança"
+      hitSlop={8}
+      style={({ pressed }) => [{ paddingHorizontal: 6 }, pressed && { opacity: 0.6 }]}>
+      <Ionicons name="people-outline" size={24} color={cores.primaria} />
+    </Pressable>
+  );
+}
+
+const comAtalhoDaLideranca = { headerRight: () => <IrParaLideranca /> };
+
 function Telas({ estado }: { estado: EstadoDaSessao }) {
   const { cores } = useTema();
   return (
@@ -129,9 +160,10 @@ function Telas({ estado }: { estado: EstadoDaSessao }) {
         <Stack.Screen name="contato" options={{ title: 'Meu contato' }} />
         <Stack.Screen name="trocar-senha" options={{ title: 'Trocar senha' }} />
         <Stack.Screen name="excluir-conta" options={{ title: 'Excluir minha conta' }} />
-        <Stack.Screen name="lider/vaga/[id]" options={{ title: 'Escalar na vaga' }} />
-        <Stack.Screen name="lider/culto/[id]" options={{ title: 'Culto' }} />
-        <Stack.Screen name="lider/disponibilidade" options={{ title: 'Pedir disponibilidade' }} />
+        <Stack.Screen name="lider/vaga/[id]" options={{ title: 'Escalar na vaga', ...comAtalhoDaLideranca }} />
+        <Stack.Screen name="lider/culto/[id]" options={{ title: 'Culto', ...comAtalhoDaLideranca }} />
+        <Stack.Screen name="lider/disponibilidade" options={{ title: 'Disponibilidade da equipe' }} />
+        <Stack.Screen name="lider/pessoa/[id]" options={{ title: 'Dias que marcou', ...comAtalhoDaLideranca }} />
         <Stack.Screen name="lider/evento/novo" options={{ title: 'Criar evento' }} />
         <Stack.Screen name="lider/evento/em-massa" options={{ title: 'Gerar em massa' }} />
         <Stack.Screen name="lider/evento/funcoes" options={{ title: 'Funções em eventos' }} />

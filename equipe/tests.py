@@ -10,7 +10,7 @@ from django.utils.timezone import now
 
 from equipe.models import Equipe, Lideranca, MembrosEquipe
 from evento.models import Evento
-from escala.models import Funcao, Escala, Desistencia
+from escala.models import Funcao, Escala, Desistencia, Rendimento
 from disponivel.models import Disponivel
 
 User = get_user_model()
@@ -595,3 +595,81 @@ class FiltroDePendenciasTests(TestCase):
         self.assertContains(resp, 'Impedimentos <span class="n">1</span>')
         self.assertNotContains(resp, 'data-filtro="oferta"')  # sem ofertas, sem o filtro
         self.assertContains(resp, '<tr data-tipo="impedimento">')
+
+
+class OfertasForaDasPendenciasTests(TestCase):
+    """Ofertas não entram nas pendências do painel: quem se ofereceu aparece nos buracos."""
+
+    def test_ofertas_so_nos_buracos(self):
+        equipe = Equipe.objects.create(nome="Som O")
+        funcao = Funcao.objects.create(nome="Mesa", equipe=equipe)
+        lider = User.objects.create_user(username="lider_o", password="x", cpf="10000009101",
+                                         is_first_login=False, termo_aceito_em=now())
+        Lideranca.objects.create(usuario=lider, equipe=equipe)
+        inicio = now() + timedelta(days=3)
+        evento = Evento.objects.create(nome="Culto", data_inicio=inicio, data_fim=inicio + timedelta(hours=2))
+        vaga = Escala.objects.create(funcao=funcao, evento=evento)
+        for i in range(3):
+            pessoa = User.objects.create_user(username=f"vol_o{i}", password="x", cpf=f"1000000911{i}")
+            MembrosEquipe.objects.create(equipe=equipe, usuario=pessoa, aprovado=True)
+            Rendimento.objects.create(escala=vaga, candidato=pessoa)
+
+        self.client.force_login(lider)
+        resp = self.client.get(reverse('dashboard_lider'))
+        self.assertNotContains(resp, 'Pendências aguardando você')
+        self.assertNotContains(resp, 'data-tipo="oferta"')
+        (buraco,) = resp.context['buracos']
+        self.assertEqual(len(buraco.podem_servir), 3)
+
+
+class EscolhasDaPessoaNoSiteTests(TestCase):
+    def setUp(self):
+        self.equipe = Equipe.objects.create(nome="Recepção E")
+        self.funcao = Funcao.objects.create(nome="Porta", equipe=self.equipe)
+        self.lider = User.objects.create_user(username="lider_e", password="x", cpf="10000009201",
+                                              is_first_login=False, termo_aceito_em=now())
+        Lideranca.objects.create(usuario=self.lider, equipe=self.equipe)
+        self.pessoa = User.objects.create_user(username="ana_e", password="x", cpf="10000009202", first_name="Ana",
+                                               is_first_login=False, termo_aceito_em=now())
+        MembrosEquipe.objects.create(equipe=self.equipe, usuario=self.pessoa, aprovado=True)
+        inicio = now() + timedelta(days=5)
+        self.evento = Evento.objects.create(nome="Culto Domingo", data_inicio=inicio,
+                                            data_fim=inicio + timedelta(hours=2))
+        self.vaga = Escala.objects.create(funcao=self.funcao, evento=self.evento)
+        Disponivel.objects.create(usuario=self.pessoa, evento=self.evento,
+                                  data_inicio=self.evento.data_inicio, data_fim=self.evento.data_fim)
+        self.url = reverse('escolhas_da_pessoa', args=[self.equipe.pk, self.pessoa.pk])
+
+    def test_lider_ve_os_dias_e_escala(self):
+        self.client.force_login(self.lider)
+        resp = self.client.get(self.url)
+        self.assertContains(resp, 'Marcou que pode')
+        self.assertContains(resp, 'Escalar Ana')
+
+        with self.captureOnCommitCallbacks(execute=True):
+            resp = self.client.post(self.url, {'vaga': self.vaga.pk}, follow=True)
+        self.assertRedirects(resp, self.url)
+        self.vaga.refresh_from_db()
+        self.assertEqual(self.vaga.usuario, self.pessoa)
+        self.assertContains(resp, 'Ana foi escalado em Porta')
+
+    def test_ja_escalada_no_evento_precisa_confirmar(self):
+        outra = Escala.objects.create(funcao=Funcao.objects.create(nome="Café", equipe=self.equipe),
+                                      evento=self.evento, usuario=self.pessoa)
+        self.client.force_login(self.lider)
+        resp = self.client.post(self.url, {'vaga': self.vaga.pk}, follow=True)
+        self.assertContains(resp, 'já está escalada neste evento')
+        self.vaga.refresh_from_db()
+        self.assertIsNone(self.vaga.usuario)
+        self.client.post(self.url, {'vaga': self.vaga.pk, 'mesmo_evento': '1'})
+        self.vaga.refresh_from_db()
+        self.assertEqual(self.vaga.usuario, self.pessoa)
+        self.assertIsNotNone(outra.pk)
+
+    def test_so_lider_da_equipe(self):
+        self.client.force_login(self.pessoa)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        fora = User.objects.create_user(username="fora_e", password="x", cpf="10000009203")
+        self.client.force_login(self.lider)
+        url = reverse('escolhas_da_pessoa', args=[self.equipe.pk, fora.pk])
+        self.assertEqual(self.client.get(url).status_code, 302)  # 404 do site volta para o início

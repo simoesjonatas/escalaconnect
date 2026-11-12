@@ -12,6 +12,7 @@ import {
   DisponibilidadeDaEquipe,
   EquipeDoLider,
   EscalaFixa,
+  EscolhasDaPessoa,
   ResultadoDaEscalaFixa,
   Disponibilidade,
   Equipes,
@@ -173,6 +174,22 @@ export function useAcaoDoLider() {
         mesmo_evento ? { mesmo_evento } : undefined,
       ),
     // Também no erro: a ação pode ter sido salva (ex.: falha depois do commit) e a tela deve mostrar o real.
+    onSettled: atualizar,
+  });
+}
+
+export const useEscolhasDaPessoa = (id: number) =>
+  useQuery({
+    queryKey: ['lider', 'pessoa', id],
+    queryFn: () => api<EscolhasDaPessoa>('GET', `/lider/pessoas/${id}/escolhas/`),
+  });
+
+/** Escalar alguém numa vaga escolhida na hora (tela dos dias da pessoa). */
+export function useEscalar() {
+  const atualizar = useAtualizarPainel();
+  return useMutation({
+    mutationFn: ({ vagaId, usuarioId, mesmoEvento }: { vagaId: number; usuarioId: number; mesmoEvento?: boolean }) =>
+      api('POST', `/lider/vagas/${vagaId}/escalar/`, { usuario_id: usuarioId, mesmo_evento: !!mesmoEvento }),
     onSettled: atualizar,
   });
 }

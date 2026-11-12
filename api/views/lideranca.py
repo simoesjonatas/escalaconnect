@@ -20,7 +20,7 @@ from rest_framework.views import APIView
 from equipe import services as equipe_services
 from equipe.models import MembrosEquipe
 from escala import services as escala_services
-from disponivel.services import membros_sem_disponibilidade
+from disponivel.services import membros_com_disponibilidade, membros_sem_disponibilidade
 from escala.models import Desistencia, Escala, Rendimento, SolicitacaoTroca
 from escala.services import DIAS_DE_VAGAS
 from escala.utils import _ano_mes_local, usuarios_disponiveis_para_evento
@@ -31,8 +31,8 @@ from evento.models import Evento
 from ..serializers.equipe import EquipeSerializer
 from ..serializers.evento import EventoSerializer
 from ..serializers.lideranca import (
-    CandidatoSerializer, CandidaturaSerializer, EscalaDoCultoSerializer, EscalarSerializer, ImpedimentoSerializer,
-    OfertaSerializer, PedirConfirmacaoSerializer, PedirDisponibilidadeSerializer, PessoaSerializer, TrocaSerializer, VagaSerializer,
+    CandidatoSerializer, CandidaturaSerializer, EscalaDoCultoSerializer, EscalarSerializer, EscolhaDaPessoaSerializer,
+    ImpedimentoSerializer, MarcouDisponibilidadeSerializer, OfertaSerializer, PedirConfirmacaoSerializer, PedirDisponibilidadeSerializer, PessoaSerializer, TrocaSerializer, VagaSerializer,
 )
 
 
@@ -175,8 +175,14 @@ class VagaListView(LiderView):
 
     def get(self, request):
         vagas = list(_vagas(self.equipes()))
+        nomes = {}
+        for escala_id, nome, usuario in (Rendimento.objects.filter(escala__in=vagas, aprovada=False)
+                                         .order_by('data_candidatura')
+                                         .values_list('escala_id', 'candidato__first_name', 'candidato__username')):
+            nomes.setdefault(escala_id, []).append(nome or usuario)
         for vaga in vagas:
             vaga.disponiveis = len(usuarios_disponiveis_para_evento(vaga.equipe, vaga.evento, excluir_escala_id=vaga.pk))
+            vaga.quem_ofereceu = nomes.get(vaga.pk, [])
         return Response(VagaSerializer(vagas, many=True).data)
 
 
@@ -211,8 +217,10 @@ class VagaDetailView(LiderView):
         )
         ofereceram = set(
             Rendimento.objects.filter(escala=vaga, aprovada=False).values_list('candidato_id', flat=True))
+        com_dias = escala_services.com_dias_escolhidos([m.pk for m in membros], [vaga.equipe])
         candidatos = []
         for membro in membros:
+            membro.tem_dias = membro.pk in com_dias
             membro.disponivel = membro.pk in disponiveis
             membro.se_ofereceu = membro.pk in ofereceram
             membro.servicos_no_mes = servicos.get(membro.pk, 0)
@@ -258,6 +266,25 @@ class EscalarView(VagaDetailView):
             else:
                 escala_services.escalar_em_vaga(vaga, usuario, mesmo_evento=mesmo_evento)
         return Response(status=204)
+
+
+class EscolhasDaPessoaView(LiderView):
+    """Dias que a pessoa escolheu (disponibilidade e ofertas) nos próximos 60 dias, com as vagas
+    abertas das equipes do líder em cada um: o líder escala por /lider/vagas/{id}/escalar/."""
+
+    def get(self, request, pk):
+        pessoa = get_object_or_404(get_user_model(), pk=pk, is_active=True)
+        equipes = list(equipe_services.equipes_em_comum(request.user, pessoa))
+        if not equipes:
+            raise Http404
+        ano, mes = _ano_mes_local(timezone.now())
+        return Response({
+            'pessoa': PessoaSerializer(pessoa).data,
+            'equipes': [e.nome for e in equipes],
+            'servicos_no_mes': Escala.objects.filter(
+                usuario=pessoa, evento__data_inicio__year=ano, evento__data_inicio__month=mes).count(),
+            'eventos': EscolhaDaPessoaSerializer(escala_services.escolhas_da_pessoa(pessoa, equipes), many=True).data,
+        })
 
 
 # ── Cultos: quem confirmou, quem falta e vagas ──
@@ -396,6 +423,8 @@ class DisponibilidadeDaEquipeView(LiderView):
             'ano': ano,
             'mes': mes,
             'faltantes': PessoaSerializer(faltantes, many=True).data,
+            'marcaram': MarcouDisponibilidadeSerializer(
+                membros_com_disponibilidade(equipe, ano, mes), many=True).data,
             'membros': MembrosEquipe.objects.filter(equipe=equipe, aprovado=True, usuario__is_active=True).count(),
         })
 

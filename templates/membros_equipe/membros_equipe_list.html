@@ -38,6 +38,7 @@ Membros da Equipe {{ equipe }}
                         </a>
                     </th>
                     {% endfor %}
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -45,6 +46,13 @@ Membros da Equipe {{ equipe }}
                 <tr onclick="window.location.href='{% url 'membros_equipe_detail' membro.equipe.pk membro.pk %}'">
                     <td>{{ membro.id }}</td>
                     <td>{{ membro.usuario }}</td>
+                    <td class="text-right">
+                        {% if membro.aprovado %}
+                        <a class="btn btn-sm btn-outline-success" onclick="event.stopPropagation()"
+                           href="{% url 'escolhas_da_pessoa' membro.equipe.pk membro.usuario_id %}">
+                            <i class="fa fa-calendar-check"></i> Dias que marcou</a>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% empty %}
                 <tr>

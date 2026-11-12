@@ -1,7 +1,7 @@
 """Regras das escalas do voluntário, compartilhadas entre o site e a API do app."""
 from datetime import timedelta
 
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 
 from equipe.models import MembrosEquipe
@@ -231,6 +231,118 @@ def substituir_na_escala(escala, usuario, mesmo_evento=False):
     if anterior_id:
         _avisar_saida_da_escala(anterior_id, escala, mensagens_push.substituido, Notification.PURPOSE_REPLACED)
     return escala
+
+
+
+def escolhas_da_pessoa(usuario, equipes):
+    """Para o líder escalar alguém num dia que a própria pessoa escolheu.
+
+    Eventos dos próximos 60 dias (públicos ou das `equipes`) em que a pessoa marcou que pode
+    servir (disponibilidade cobrindo o evento, sem Ocupado no horário, mesmo critério de
+    escala.utils.usuarios_disponiveis_para_evento) num culto em que as `equipes` têm função,
+    se ofereceu para uma vaga ou já está escalada. Cada item: {'evento', 'disponivel', 'ja_escalado_em', 'vagas'}; `vagas` são as
+    vagas abertas das `equipes` no evento, cada uma com `se_ofereceu` (essas primeiro) e quantos
+    outros podem ocupá-la (`outros_querem`, `outros_disponiveis`, como em Buracos na escala).
+    `culto_da_equipe`: as `equipes` têm função no culto (o líder pode abrir a tela dele).
+
+    `equipes`: as equipes do líder em que a pessoa é membro aprovado.
+    """
+    from disponivel.models import Disponivel
+    from evento.models import Evento
+    from ocupado.models import Ocupado
+
+    from .utils import anotar_podem_servir
+
+    agora = timezone.now()
+    eventos = list(
+        Evento.objects
+        .filter(data_inicio__gt=agora, data_inicio__lte=agora + timedelta(days=DIAS_DE_VAGAS))
+        .filter(Q(equipe__isnull=True) | Q(equipe__in=equipes))
+        .annotate(
+            tem_disponivel=Exists(Disponivel.objects.filter(
+                usuario=usuario, data_inicio__lte=OuterRef('data_inicio'), data_fim__gte=OuterRef('data_fim'))),
+            tem_ocupado=Exists(Ocupado.objects.filter(
+                usuario=usuario, data_inicio__lt=OuterRef('data_fim'), data_fim__gt=OuterRef('data_inicio'))),
+        )
+        .order_by('data_inicio')
+    )
+    if not eventos:
+        return []
+    ids = [e.pk for e in eventos]
+    ofereceu = set(
+        ofertas_pendentes().filter(candidato=usuario, escala__evento_id__in=ids).values_list('escala_id', flat=True))
+    vagas = {}
+    for vaga in anotar_podem_servir(Escala.objects
+                                    .filter(usuario__isnull=True, funcao__equipe__in=equipes, evento_id__in=ids)
+                                    .select_related('evento', 'funcao__equipe')
+                                    .order_by('funcao__equipe__nome', 'funcao__nome')):
+        vaga.se_ofereceu = vaga.pk in ofereceu
+        outros = [p for p in vaga.podem_servir if p['id'] != usuario.pk]
+        vaga.outros_querem = sum(1 for p in outros if p['ofereceu'])
+        vaga.outros_disponiveis = len(outros) - vaga.outros_querem
+        vagas.setdefault(vaga.evento_id, []).append(vaga)
+    escalado_em = set(Escala.objects.filter(usuario=usuario, evento_id__in=ids).values_list('evento_id', flat=True))
+    # Cultos em que as equipes têm alguma função: só neles a disponibilidade serve para escalar
+    # (e a tela do culto abre para o líder).
+    com_funcoes = set(
+        Escala.objects.filter(funcao__equipe__in=equipes, evento_id__in=ids).values_list('evento_id', flat=True))
+    onde = onde_serve_no_evento((e, usuario.pk) for e in escalado_em)
+
+    escolhas = []
+    for evento in eventos:
+        disponivel = evento.tem_disponivel and not evento.tem_ocupado
+        do_evento = sorted(vagas.get(evento.pk, []), key=lambda v: not v.se_ofereceu)
+        se_ofereceu = any(v.se_ofereceu for v in do_evento)
+        if not ((disponivel and evento.pk in com_funcoes) or se_ofereceu or evento.pk in escalado_em):
+            continue
+        escolhas.append({
+            'evento': evento,
+            'culto_da_equipe': evento.pk in com_funcoes,
+            'disponivel': disponivel,
+            'ja_escalado_em': onde.get((evento.pk, usuario.pk)),
+            'vagas': do_evento,
+        })
+    return escolhas
+
+
+def com_dias_escolhidos(usuario_ids, equipes):
+    """Quem, entre `usuario_ids`, tem algum dia para o líder escolher nos próximos 60 dias: marcou
+    disponibilidade num culto em que as `equipes` têm função (sem Ocupado no horário) ou se
+    ofereceu para uma vaga delas. Mesma regra de escolhas_da_pessoa, em poucas consultas, para
+    a lista de candidatos da vaga só mostrar o atalho "Dias" a quem tem o que ver.
+    """
+    from disponivel.models import Disponivel
+    from ocupado.models import Ocupado
+
+    usuario_ids = set(usuario_ids)
+    if not usuario_ids:
+        return set()
+    agora = timezone.now()
+    limite = agora + timedelta(days=DIAS_DE_VAGAS)
+    com_dias = set(
+        ofertas_pendentes().filter(candidato_id__in=usuario_ids, escala__funcao__equipe__in=equipes)
+        .values_list('candidato_id', flat=True))
+    eventos = list(
+        Escala.objects
+        .filter(funcao__equipe__in=equipes, evento__data_inicio__gt=agora, evento__data_inicio__lte=limite)
+        .values_list('evento__data_inicio', 'evento__data_fim').distinct())
+    if not eventos:
+        return com_dias
+    inicio, fim = min(e[0] for e in eventos), max(e[1] for e in eventos)
+    disponiveis, ocupados = {}, {}
+    for uid, ini, fi in (Disponivel.objects.filter(usuario_id__in=usuario_ids - com_dias,
+                                                   data_fim__gte=inicio, data_inicio__lte=fim)
+                         .values_list('usuario_id', 'data_inicio', 'data_fim')):
+        disponiveis.setdefault(uid, []).append((ini, fi))
+    for uid, ini, fi in (Ocupado.objects.filter(usuario_id__in=disponiveis, data_fim__gt=inicio, data_inicio__lt=fim)
+                         .values_list('usuario_id', 'data_inicio', 'data_fim')):
+        ocupados.setdefault(uid, []).append((ini, fi))
+    for uid, periodos in disponiveis.items():
+        if any(any(ini <= e_ini and fi >= e_fim for ini, fi in periodos)
+               and not any(o_ini < e_fim and o_fi > e_ini for o_ini, o_fi in ocupados.get(uid, []))
+               for e_ini, e_fim in eventos):
+            com_dias.add(uid)
+    return com_dias
 
 
 # ── Oferta para vaga (voluntário se oferece, líder aprova) ──

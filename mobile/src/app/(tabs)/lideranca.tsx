@@ -4,7 +4,15 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, Text, View } from 'react-native';
 
 import { diaCurto } from '../../lib/datas';
-import { aplicar, CartaoDeFiltros, escolher, Filtro, filtrosDeEquipe, filtrosDePeriodo, TODOS } from '../../lib/filtros';
+import {
+  aplicar,
+  CartaoDeFiltros,
+  escolher,
+  Filtro,
+  filtrosDeEquipe,
+  filtrosDePeriodo,
+  TODOS,
+} from '../../lib/filtros';
 import { AcaoDoLider, useAcaoDoLider, useCultos, usePendenciasDoLider, useVagas } from '../../lib/hooks';
 import { Cores, useTema } from '../../lib/tema';
 import { ContagemDoCulto, Culto, EscalaDaEquipe, PendenciasDoLider, Pessoa, Vaga } from '../../lib/types';
@@ -36,7 +44,7 @@ type Pendencia = {
   equipe: { id: number; nome: string };
   escala?: EscalaDaEquipe;
   detalhe?: string;
-  /** Atalho para decidir com mais contexto: a vaga (ofertas) ou o culto (impedimento e troca). */
+  /** Atalho para decidir com mais contexto: quem pode substituir (impedimento e troca). */
   link?: { texto: string; abrir: () => void };
   aprovar: string;
   recusar: string;
@@ -44,16 +52,16 @@ type Pendencia = {
 
 const abrirCulto = (id: number) => router.push({ pathname: '/lider/culto/[id]', params: { id } });
 
-/** Junta impedimentos, trocas e ofertas (por data do culto) e, por último, as candidaturas. */
+/**
+ * Junta impedimentos e trocas (por data do culto) e, por último, as candidaturas. As ofertas
+ * "Quer servir" ficam fora (eram tantas que escondiam o resto): o líder escolhe na aba Vagas.
+ */
 function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
   const saida = (nome: string) => `${nome} sai da escala e a vaga fica aberta.`;
   const verSubstitutos = (escala: EscalaDaEquipe) => ({
     texto: 'Ver quem pode substituir',
     abrir: () => abrirVaga(escala.id),
   });
-  // Quantas ofertas cada vaga tem, para o atalho dizer quantas pessoas querem a mesma vaga.
-  const ofertasPorVaga = new Map<number, number>();
-  for (const o of dados.ofertas) ofertasPorVaga.set(o.escala.id, (ofertasPorVaga.get(o.escala.id) ?? 0) + 1);
   const continua = (nome: string) => `${nome} continua escalado e será avisado.`;
   const comData = [
     ...dados.impedimentos.map((i) => ({
@@ -79,27 +87,6 @@ function listarPendencias(dados: PendenciasDoLider, cores: Cores): Pendencia[] {
       aprovar: saida(t.pessoa.nome),
       recusar: continua(t.pessoa.nome),
     })),
-    ...dados.ofertas.map((o) => ({
-      chave: `o${o.id}`,
-      // Já serve em outra função do evento: o aviso aparece no cartão e na confirmação.
-      pedido: { tipo: 'ofertas' as const, id: o.id, mesmo_evento: !!o.ja_escalado_em },
-      tipo: { texto: 'Quer servir', cor: cores.confirmada },
-      detalhe: o.ja_escalado_em ? `Já escalado neste evento: ${o.ja_escalado_em}` : undefined,
-      pessoa: o.pessoa,
-      equipe: { id: o.escala.equipe_id, nome: o.escala.equipe },
-      escala: o.escala,
-      link: {
-        texto:
-          (ofertasPorVaga.get(o.escala.id) ?? 1) > 1
-            ? `Ver os ${ofertasPorVaga.get(o.escala.id)} que querem esta vaga`
-            : 'Ver a vaga e quem está disponível',
-        abrir: () => abrirVaga(o.escala.id),
-      },
-      aprovar: o.ja_escalado_em
-        ? `${o.pessoa.nome} já está escalado neste evento (${o.ja_escalado_em}). Escalar também nesta função?`
-        : `${o.pessoa.nome} fica com a vaga e recebe o aviso de escala.`,
-      recusar: `A oferta de ${o.pessoa.nome} é descartada e a vaga continua aberta.`,
-    })),
   ].sort((a, b) => a.escala.evento.data_inicio.localeCompare(b.escala.evento.data_inicio));
   const candidaturas: Pendencia[] = dados.candidaturas.map((c) => ({
     chave: `c${c.id}`,
@@ -118,12 +105,11 @@ const TIPOS_DE_PENDENCIA: Filtro<Pendencia>[] = (
   [
     ['impedimentos', 'Impedimentos'],
     ['trocas', 'Trocas'],
-    ['ofertas', 'Quer servir'],
     ['candidaturas', 'Candidaturas'],
   ] as const
 ).map(([valor, rotulo]) => ({ valor, rotulo, aplica: (p: Pendencia) => p.pedido.tipo === valor }));
 
-/** Pendências por tipo (impedimento, troca, oferta, candidatura) e, dentro dele, por equipe. */
+/** Pendências por tipo (impedimento, troca, candidatura) e, dentro dele, por equipe. */
 function filtrarPendencias(pendencias: Pendencia[], equipe: string, tipo: string) {
   const porTipo = escolher(TIPOS_DE_PENDENCIA, pendencias, tipo);
   const doTipo = aplicar(pendencias, porTipo.ativo);
@@ -156,7 +142,11 @@ function filtrarCultos(recebidos: Culto[], equipe: string, quando: string, situa
   const contagem = (c: Culto): ContagemDoCulto =>
     c.por_equipe.find((e) => String(e.equipe_id) === porEquipe.ativo?.valor) ?? c;
   const daEquipe = aplicar(cultos, porEquipe.ativo);
-  const porPeriodo = escolher(filtrosDePeriodo<Culto>((c) => c.data_inicio), daEquipe, quando);
+  const porPeriodo = escolher(
+    filtrosDePeriodo<Culto>((c) => c.data_inicio),
+    daEquipe,
+    quando,
+  );
   const doPeriodo = aplicar(daEquipe, porPeriodo.ativo);
   const porSituacao = escolher<Culto>(
     [
@@ -181,7 +171,11 @@ function filtrarVagas(vagas: Vaga[], equipe: string, quando: string, situacao: s
     true,
   );
   const daEquipe = aplicar(vagas, porEquipe.ativo);
-  const porPeriodo = escolher(filtrosDePeriodo<Vaga>((v) => v.evento.data_inicio), daEquipe, quando);
+  const porPeriodo = escolher(
+    filtrosDePeriodo<Vaga>((v) => v.evento.data_inicio),
+    daEquipe,
+    quando,
+  );
   const doPeriodo = aplicar(daEquipe, porPeriodo.ativo);
   const porSituacao = escolher<Vaga>(
     [
@@ -196,14 +190,26 @@ function filtrarVagas(vagas: Vaga[], equipe: string, quando: string, situacao: s
   return { porEquipe, porPeriodo, porSituacao, lista: aplicar(doPeriodo, porSituacao.ativo) };
 }
 
-/** "2 querem servir · 1 disponível"; quem se ofereceu vem antes da disponibilidade marcada. */
+/** "Ana, Bruno e mais 2" (até 2 nomes). */
+function nomesResumidos(nomes: string[], quantos = 2) {
+  if (nomes.length <= quantos + 1) return nomes.join(nomes.length === 2 ? ' e ' : ', ').replace(/, ([^,]*)$/, ' e $1');
+  return `${nomes.slice(0, quantos).join(', ')} e mais ${nomes.length - quantos}`;
+}
+
+/** "Ana e Bruno querem servir · 1 disponível"; quem se ofereceu vem antes da disponibilidade marcada. */
 function resumoDaVaga(vaga: Vaga) {
   const ofertas = vaga.ofertas ?? 0;
+  const nomes = (vaga.quem_ofereceu ?? []).map((nome) => nome.split(' ')[0]);
   const disponiveis = vaga.disponiveis
     ? `${vaga.disponiveis} ${vaga.disponiveis === 1 ? 'disponível' : 'disponíveis'}`
     : '';
   if (ofertas) {
-    return [ofertas === 1 ? '1 quer servir' : `${ofertas} querem servir`, disponiveis].filter(Boolean).join(' · ');
+    const quem = nomes.length
+      ? `${nomesResumidos(nomes)} ${nomes.length === 1 ? 'quer' : 'querem'} servir`
+      : ofertas === 1
+        ? '1 quer servir'
+        : `${ofertas} querem servir`;
+    return [quem, disponiveis].filter(Boolean).join(' · ');
   }
   return disponiveis || 'Ninguém marcou disponibilidade';
 }
@@ -287,20 +293,22 @@ export default function Lideranca() {
           {pendencias.data && lista.length === 0 && (
             <Cartao>
               <Subtitulo>Tudo em dia 🙌</Subtitulo>
-              <Suave>Nenhum impedimento, troca, oferta ou candidatura esperando você.</Suave>
+              <Suave>Nenhum impedimento, troca ou candidatura esperando você.</Suave>
             </Cartao>
           )}
-          <CartaoDeFiltros
-            titulo="Filtrar pendências"
-            nome="pendências"
-            linhas={[
-              { titulo: 'Tipo', todos: 'Todas', escolha: daPendencia.porTipo, aoEscolher: setTipoDaPendencia },
-              { titulo: 'Equipe', todos: 'Todas', escolha: daPendencia.porEquipe, aoEscolher: setEquipe },
-            ]}
-            total={lista.length}
-            mostrando={daPendencia.lista.length}
-            aoLimpar={limparFiltros}
-          />
+          {lista.length > 0 && (
+            <CartaoDeFiltros
+              titulo="Filtrar pendências"
+              nome="pendências"
+              linhas={[
+                { titulo: 'Tipo', todos: 'Todas', escolha: daPendencia.porTipo, aoEscolher: setTipoDaPendencia },
+                { titulo: 'Equipe', todos: 'Todas', escolha: daPendencia.porEquipe, aoEscolher: setEquipe },
+              ]}
+              total={lista.length}
+              mostrando={daPendencia.lista.length}
+              aoLimpar={limparFiltros}
+            />
+          )}
           {daPendencia.lista.map((item) => {
             const emAndamento =
               acao.isPending && acao.variables?.tipo === item.pedido.tipo && acao.variables.id === item.pedido.id;
@@ -322,10 +330,14 @@ export default function Lideranca() {
           <Grupo titulo="Ferramentas">
             <ItemDeGrupo
               icone="paper-plane-outline"
-              titulo="Pedir disponibilidade da equipe"
+              titulo="Disponibilidade da equipe"
               aoTocar={() => router.push('/lider/disponibilidade')}
             />
-            <ItemDeGrupo icone="add-circle-outline" titulo="Criar evento" aoTocar={() => router.push('/lider/evento/novo')} />
+            <ItemDeGrupo
+              icone="add-circle-outline"
+              titulo="Criar evento"
+              aoTocar={() => router.push('/lider/evento/novo')}
+            />
             <ItemDeGrupo
               icone="calendar-outline"
               titulo="Gerar eventos em massa"
@@ -336,9 +348,21 @@ export default function Lideranca() {
               titulo="Funções em eventos"
               aoTocar={() => router.push('/lider/evento/funcoes')}
             />
-            <ItemDeGrupo icone="repeat-outline" titulo="Escala fixa" aoTocar={() => router.push('/lider/escala-fixa')} />
-            <ItemDeGrupo icone="document-text-outline" titulo="Escala em PDF" aoTocar={() => router.push('/lider/pdf')} />
-            <ItemDeGrupo icone="settings-outline" titulo="Gerenciar equipe" aoTocar={() => router.push('/lider/equipe')} />
+            <ItemDeGrupo
+              icone="repeat-outline"
+              titulo="Escala fixa"
+              aoTocar={() => router.push('/lider/escala-fixa')}
+            />
+            <ItemDeGrupo
+              icone="document-text-outline"
+              titulo="Escala em PDF"
+              aoTocar={() => router.push('/lider/pdf')}
+            />
+            <ItemDeGrupo
+              icone="settings-outline"
+              titulo="Gerenciar equipe"
+              aoTocar={() => router.push('/lider/equipe')}
+            />
           </Grupo>
           <Estado
             consulta={cultos}
@@ -426,7 +450,10 @@ function CartaoDePendencia({
           onPress={item.link.abrir}
           hitSlop={6}
           accessibilityRole="link"
-          style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 4 }, pressed && { opacity: 0.6 }]}>
+          style={({ pressed }) => [
+            { flexDirection: 'row', alignItems: 'center', gap: 4 },
+            pressed && { opacity: 0.6 },
+          ]}>
           <Text style={{ color: cores.primaria, fontSize: 14, fontWeight: '600' }}>{item.link.texto}</Text>
           <Ionicons name="chevron-forward" size={14} color={cores.primaria} />
         </Pressable>

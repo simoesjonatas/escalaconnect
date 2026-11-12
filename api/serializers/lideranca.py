@@ -69,9 +69,11 @@ class CandidaturaSerializer(serializers.ModelSerializer):
 class VagaSerializer(EscalaDaEquipeSerializer):
     disponiveis = serializers.IntegerField(read_only=True)
     ofertas = serializers.IntegerField(read_only=True)
+    # Primeiro nome de quem se ofereceu, por ordem de chegada (só na lista de vagas).
+    quem_ofereceu = serializers.ListField(child=serializers.CharField(), read_only=True, default=list)
 
     class Meta(EscalaDaEquipeSerializer.Meta):
-        fields = EscalaDaEquipeSerializer.Meta.fields + ['disponiveis', 'ofertas']
+        fields = EscalaDaEquipeSerializer.Meta.fields + ['disponiveis', 'ofertas', 'quem_ofereceu']
 
 
 class VagaAbertaSerializer(EscalaDaEquipeSerializer):
@@ -87,6 +89,8 @@ class CandidatoSerializer(PessoaSerializer):
     se_ofereceu = serializers.BooleanField()
     servicos_no_mes = serializers.IntegerField()
     ja_escalado_em = serializers.CharField(allow_null=True)
+    # Tem algum dia para escolher (disponibilidade ou oferta): o app só mostra o atalho "Dias" assim.
+    tem_dias = serializers.BooleanField()
 
 
 class EscalarSerializer(serializers.Serializer):
@@ -130,3 +134,31 @@ class PedirDisponibilidadeSerializer(serializers.Serializer):
     ano = serializers.IntegerField(min_value=2000, max_value=2100)
     mes = serializers.IntegerField(min_value=1, max_value=12)
     canal = serializers.ChoiceField(choices=['app', 'todos'])
+
+
+class VagaDaPessoaSerializer(serializers.ModelSerializer):
+    """Vaga aberta num evento que a pessoa escolheu; `se_ofereceu` se ela pediu essa vaga."""
+    funcao = serializers.CharField(source='funcao.nome', read_only=True)
+    equipe = serializers.CharField(source='funcao.equipe.nome', read_only=True)
+    equipe_id = serializers.IntegerField(source='funcao.equipe_id', read_only=True)
+    se_ofereceu = serializers.BooleanField(read_only=True)
+    # Quantos outros (fora a pessoa) também podem ocupar a vaga: se ofereceram ou estão disponíveis.
+    outros_querem = serializers.IntegerField(read_only=True)
+    outros_disponiveis = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Escala
+        fields = ['id', 'funcao', 'equipe', 'equipe_id', 'se_ofereceu', 'outros_querem', 'outros_disponiveis']
+
+
+class EscolhaDaPessoaSerializer(serializers.Serializer):
+    """Um evento que a pessoa escolheu (escala.services.escolhas_da_pessoa)."""
+    evento = EventoResumoSerializer()
+    culto_da_equipe = serializers.BooleanField()
+    disponivel = serializers.BooleanField()
+    ja_escalado_em = serializers.CharField(allow_null=True)
+    vagas = VagaDaPessoaSerializer(many=True)
+
+
+class MarcouDisponibilidadeSerializer(PessoaSerializer):
+    marcados = serializers.IntegerField()

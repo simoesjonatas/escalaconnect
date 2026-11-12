@@ -6,6 +6,7 @@ from .views_membros import *
 from .views_escala import *
 from .views_pdf import *
 from .views_escala_fixa import escala_fixa_equipe
+from .views_escolhas import escolhas_da_pessoa
 
 urlpatterns = [
     path('dashboard/', dashboard_lider, name='dashboard_lider'),
@@ -35,6 +36,7 @@ urlpatterns = [
     #membros
     path('<int:equipe_pk>/membros/', membros_equipe_list, name='listar_membros_equipe'),
     path('<int:equipe_pk>/membro/<int:pk>/', membros_equipe_detail, name='membros_equipe_detail'),
+    path('<int:equipe_pk>/membro/<int:usuario_pk>/escolhas/', escolhas_da_pessoa, name='escolhas_da_pessoa'),
     path('<int:equipe_pk>/membro/adicionar/', membros_equipe_create, name='membros_equipe_create'),
     path('<int:equipe_pk>/membro/<int:pk>/editar/', membros_equipe_update, name='membros_equipe_update'),
     path('<int:equipe_pk>/membro/<int:pk>/excluir/', membros_equipe_delete, name='membros_equipe_delete'),

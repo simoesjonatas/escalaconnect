@@ -100,7 +100,7 @@ def escalas_com_situacao(escalas):
 
 
 def anotar_podem_servir(escalas):
-    """Em cada escala, `podem_servir`: quem pode ocupá-la, [{'nome', 'ofereceu'}].
+    """Em cada escala, `podem_servir`: quem pode ocupá-la, [{'id', 'nome', 'ofereceu'}].
 
     Para o líder tanto faz o caminho: entra quem se ofereceu para a vaga (primeiro, mesmo sem ter
     marcado disponibilidade) e quem está disponível no horário e livre no evento, sem repetir
@@ -136,8 +136,8 @@ def anotar_podem_servir(escalas):
             (u for u in disponiveis[(escala.funcao.equipe_id, escala.evento_id)]
              if u not in ofereceram and u != escala.usuario_id and u in nomes),
             key=lambda u: nomes[u].lower())
-        escala.podem_servir = ([{'nome': nomes[u], 'ofereceu': True} for u in ofereceram]
-                               + [{'nome': nomes[u], 'ofereceu': False} for u in livres])
+        escala.podem_servir = ([{'id': u, 'nome': nomes[u], 'ofereceu': True} for u in ofereceram]
+                               + [{'id': u, 'nome': nomes[u], 'ofereceu': False} for u in livres])
         escala.em_aberto = bool(
             not escala.confirmada
             or getattr(escala, 'impedimento_aberto', False) or getattr(escala, 'troca_aberta_id', None))

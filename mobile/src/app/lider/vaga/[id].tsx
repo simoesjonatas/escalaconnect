@@ -1,14 +1,27 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 
 import { periodo } from '../../../lib/datas';
 import { semAcento } from '../../../lib/texto';
 import { useAcaoDoLider, useEscalarNaVaga, useVaga } from '../../../lib/hooks';
 import { useTema } from '../../../lib/tema';
 import { Candidato } from '../../../lib/types';
-import { Campo, Cartao, Erro, Estado, Etiqueta, Grupo, ItemDeGrupo, Rotulo, Suave, Subtitulo, Tela, Texto } from '../../../lib/ui';
-
+import {
+  Campo,
+  Cartao,
+  Erro,
+  Estado,
+  Etiqueta,
+  Grupo,
+  ItemDeGrupo,
+  Rotulo,
+  Suave,
+  Subtitulo,
+  Tela,
+  Texto,
+} from '../../../lib/ui';
 
 /**
  * Escolher quem ocupa uma vaga em aberto: disponíveis primeiro, depois os demais membros da equipe.
@@ -48,12 +61,15 @@ export default function EscalarNaVaga() {
       {
         text: aConfirmar ? 'Trocar' : 'Escalar',
         onPress: () =>
-          escalar.mutate({ usuarioId: candidato.id, mesmoEvento: !!candidato.ja_escalado_em }, {
-            onSuccess: () => {
-              Alert.alert('Pronto', `${candidato.nome} está na escala e recebeu um aviso no app.`);
-              router.back();
+          escalar.mutate(
+            { usuarioId: candidato.id, mesmoEvento: !!candidato.ja_escalado_em },
+            {
+              onSuccess: () => {
+                Alert.alert('Pronto', `${candidato.nome} está na escala e recebeu um aviso no app.`);
+                router.back();
+              },
             },
-          }),
+          ),
       },
     ]);
   }
@@ -106,7 +122,9 @@ export default function EscalarNaVaga() {
               {pedido ? ` · ${pedido.pessoa.nome}` : aConfirmar ? ` · ${aConfirmar.nome}` : ''}
             </Suave>
             {!!pedido?.motivo && <Texto>Motivo: {pedido.motivo}</Texto>}
-            {aConfirmar && <Texto>{aConfirmar.nome} ainda não confirmou. Se quiser, escolha outra pessoa abaixo.</Texto>}
+            {aConfirmar && (
+              <Texto>{aConfirmar.nome} ainda não confirmou. Se quiser, escolha outra pessoa abaixo.</Texto>
+            )}
           </Cartao>
 
           {pedido && (
@@ -136,7 +154,13 @@ export default function EscalarNaVaga() {
           )}
 
           {dados.candidatos.length > 6 && (
-            <Campo rotulo="Buscar pessoa" value={busca} onChangeText={setBusca} placeholder="Nome" autoCorrect={false} />
+            <Campo
+              rotulo="Buscar pessoa"
+              value={busca}
+              onChangeText={setBusca}
+              placeholder="Nome"
+              autoCorrect={false}
+            />
           )}
 
           {candidatos.length === 0 && (
@@ -154,7 +178,24 @@ export default function EscalarNaVaga() {
               style={({ pressed }) => (pressed || ocupado) && { opacity: 0.6 }}>
               <Cartao>
                 {candidato.se_ofereceu && <Etiqueta texto="Se ofereceu" cor={cores.confirmada} />}
-                <Subtitulo>{candidato.nome}</Subtitulo>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Subtitulo style={{ flex: 1 }}>{candidato.nome}</Subtitulo>
+                  {/* Outro caminho: ver os dias que a pessoa escolheu e escalar em outro (só se tiver algum). */}
+                  {candidato.tem_dias !== false && (
+                    <Pressable
+                      onPress={() => router.push({ pathname: '/lider/pessoa/[id]', params: { id: candidato.id } })}
+                      hitSlop={10}
+                      accessibilityRole="link"
+                      accessibilityLabel={`Ver os dias que ${candidato.nome} marcou`}
+                      style={({ pressed }) => [
+                        { flexDirection: 'row', alignItems: 'center', gap: 4 },
+                        pressed && { opacity: 0.6 },
+                      ]}>
+                      <Ionicons name="calendar-outline" size={16} color={cores.primaria} />
+                      <Text style={{ color: cores.primaria, fontSize: 14, fontWeight: '600' }}>Dias</Text>
+                    </Pressable>
+                  )}
+                </View>
                 {candidato.ja_escalado_em ? (
                   // Já serve em outra função do evento: o líder pode escalar mesmo assim, confirmando.
                   <Texto style={{ color: cores.pendente, fontWeight: '600' }}>

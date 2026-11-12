@@ -20,6 +20,9 @@
     </ul>
     <div class="clearfix">
         <a class="btn btn-secondary" href="{% url 'listar_membros_equipe' membro.equipe.pk %}">Voltar</a>
+        {% if membro.aprovado %}
+        <a class="btn btn-success" href="{% url 'escolhas_da_pessoa' membro.equipe.pk membro.usuario_id %}">Dias que marcou</a>
+        {% endif %}
         <a class="btn btn-warning" href="{% url 'membros_equipe_update' membro.equipe.pk membro.pk %}">Editar</a>
         <a class="btn btn-danger" href="{% url 'membros_equipe_delete' membro.equipe.pk membro.pk %}">Excluir</a>
     </div>

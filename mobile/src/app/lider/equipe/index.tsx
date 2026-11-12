@@ -58,7 +58,11 @@ function Linha({
         {!!detalhe && <Suave style={{ fontSize: 13 }}>{detalhe}</Suave>}
       </View>
       {acao && (
-        <Pressable onPress={acao.aoTocar} hitSlop={10} accessibilityRole="button" style={{ flexDirection: 'row', gap: 4 }}>
+        <Pressable
+          onPress={acao.aoTocar}
+          hitSlop={10}
+          accessibilityRole="button"
+          style={{ flexDirection: 'row', gap: 4 }}>
           <Ionicons name={acao.icone} size={16} color={acao.perigo ? cores.perigo : cores.primaria} />
           <Text style={{ fontSize: 14, fontWeight: '600', color: acao.perigo ? cores.perigo : cores.primaria }}>
             {acao.texto}
@@ -121,7 +125,11 @@ export default function GerenciarEquipe() {
     const id = edicao.id;
     Alert.alert('Excluir função', `Excluir ${edicao.nome}?`, [
       { text: 'Voltar', style: 'cancel' },
-      { text: 'Excluir', style: 'destructive', onPress: () => executar({ tipo: 'excluir-funcao', id }, () => setEdicao(null)) },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: () => executar({ tipo: 'excluir-funcao', id }, () => setEdicao(null)),
+      },
     ]);
   }
 
@@ -150,8 +158,8 @@ export default function GerenciarEquipe() {
             <View style={{ flex: 1, gap: 2 }}>
               <Subtitulo>{dados.nome}</Subtitulo>
               <Suave>
-                {dados.integrantes.length} integrante{dados.integrantes.length === 1 ? '' : 's'} · {dados.funcoes.length}{' '}
-                funç{dados.funcoes.length === 1 ? 'ão' : 'ões'}
+                {dados.integrantes.length} integrante{dados.integrantes.length === 1 ? '' : 's'} ·{' '}
+                {dados.funcoes.length} funç{dados.funcoes.length === 1 ? 'ão' : 'ões'}
               </Suave>
             </View>
             {dados.pode_renomear && (
@@ -165,7 +173,11 @@ export default function GerenciarEquipe() {
             <Cartao style={{ gap: 12, borderColor: cores.primaria }}>
               <Campo
                 rotulo={
-                  edicao.tipo === 'equipe' ? 'Nome da equipe' : edicao.tipo === 'nova-funcao' ? 'Nova função' : 'Nome da função'
+                  edicao.tipo === 'equipe'
+                    ? 'Nome da equipe'
+                    : edicao.tipo === 'nova-funcao'
+                      ? 'Nova função'
+                      : 'Nome da função'
                 }
                 value={edicao.nome}
                 onChangeText={(nome) => setEdicao({ ...edicao, nome })}
@@ -173,7 +185,12 @@ export default function GerenciarEquipe() {
                 placeholder={edicao.tipo === 'nova-funcao' ? 'Ex.: Câmera 2' : undefined}
               />
               <Erro erro={mudar.error} />
-              <Botao titulo="Salvar" desabilitado={!edicao.nome.trim()} carregando={mudar.isPending} aoTocar={salvarEdicao} />
+              <Botao
+                titulo="Salvar"
+                desabilitado={!edicao.nome.trim()}
+                carregando={mudar.isPending}
+                aoTocar={salvarEdicao}
+              />
               {edicao.tipo === 'funcao' && <Botao titulo="Excluir função" variante="perigo" aoTocar={excluirFuncao} />}
               <Botao titulo="Cancelar" variante="secundario" aoTocar={() => setEdicao(null)} />
             </Cartao>
@@ -228,7 +245,7 @@ export default function GerenciarEquipe() {
             </View>
           </Grupo>
 
-          <Grupo titulo={`Integrantes (${dados.integrantes.length})`}>
+          <Grupo titulo={`Integrantes (${dados.integrantes.length}) · toque para ver os dias que marcou`}>
             <ItemDeGrupo
               icone="person-add-outline"
               titulo="Adicionar integrante"
@@ -248,6 +265,7 @@ export default function GerenciarEquipe() {
                 key={i.id}
                 inicio={<Avatar nome={i.pessoa.nome} />}
                 titulo={i.pessoa.nome}
+                aoTocar={() => router.push({ pathname: '/lider/pessoa/[id]', params: { id: i.pessoa.id } })}
                 detalhe={
                   i.lider
                     ? 'Líder'

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Count, Q
 
 from escalaconnect.periodos import Periodos
 from ocupado.models import Ocupado
@@ -22,5 +23,20 @@ def membros_sem_disponibilidade(equipe, ano, mes):
         get_user_model().objects
         .filter(is_active=True, membrosequipe__equipe=equipe, membrosequipe__aprovado=True)
         .exclude(pk__in=com_disponibilidade)
+        .order_by('first_name', 'username')
+    )
+
+
+def membros_com_disponibilidade(equipe, ano, mes):
+    """Membros aprovados da equipe que marcaram disponibilidade no mês; `marcados` diz quantas."""
+    from escalaconnect.tasks_availability import _month_bounds
+
+    inicio, fim, _, _ = _month_bounds(ano, mes)
+    return (
+        get_user_model().objects
+        .filter(is_active=True, membrosequipe__equipe=equipe, membrosequipe__aprovado=True)
+        .annotate(marcados=Count('disponivel', distinct=True, filter=Q(
+            disponivel__data_inicio__lte=fim, disponivel__data_fim__gte=inicio)))
+        .filter(marcados__gt=0)
         .order_by('first_name', 'username')
     )

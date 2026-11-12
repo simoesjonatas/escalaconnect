@@ -101,6 +101,9 @@
     .pend-filtro:hover { border-color:var(--connect-green); }
     .pend-filtro.ativo { background:var(--connect-green); border-color:var(--connect-green); color:#04210a; }
     .pend-filtro .n { font-weight:800; opacity:.75; }
+    .chip-dias { display:inline-grid; place-items:center; width:30px; height:30px; margin-left:-4px; border-radius:50%;
+        color:var(--connect-muted); border:1px solid var(--connect-border); background:var(--connect-surface-2); }
+    .chip-dias:hover { color:var(--connect-green); border-color:var(--connect-green); }
 </style>
 
 <div class="container dash-wrap">
@@ -189,6 +192,8 @@
                     <span class="chip-cta"><i class="fa fa-user-plus"></i> {{ vaga.evento.data_inicio|date:"d/m" }}</span>
                     {% endif %}
                 </a>
+                <a class="chip-dias" href="{% url 'escolhas_da_pessoa' grupo.equipe.pk p.pk %}"
+                   title="Ver os dias que {{ p.get_full_name|default:p.username }} marcou e escolher outro"><i class="fa fa-calendar-check"></i></a>
                 {% endwith %}
                 {% endfor %}
             </div>
@@ -205,18 +210,17 @@
     {% endif %}
 
     <!-- Pendências -->
-    {% if impedimentos or trocas_abertas or ofertas %}
+    {% if impedimentos or trocas_abertas %}
     <div class="panel">
         <div class="panel-title">
             <i class="fa fa-exclamation-triangle" style="color:var(--connect-danger)"></i> Pendências aguardando você
             <span class="count-pill">{{ pendencias_total }}</span>
         </div>
-        <div class="panel-sub">Impedimentos e trocas que travam a escala, e quem se ofereceu para servir numa vaga.</div>
+        <div class="panel-sub">Impedimentos e trocas que travam a escala.</div>
         <div class="pend-filtros" role="group" aria-label="Filtrar pendências por tipo">
             <button type="button" class="pend-filtro ativo" data-filtro="todas">Todas <span class="n">{{ pendencias_total }}</span></button>
             {% if impedimentos %}<button type="button" class="pend-filtro" data-filtro="impedimento"><i class="fa fa-ban"></i> Impedimentos <span class="n">{{ impedimentos_total }}</span></button>{% endif %}
             {% if trocas_abertas %}<button type="button" class="pend-filtro" data-filtro="troca"><i class="fa fa-exchange-alt"></i> Trocas <span class="n">{{ trocas_total }}</span></button>{% endif %}
-            {% if ofertas %}<button type="button" class="pend-filtro" data-filtro="oferta"><i class="fa fa-hand-paper"></i> Querem servir <span class="n">{{ ofertas_total }}</span></button>{% endif %}
         </div>
         <div class="table-responsive">
             <table class="dash-table">
@@ -240,15 +244,6 @@
                         <td>{{ t.escala_origem.funcao.equipe.nome }} — {{ t.escala_origem.funcao.nome }}</td>
                         <td>{{ t.solicitante.get_full_name|default:t.solicitante.username }}</td>
                         <td><a class="btn btn-warning btn-xs" href="{% url 'detalhes_solicitacao_troca' t.pk %}">Analisar</a></td>
-                    </tr>
-                    {% endfor %}
-                    {% for o in ofertas %}
-                    <tr data-tipo="oferta">
-                        <td><span class="pill-tag success"><i class="fa fa-hand-paper"></i> Quer servir</span></td>
-                        <td>{{ o.escala.evento.nome }}<br><span class="cell-sub">{{ o.escala.evento.data_inicio|date:"d/m/Y H:i" }}</span></td>
-                        <td>{{ o.escala.funcao.equipe.nome }} — {{ o.escala.funcao.nome }}</td>
-                        <td>{{ o.candidato.get_full_name|default:o.candidato.username }}<br><span class="cell-sub">se ofereceu em {{ o.data_candidatura|date:"d/m H:i" }}</span></td>
-                        <td><a class="btn btn-success btn-xs" href="{% url 'escala_detail_equipe' o.escala.funcao.equipe_id o.escala.pk %}">Escolher</a></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -275,7 +270,7 @@
     {% endif %}
 
     <!-- Buracos na escala -->
-    <div class="panel">
+    <div class="panel" id="buracos">
         <div class="panel-title">
             <i class="fa fa-user-slash" style="color:var(--connect-danger)"></i> Buracos na escala
             <span class="count-pill">{{ buracos_total }}</span>

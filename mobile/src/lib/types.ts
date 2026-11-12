@@ -134,7 +134,12 @@ export type PendenciasDoLider = {
 };
 
 /** `ofertas`: quantos se ofereceram e esperam o líder (ausente em servidor antigo). */
-export type Vaga = EscalaDaEquipe & { disponiveis: number; ofertas?: number };
+export type Vaga = EscalaDaEquipe & {
+  disponiveis: number;
+  ofertas?: number;
+  /** Primeiro nome de quem se ofereceu, por ordem de chegada (servidor anterior não manda). */
+  quem_ofereceu?: string[];
+};
 
 export type Candidato = Pessoa & {
   disponivel: boolean;
@@ -142,6 +147,8 @@ export type Candidato = Pessoa & {
   servicos_no_mes: number;
   /** Outra função em que já serve neste evento; o líder pode escalar mesmo assim, confirmando. */
   ja_escalado_em?: string | null;
+  /** Tem dias para escolher (marcou disponibilidade ou se ofereceu); servidor anterior não manda. */
+  tem_dias?: boolean;
 };
 
 /** Impedimento ou troca à espera na escala: o líder vê quem pode substituir antes de aprovar. */
@@ -186,7 +193,38 @@ export type DisponibilidadeDaEquipe = {
   ano: number | null;
   mes: number | null;
   faltantes: Pessoa[];
+  /** Quem marcou no mês e quantas datas (servidor anterior não manda). */
+  marcaram?: (Pessoa & { marcados: number })[];
   membros: number;
+};
+
+/** Vaga aberta num dia que a pessoa escolheu; `se_ofereceu` se ela pediu essa vaga. */
+export type VagaDaPessoa = {
+  id: number;
+  funcao: string;
+  equipe: string;
+  equipe_id: number;
+  se_ofereceu: boolean;
+  /** Quantos outros (fora a pessoa) se ofereceram ou estão disponíveis para a vaga. */
+  outros_querem: number;
+  outros_disponiveis: number;
+};
+
+/** Um dia que a pessoa escolheu: marcou disponibilidade, se ofereceu ou já está escalada. */
+export type EscolhaDaPessoa = {
+  evento: Escala['evento'];
+  /** As equipes do líder têm função no culto: dá para abrir a tela dele. */
+  culto_da_equipe: boolean;
+  disponivel: boolean;
+  ja_escalado_em: string | null;
+  vagas: VagaDaPessoa[];
+};
+
+export type EscolhasDaPessoa = {
+  pessoa: Pessoa;
+  equipes: string[];
+  servicos_no_mes: number;
+  eventos: EscolhaDaPessoa[];
 };
 
 /** Notificação guardada na caixa de avisos. `tipo` e `escala_id` são os mesmos do push. */
