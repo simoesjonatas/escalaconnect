@@ -61,13 +61,14 @@ de teste (no máximo um a cada 30 s) e responde:
 - `batimento: false`: o cache não é compartilhado (sem `CACHE_URL`, ou Celery em modo eager);
   só a publicação na fila é conferida.
 
-### Consultar pelo cron da VPS (recomendado)
+### Consultar pelo cron da VPS (instalado em 14/11/2026)
 
-Sem serviço externo: o cron do host chama o endpoint a cada 10 min e o próprio endpoint manda o
-e-mail quando há problema.
+Sem serviço externo: o cron do root na VPS chama o endpoint a cada 10 min e o próprio endpoint
+manda o e-mail quando há problema. Falha do `curl` (503, timeout) vai para o syslog com a tag
+`escalaconnect-healthz` (`journalctl -t escalaconnect-healthz`). Está no `crontab -l` do root:
 
 ```cron
-*/10 * * * * curl -fsS -o /dev/null --max-time 30 -H 'X-Forwarded-Proto: https' http://localhost:8095/healthz/celery
+*/10 * * * * curl -fsS -o /dev/null --max-time 30 -H "X-Forwarded-Proto: https" http://localhost:8095/healthz/celery 2>&1 | logger -t escalaconnect-healthz
 ```
 
 - `localhost` precisa estar em `ALLOWED_HOSTS` (já está no `.env.example`).
