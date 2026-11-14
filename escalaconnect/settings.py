@@ -369,8 +369,9 @@ CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower(
 CELERY_TASK_EAGER_PROPAGATES = os.getenv("CELERY_TASK_EAGER_PROPAGATES", "true").lower() == "true"
 
 # === Monitor da fila (escalaconnect/monitor_fila.py; docs/monitoramento-celery.md) ===
-# Quem recebe o e-mail quando o worker/beat param ou a fila recusa tarefas: ADMINS=a@x.com,b@y.com
-ADMINS = [(email, email) for email in config('ADMINS', default='', cast=Csv())]
+# Quem recebe o e-mail quando o worker/beat param ou a fila recusa tarefas. Padrão: o responsável
+# pelo sistema; ADMINS=a@x.com,b@y.com no .env troca a lista (vazio = só o log).
+ADMINS = [(email, email) for email in config('ADMINS', default='jonatasimoes.js@gmail.com', cast=Csv())]
 EMAIL_SUBJECT_PREFIX = '[Escala Connect] '
 # O batimento precisa do cache compartilhado entre web e worker (CACHE_URL) e de fila de verdade.
 MONITOR_FILA_BATIMENTO = config(

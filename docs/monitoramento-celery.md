@@ -39,8 +39,9 @@ carência de 20 min antes de reclamar.
 Cada problema gera **no máximo um e-mail a cada `MONITOR_FILA_AVISO_HORAS`** (6 h), entre todos os
 processos (trava no Redis; com o Redis fora, a trava passa a ser por processo, então chegam até 3
 e-mails por janela, um por worker do gunicorn). Os e-mails saem pelo
-SMTP já configurado (`EMAIL_HOST_USER`), com assunto `[Escala Connect] Celery: ...`. Com `ADMINS`
-vazio, o aviso só vai para o log do `web`.
+SMTP já configurado (`EMAIL_HOST_USER`), com assunto `[Escala Connect] Celery: ...`, para
+jonatasimoes.js@gmail.com (padrão em `settings.py`; `ADMINS` no `.env` troca a lista). Com `ADMINS`
+vazio no `.env`, o aviso só vai para o log do `web`.
 
 Os momentos 1 e 2 dependem de alguém usar o site ou o app. Para avisar mesmo sem uso (madrugada,
 feriado), alguém precisa consultar o `/healthz/celery` de tempos em tempos: veja o cron abaixo.
@@ -129,12 +130,12 @@ Depois de corrigir, o `/healthz/celery` volta a 200 em até 5 min (próximo bati
 
 | Variável | Padrão | Para quê |
 | --- | --- | --- |
-| `ADMINS` | vazio | quem recebe os e-mails, separados por vírgula |
+| `ADMINS` | jonatasimoes.js@gmail.com | quem recebe os e-mails, separados por vírgula |
 | `MONITOR_FILA_MINUTOS` | 20 | idade máxima do batimento |
 | `MONITOR_FILA_AVISO_HORAS` | 6 | intervalo mínimo entre dois e-mails do mesmo problema |
 | `MONITOR_FILA_BATIMENTO` | ligado com `CACHE_URL` e sem eager | conferir o batimento |
 
-Para testar o envio do e-mail (SMTP e `ADMINS`) depois do deploy:
+Para testar o envio do e-mail (SMTP e destinatário) depois do deploy:
 
 ```bash
 docker compose exec web python manage.py shell -c "from escalaconnect import monitor_fila as m; print(m.avisar([m.Problema('teste', 'E-mail de teste do monitor da fila.')]))"
