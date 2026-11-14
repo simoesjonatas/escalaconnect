@@ -4,6 +4,8 @@ from datetime import timedelta
 from django.db import transaction
 from django.utils import formats, timezone
 
+from escalaconnect import monitor_fila
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,11 +37,15 @@ def notificar_push(usuario_id, titulo, corpo, tipo, purpose, escala_id=None, thr
     def enfileirar():
         # Roda depois do commit: se a fila (Redis) estiver fora, o que o usuário fez já foi salvo e
         # não pode virar erro 500 — o push se perde, o aviso continua na caixa do app.
+        # Mas não em silêncio: o monitor da fila avisa os admins por e-mail (com limite).
         try:
             enviar_push_task.delay(
                 usuario_id, titulo, corpo, tipo, purpose, escala_id=escala_id, throttle_horas=throttle_horas)
-        except Exception:
+        except Exception as erro:
             logger.exception('Push não enfileirado (fila indisponível): usuário %s, %s', usuario_id, purpose)
+            monitor_fila.falhou_ao_enfileirar('Push', erro)
+        else:
+            monitor_fila.enfileirou()
 
     transaction.on_commit(enfileirar)
     return True

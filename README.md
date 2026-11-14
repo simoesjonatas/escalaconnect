@@ -63,6 +63,18 @@ http://127.0.0.1:8000/
 
 ---
 
+## 🩺 Produção: monitoramento do Celery  
+Push, lembretes e e-mails saem pelo Celery (serviços `celeryworker` e `celerybeat` do `docker-compose.yml`). Se eles param, o site continua no ar e ninguém percebe. Por isso:
+
+- `docker compose ps` mostra `(healthy)`/`(unhealthy)` para o worker e o beat;
+- o `web` manda e-mail aos `ADMINS` (variável do `.env`) quando a fila recusa tarefas ou o worker/beat param de bater;
+- `GET /healthz/celery` responde 200 ou 503 com o diagnóstico, para cron ou monitor externo;
+- Monitoramento > **Fila e push** (só superusuário) mostra a fila, as tarefas agendadas com a próxima execução e os últimos pushes.
+
+Detalhes, cron sugerido e o que fazer ao receber o aviso: [docs/monitoramento-celery.md](docs/monitoramento-celery.md).
+
+---
+
 ## 📝 Contribuição  
 Contribuições são bem-vindas! Caso tenha sugestões ou encontre bugs, abra uma **Issue** ou envie um **Pull Request**.
 

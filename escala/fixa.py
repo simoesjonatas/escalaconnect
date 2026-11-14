@@ -18,7 +18,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from equipe.models import MembrosEquipe
-from escalaconnect import mensagens_push
+from escalaconnect import mensagens_push, monitor_fila
 from escalaconnect.push import notificar_push
 from escalaconnect.regras import RegraDeNegocio
 from evento.models import Evento, Notification
@@ -123,9 +123,12 @@ def _agendar_aviso(usuario_id):
 
     try:
         avisar_escala_fixa_task.apply_async(args=[usuario_id], countdown=ESPERA_DO_AVISO)
-    except Exception:
+    except Exception as erro:
         # Fila fora do ar: a escala já está salva; o aviso fica pendente para a próxima vez.
         logger.exception('Aviso da escala fixa não enfileirado: usuário %s', usuario_id)
+        monitor_fila.falhou_ao_enfileirar('Aviso da escala fixa', erro)
+    else:
+        monitor_fila.enfileirou()
 
 
 def aplicar_escala_fixa(equipe, eventos=None, resultado=None):

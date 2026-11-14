@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib.auth.views import LogoutView, LoginView
@@ -23,7 +23,8 @@ from django.contrib.auth.views import LogoutView, LoginView
 from .views import base_view, calendario_view, redirect_to_home, confirmar_presenca, view_enviar_confirmacao, privacidade
 from escala.views import agenda_ics, carregar_funcoes
 from equipe.views_pdf import pdf_por_link
-from usuario.views_monitor import monitoramento_uso, monitoramento_app
+from usuario.views_monitor import monitoramento_uso, monitoramento_app, monitoramento_fila
+from .views_saude import saude_celery
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -34,7 +35,10 @@ urlpatterns = [
     path('calendario/', calendario_view, name='calendario'),
     path('monitoramento/', monitoramento_uso, name='monitoramento_uso'),
     path('monitoramento/app/', monitoramento_app, name='monitoramento_app'),
+    path('monitoramento/fila/', monitoramento_fila, name='monitoramento_fila'),
     path('privacidade/', privacidade, name='privacidade'),
+    # Saúde do Celery para monitoramento externo; com e sem a barra (sem redirect 301).
+    re_path(r'^healthz/celery/?$', saude_celery, name='saude_celery'),
     # Link de agenda sem login, assinado (botões "Adicionar à agenda" do app).
     path('agenda/<str:token>.ics', agenda_ics, name='agenda_ics'),
     path('pdf/escala/<str:token>/', pdf_por_link, name='pdf_da_escala'),

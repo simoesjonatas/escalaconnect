@@ -354,11 +354,31 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'api.tasks.aplicar_escalas_fixas',
         'schedule': crontab(hour=6, minute=0),
     },
+    # Batimento do monitor da fila (escalaconnect/monitor_fila.py): prova que o beat agenda e o
+    # worker roda. expires: com o worker parado, os batimentos não se acumulam na fila.
+    'batimento': {
+        'task': 'escalaconnect.batimento',
+        'schedule': crontab(minute='*/5'),
+        'kwargs': {'origem': 'beat'},
+        'options': {'expires': 4 * 60},
+    },
 }
 
 # Execução síncrona (apenas dev)
 CELERY_TASK_ALWAYS_EAGER = os.getenv("CELERY_TASK_ALWAYS_EAGER", "false").lower() == "true"
 CELERY_TASK_EAGER_PROPAGATES = os.getenv("CELERY_TASK_EAGER_PROPAGATES", "true").lower() == "true"
+
+# === Monitor da fila (escalaconnect/monitor_fila.py; docs/monitoramento-celery.md) ===
+# Quem recebe o e-mail quando o worker/beat param ou a fila recusa tarefas: ADMINS=a@x.com,b@y.com
+ADMINS = [(email, email) for email in config('ADMINS', default='', cast=Csv())]
+EMAIL_SUBJECT_PREFIX = '[Escala Connect] '
+# O batimento precisa do cache compartilhado entre web e worker (CACHE_URL) e de fila de verdade.
+MONITOR_FILA_BATIMENTO = config(
+    'MONITOR_FILA_BATIMENTO', default=bool(CACHE_URL) and not CELERY_TASK_ALWAYS_EAGER, cast=bool)
+# Batimento mais velho que isto = worker ou beat parado (o beat agenda um a cada 5 min).
+MONITOR_FILA_MINUTOS = config('MONITOR_FILA_MINUTOS', default=20, cast=int)
+# Intervalo mínimo entre dois e-mails sobre o mesmo problema.
+MONITOR_FILA_AVISO_HORAS = config('MONITOR_FILA_AVISO_HORAS', default=6, cast=int)
 
 
 # === Logging ===

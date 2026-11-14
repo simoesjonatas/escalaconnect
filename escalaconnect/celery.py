@@ -16,3 +16,15 @@ app.autodiscover_tasks()
 @app.task(bind=True)
 def debug_task(self):
     logger.info("Request: %r", self.request)
+
+
+@app.task(name="escalaconnect.batimento", ignore_result=True)
+def batimento(origem="beat"):
+    """Batimento do monitor da fila (escalaconnect/monitor_fila.py).
+
+    O beat agenda a cada 5 min (origem 'beat'); o /healthz/celery publica testes (origem 'monitor').
+    Fica aqui, no próprio app, para estar sempre registrada no worker.
+    """
+    from escalaconnect.monitor_fila import registrar_batimento
+
+    registrar_batimento(origem)

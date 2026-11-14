@@ -64,6 +64,16 @@ services:
         condition: service_healthy
       web:
         condition: service_started
+    # O worker responde ao ping do Celery? `docker compose ps` mostra (healthy)/(unhealthy).
+    # Só sinaliza: o Compose não reinicia container unhealthy. Quem avisa é o monitor da fila
+    # (e-mail aos ADMINS e /healthz/celery; ver docs/monitoramento-celery.md).
+    # $$HOSTNAME: o Compose entrega $HOSTNAME ao shell, que é o nome do nó (celery@<hostname>).
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A escalaconnect inspect ping -d celery@$$HOSTNAME --timeout 10 > /dev/null"]
+      interval: 2m
+      timeout: 30s
+      retries: 3
+      start_period: 1m
 
   # Celery Beat: dispara as tarefas periódicas (CELERY_BEAT_SCHEDULE em settings.py),
   # como o aviso pelo app 2h antes do evento. Deve existir UM só container deste
@@ -84,6 +94,15 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    # O beat regrava o arquivo de agenda depois de disparar uma tarefa; como o batimento sai a cada
+    # 5 min, o beat vivo mantém o arquivo com até ~5 min. Parado ou travado, o arquivo envelhece.
+    # Só sinaliza, como no worker.
+    healthcheck:
+      test: ["CMD-SHELL", "find /tmp -maxdepth 1 -name 'celerybeat-schedule*' -mmin -15 | grep -q ."]
+      interval: 2m
+      timeout: 10s
+      retries: 3
+      start_period: 1m
 
   redis:
     image: redis:7-alpine

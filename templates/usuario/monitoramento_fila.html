@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+
+{% block page_title %}
+Fila e push
+{% endblock %}
+
+{% block breadcrumb %}
+<ul class="app-breadcrumb breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'base_page' %}"><i class="fa fa-home fa-lg"></i></a></li>
+    <li class="breadcrumb-item"><a href="{% url 'monitoramento_uso' %}">Monitoramento</a></li>
+    <li class="breadcrumb-item active">Fila e push</li>
+</ul>
+{% endblock breadcrumb %}
+
+{% block content %}
+{% include 'usuario/_monitor_estilo.html' %}
+<style>
+    .monitor-card .monitor-valor.texto { font-size: 20px; line-height: 1.25; }
+    .monitor-card.alerta .monitor-valor { color: var(--connect-danger); }
+    .monitor-painel h4 { margin: 16px 0 8px; font-size: 14px; color: var(--connect-text); }
+    .monitor-painel h4:first-of-type { margin-top: 0; }
+    .monitor-painel h4 small { font-weight: 400; color: var(--connect-muted); }
+    .monitor-problemas { border-color: var(--connect-danger); }
+    .monitor-problemas ul { margin: 0 0 8px; padding-left: 18px; color: var(--connect-text); font-size: 14px; }
+    .monitor-problemas li { margin: 4px 0; }
+    .monitor-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--connect-muted); overflow-wrap: anywhere; }
+    .selo-erro { background: rgba(220, 53, 69, .15); color: var(--connect-danger); }
+    .selo-aviso { background: rgba(255, 193, 7, .18); color: var(--connect-warning); }
+</style>
+
+<div class="monitor-page">
+    {% include 'usuario/_monitor_nav.html' %}
+
+    <div class="monitor-cards">
+        <div class="monitor-card {% if problemas %}alerta{% else %}destaque{% endif %}">
+            <p class="monitor-rotulo">Celery</p>
+            <p class="monitor-valor texto">{% if problemas %}Com problema{% else %}Tudo certo{% endif %}</p>
+            <p class="monitor-detalhe">
+                {% if fila_aceita is False %}a fila recusou a tarefa de teste{% elif fila_aceita %}a fila aceitou a tarefa de teste{% else %}teste de publicação há pouco{% endif %}
+            </p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Worker</p>
+            <p class="monitor-valor texto">{% if ultimo_worker %}{{ ultimo_worker }}{% elif batimento %}sem batimento{% else %}—{% endif %}</p>
+            <p class="monitor-detalhe">último batimento que rodou</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Beat</p>
+            <p class="monitor-valor texto">{% if ultimo_beat %}{{ ultimo_beat }}{% elif batimento %}sem batimento{% else %}—{% endif %}</p>
+            <p class="monitor-detalhe">último batimento agendado por ele (a cada 5 min)</p>
+        </div>
+        <div class="monitor-card {% if broker.total %}alerta{% endif %}">
+            <p class="monitor-rotulo">Esperando na fila</p>
+            <p class="monitor-valor">{% if broker.total is None %}?{% else %}{{ broker.total }}{% endif %}</p>
+            <p class="monitor-detalhe">tarefas que o worker ainda não pegou</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Pushes nas últimas 24 h</p>
+            <p class="monitor-valor">{{ enviados_24h }}</p>
+            <p class="monitor-detalhe">enviados · {{ erros_24h }} com erro · {{ pulados_24h }} pulado{{ pulados_24h|pluralize:"s" }}</p>
+        </div>
+        <div class="monitor-card">
+            <p class="monitor-rotulo">Último push enviado</p>
+            <p class="monitor-valor texto">{{ ultimo_enviado_ha|default:"nenhum" }}</p>
+            <p class="monitor-detalhe">{% if ultimo_enviado %}{{ ultimo_enviado|date:"d/m/Y H:i" }}{% else %}nenhum registro de envio{% endif %}</p>
+        </div>
+    </div>
+
+    {% if problemas %}
+    <div class="monitor-painel monitor-problemas">
+        <h3>O que está errado</h3>
+        <ul>
+            {% for p in problemas %}
+            <li><strong>{{ p.titulo|capfirst }}.</strong> {{ p.detalhe }}</li>
+            {% endfor %}
+        </ul>
+        <p class="monitor-resumo">
+            Na VPS, na pasta do projeto: <span class="monitor-codigo">docker compose ps</span> e
+            <span class="monitor-codigo">docker compose logs --tail 100 celeryworker celerybeat</span>.
+            Os admins recebem este aviso por e-mail (no máximo um por problema a cada poucas horas).
+        </p>
+    </div>
+    {% endif %}
+    {% if not batimento %}
+    <div class="monitor-painel">
+        <p class="monitor-vazio">O batimento está desligado (sem cache compartilhado entre o site e o worker, ou Celery em modo eager): só o teste de publicação vale aqui.</p>
+    </div>
+    {% endif %}
+
+    <div class="monitor-painel" id="agenda">
+        <h3>Tarefas agendadas <small>· disparadas pelo beat, horário de Brasília</small></h3>
+        <table class="monitor-tabela grade">
+            <thead>
+                <tr><th>Tarefa</th><th>Quando</th><th>Próxima</th></tr>
+            </thead>
+            <tbody>
+                {% for t in agenda %}
+                <tr>
+                    <td class="principal inteira">{{ t.descricao|default:t.nome }}<br><span class="monitor-codigo">{{ t.tarefa }}</span></td>
+                    <td class="sem-rotulo" data-rotulo="Quando">{{ t.quando }}</td>
+                    <td class="direita" data-rotulo="Próxima">{% if t.proxima %}{{ t.proxima|date:"d/m H:i" }} <span class="muted">(em {{ t.proxima|timeuntil }})</span>{% else %}—{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="monitor-resumo" style="margin-top: 8px;">
+            A próxima execução só acontece com o beat de pé{% if ultimo_beat %} (último batimento dele: {{ ultimo_beat }}){% endif %}.
+        </p>
+    </div>
+
+    <div class="monitor-painel" id="fila">
+        <h3>Na fila</h3>
+
+        <h4>Esperando no broker <small>· fila "{{ broker.fila }}"{% if broker.total is not None %}, {{ broker.total }} tarefa{{ broker.total|pluralize:"s" }}{% endif %}</small></h4>
+        {% if broker.erro %}
+        <p class="monitor-vazio">Não consegui ler a fila: <span class="monitor-codigo">{{ broker.erro }}</span></p>
+        {% elif broker.proximas %}
+        <table class="monitor-tabela grade">
+            <thead><tr><th>Tarefa</th><th>Argumentos</th><th>Para</th></tr></thead>
+            <tbody>
+                {% for m in broker.proximas %}
+                <tr>
+                    <td class="principal inteira"><span class="monitor-codigo">{{ m.tarefa }}</span></td>
+                    <td class="inteira sem-rotulo"><span class="monitor-codigo">{{ m.args|default:"—" }}</span></td>
+                    <td class="direita" data-rotulo="Para">{% if m.eta %}{{ m.eta|date:"d/m H:i" }}{% else %}agora{% endif %}{% if m.expira %} <span class="muted">· expira {{ m.expira|date:"H:i" }}</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if broker.total > broker.proximas|length %}<p class="monitor-resumo">Mostrando as próximas {{ broker.proximas|length }}.</p>{% endif %}
+        {% else %}
+        <p class="monitor-vazio">Vazia: o worker já pegou tudo o que chegou.</p>
+        {% endif %}
+
+        <h4>Com o worker{% if worker %} <small>· {{ worker.worker }}</small>{% endif %}</h4>
+        {% if worker is None %}
+        <p class="monitor-vazio"><span class="selo selo-erro">sem resposta</span> O worker não respondeu em 1 s: está parado ou ocupado demais.</p>
+        {% elif worker.rodando or worker.reservadas or worker.agendadas %}
+        <table class="monitor-tabela grade">
+            <thead><tr><th>Tarefa</th><th>Argumentos</th><th>Situação</th></tr></thead>
+            <tbody>
+                {% for t in worker.rodando %}
+                <tr>
+                    <td class="principal inteira"><span class="monitor-codigo">{{ t.tarefa }}</span></td>
+                    <td class="inteira sem-rotulo"><span class="monitor-codigo">{{ t.args|default:"—" }}</span></td>
+                    <td class="sem-rotulo"><span class="selo selo-ok">rodando agora</span></td>
+                </tr>
+                {% endfor %}
+                {% for t in worker.reservadas %}
+                <tr>
+                    <td class="principal inteira"><span class="monitor-codigo">{{ t.tarefa }}</span></td>
+                    <td class="inteira sem-rotulo"><span class="monitor-codigo">{{ t.args|default:"—" }}</span></td>
+                    <td class="sem-rotulo"><span class="selo selo-off">na vez</span></td>
+                </tr>
+                {% endfor %}
+                {% for t in worker.agendadas %}
+                <tr>
+                    <td class="principal inteira"><span class="monitor-codigo">{{ t.tarefa }}</span></td>
+                    <td class="inteira sem-rotulo"><span class="monitor-codigo">{{ t.args|default:"—" }}</span></td>
+                    <td class="sem-rotulo"><span class="selo selo-aviso">{% if t.eta %}às {{ t.eta|date:"d/m H:i" }}{% else %}agendada{% endif %}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="monitor-vazio"><span class="selo selo-ok">respondeu</span> Nada em mãos agora.</p>
+        {% endif %}
+        <p class="monitor-resumo" style="margin-top: 8px;">Tarefas com espera (conferir recibos do push, aviso da escala fixa) ficam com o worker até a hora, como "agendadas".</p>
+    </div>
+
+    <div class="monitor-painel" id="pushes">
+        <h3>Últimos pushes <small>· cada tentativa de envio à Expo</small></h3>
+        <form method="get" action="#pushes" class="monitor-filtros">
+            <select name="status" aria-label="Situação do envio" onchange="this.form.submit()">
+                {% for valor, rotulo in status_push %}
+                <option value="{{ valor }}" {% if status == valor %}selected{% endif %}>{{ rotulo }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Filtrar</button>
+            {% if status %}<a class="limpar" href="?#pushes">Limpar</a>{% endif %}
+        </form>
+        <p class="monitor-resumo">{{ page_obj.paginator.count }} tentativa{{ page_obj.paginator.count|pluralize:"s" }}</p>
+        {% if page_obj.object_list %}
+        <table class="monitor-tabela grade">
+            <thead>
+                <tr><th>Para</th><th>Tipo</th><th>Situação</th><th>Quando</th></tr>
+            </thead>
+            <tbody>
+                {% for a in page_obj %}
+                <tr>
+                    <td class="principal inteira">{{ a.notification.usuario.get_full_name|default:a.notification.usuario.username }}
+                        {% if a.error_message %}<br><span class="muted">{{ a.error_message|truncatechars:160 }}</span>{% endif %}</td>
+                    <td class="inteira sem-rotulo"><span class="muted">{{ a.notification.get_purpose_display }}</span></td>
+                    <td class="sem-rotulo">
+                        {% if a.status == 'sent' %}<span class="selo selo-ok">enviado</span>
+                        {% elif a.status == 'error' %}<span class="selo selo-erro">erro</span>
+                        {% elif a.status == 'skipped' %}<span class="selo selo-off">pulado</span>
+                        {% else %}<span class="selo selo-off">{{ a.status }}</span>{% endif %}
+                    </td>
+                    <td class="direita sem-rotulo" title="Quando">{{ a.created_at|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% include 'usuario/_monitor_paginacao.html' %}
+        {% else %}
+        <p class="monitor-vazio">Nenhum push registrado{% if status %} com esse filtro{% endif %}.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

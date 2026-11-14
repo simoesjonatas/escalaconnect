@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.sessions.models import Session
 from django.core.paginator import Paginator
@@ -7,6 +8,7 @@ from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.timesince import timesince
 
 from .models import AtividadeDiaria, RegistroLogin, Usuario
 
@@ -246,3 +248,75 @@ def monitoramento_app(request):
         'validade_dias': ttl.days,
     }
     return render(request, 'usuario/monitoramento_app.html', contexto)
+
+
+STATUS_PUSH = [('', 'Todos'), ('sent', 'Enviados'), ('error', 'Com erro'), ('skipped', 'Pulados')]
+
+
+@login_required
+def monitoramento_fila(request):
+    """Fila e push: o Celery está de pé? O que está na fila, o que o beat agenda e os últimos pushes."""
+    if not request.user.is_superuser:
+        return render(request, '403_forbidden.html', status=403)
+
+    from escalaconnect import monitor_fila
+    from evento.models import Notification, NotificationAttempt
+
+    agora = timezone.now()
+    # Publica um batimento de teste (no máx. 1 a cada 30 s): confirma que a fila aceita tarefas.
+    # Não manda e-mail: quem está olhando a página já está vendo.
+    estado = monitor_fila.estado(publicar=True)
+
+    def ha(momento):
+        """'agora mesmo' / 'há 3 minutos' (None se nunca)."""
+        if momento is None:
+            return None
+        return 'agora mesmo' if agora - momento < timedelta(minutes=1) else f'há {timesince(momento, agora)}'
+
+    def segundos_atras(segundos):
+        return None if segundos is None else agora - timedelta(seconds=segundos)
+
+    tentativas = NotificationAttempt.objects.filter(notification__channel=Notification.CHANNEL_PUSH)
+    ultimas_24h = dict(
+        tentativas.filter(created_at__gte=agora - timedelta(hours=24))
+        .values_list('status').annotate(n=Count('id')).order_by()
+    )
+    ultimo_enviado = tentativas.filter(status='sent').order_by('-created_at').values_list('created_at', flat=True).first()
+
+    status = request.GET.get('status') or ''
+    if status not in dict(STATUS_PUSH):
+        status = ''
+    lista = tentativas.select_related('notification__usuario').order_by('-created_at')
+    if status:
+        lista = lista.filter(status=status)
+
+    broker = monitor_fila.fila_no_broker()
+    # Com o broker fora não adianta perguntar ao worker (seria só mais espera).
+    worker = monitor_fila.tarefas_no_worker() if broker['erro'] is None else None
+    problemas = list(estado['problemas'])
+    codigos = {p.codigo for p in problemas}
+    if broker['erro'] is None and worker is None and 'worker_parado' not in codigos:
+        # Pergunta direta, mais rápida que esperar o batimento envelhecer: o processo principal do
+        # worker responde mesmo com todas as tarefas ocupadas.
+        problemas.append(monitor_fila.Problema(
+            'worker_parado', 'O worker não respondeu agora (1 s de espera). Se a fila só cresce, ele está parado.'))
+    contexto = {
+        'problemas': problemas,
+        'batimento': estado['batimento'],
+        'fila_aceita': estado.get('fila_aceita'),
+        'ultimo_worker': ha(segundos_atras(estado.get('worker_seg'))),
+        'ultimo_beat': ha(segundos_atras(estado.get('beat_seg'))),
+        'limite_minutos': settings.MONITOR_FILA_MINUTOS,
+        'broker': broker,
+        'worker': worker,
+        'agenda': monitor_fila.agenda_do_beat(),
+        'enviados_24h': ultimas_24h.get('sent', 0),
+        'erros_24h': ultimas_24h.get('error', 0),
+        'pulados_24h': ultimas_24h.get('skipped', 0),
+        'ultimo_enviado': ultimo_enviado,
+        'ultimo_enviado_ha': ha(ultimo_enviado),
+        'page_obj': _pagina(request, lista),
+        'status': status,
+        'status_push': STATUS_PUSH,
+    }
+    return render(request, 'usuario/monitoramento_fila.html', contexto)
