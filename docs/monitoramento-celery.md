@@ -138,7 +138,8 @@ Depois de corrigir, o `/healthz/celery` volta a 200 em até 5 min (próximo bati
 Para testar o envio do e-mail (SMTP e destinatário) depois do deploy:
 
 ```bash
-docker compose exec web python manage.py shell -c "from escalaconnect import monitor_fila as m; print(m.avisar([m.Problema('teste', 'E-mail de teste do monitor da fila.')]))"
+docker compose exec web python manage.py shell -c "from django.core.mail import mail_admins; mail_admins('Celery: teste do monitor', 'E-mail de teste do monitor da fila.', fail_silently=False)"
 ```
 
-Imprime `1` quando o e-mail saiu (o código `teste` também respeita a janela de 6 h).
+Sem saída = o SMTP aceitou; erro de SMTP aparece na tela. (Os avisos de verdade usam
+`fail_silently`, para um SMTP fora do ar não derrubar a página: por isso o teste é direto.)
